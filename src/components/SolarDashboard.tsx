@@ -132,13 +132,13 @@ export function SolarDashboard() {
 
         {/* Main Navigation Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <div className="bg-card rounded-lg p-6 shadow-card min-h-[120px]">
-            <TabsList className="grid w-full grid-cols-5 bg-muted/50">
+          <div className="bg-card rounded-lg p-4 shadow-card">
+            <TabsList className="grid w-full grid-cols-5 bg-muted/50 h-auto">
               {navigationTabs.map((tab) => (
                 <TabsTrigger 
                   key={tab.id} 
                   value={tab.id}
-                  className="flex flex-col items-center gap-2 py-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-solar"
+                  className="flex flex-col items-center gap-2 py-3 px-2 h-auto data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-solar"
                 >
                   <tab.icon className="h-5 w-5" />
                   <div className="text-center">
