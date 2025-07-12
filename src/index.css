@@ -2,41 +2,70 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Solar Energy Design System - Cores temáticas inspiradas em energia solar */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Background and surface colors */
+    --background: 210 17% 98%;
+    --foreground: 210 11% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 210 11% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 210 11% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Solar-themed primary colors */
+    --primary: 145 84% 21%;           /* Verde solar profundo */
+    --primary-foreground: 0 0% 98%;
+    --primary-glow: 145 75% 35%;      /* Verde mais claro para efeitos */
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary - tons de azul para energia */
+    --secondary: 217 91% 60%;         /* Azul energia */
+    --secondary-foreground: 0 0% 98%;
+    --secondary-glow: 217 91% 75%;
 
-    --muted: 210 40% 96.1%;
+    /* Accent - dourado solar */
+    --accent: 45 93% 58%;             /* Dourado solar */
+    --accent-foreground: 210 11% 15%;
+    --accent-glow: 45 93% 70%;
+
+    /* Success - verde claro */
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 98%;
+
+    /* Warning - laranja */
+    --warning: 25 95% 53%;
+    --warning-foreground: 0 0% 98%;
+
+    --muted: 210 40% 96%;
     --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --ring: 145 84% 21%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
+
+    /* Gradients */
+    --gradient-solar: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+    --gradient-energy: linear-gradient(135deg, hsl(var(--secondary)), hsl(var(--primary)));
+    --gradient-hero: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-glow)) 50%, hsl(var(--accent)) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(210 17% 98%) 100%);
+    
+    /* Shadows */
+    --shadow-solar: 0 10px 40px -10px hsl(var(--primary) / 0.3);
+    --shadow-energy: 0 10px 40px -10px hsl(var(--secondary) / 0.3);
+    --shadow-glow: 0 0 60px hsl(var(--accent) / 0.4);
+    --shadow-card: 0 4px 20px -2px hsl(210 11% 15% / 0.08);
+
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
     --sidebar-background: 0 0% 98%;
 
