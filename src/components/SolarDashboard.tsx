@@ -132,7 +132,7 @@ export function SolarDashboard() {
 
         {/* Main Navigation Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <div className="bg-card rounded-lg p-6 shadow-card">
+          <div className="bg-card rounded-lg p-6 shadow-card min-h-[120px]">
             <TabsList className="grid w-full grid-cols-5 bg-muted/50">
               {navigationTabs.map((tab) => (
                 <TabsTrigger 
