@@ -26,10 +26,45 @@ import { TechnicalSimulation } from "./TechnicalSimulation";
 import { FinancialAnalysis } from "./FinancialAnalysis";
 import { ProposalGenerator } from "./ProposalGenerator";
 import { SettingsModal } from "./SettingsModal";
+import { SelectedLeadBreadcrumb } from "./SelectedLeadBreadcrumb";
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export function SolarDashboard() {
   const [currentLead, setCurrentLead] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("lead-data");
+
+  // Verificar se há um lead selecionado ao carregar o dashboard
+  useEffect(() => {
+    const savedLeadId = localStorage.getItem('selectedLeadId');
+    if (savedLeadId && !currentLead) {
+      loadSelectedLead(savedLeadId);
+    }
+  }, []);
+
+  const loadSelectedLead = async (leadId: string) => {
+    try {
+      const { data: lead, error } = await supabase
+        .from('leads')
+        .select('*')
+        .eq('id', leadId)
+        .single();
+
+      if (error) throw error;
+      if (lead) {
+        setCurrentLead(lead);
+      }
+    } catch (error) {
+      console.error('Error loading selected lead:', error);
+      localStorage.removeItem('selectedLeadId');
+    }
+  };
+
+  const handleClearLeadSelection = () => {
+    setCurrentLead(null);
+    localStorage.removeItem('selectedLeadId');
+    setActiveTab("lead-data");
+  };
   const { profile, company, signOut, hasPermission } = useAuth();
   const { logSuspiciousActivity } = useSecurityAudit();
 
@@ -199,6 +234,14 @@ export function SolarDashboard() {
           ))}
         </div>
 
+        {/* Lead selecionado - breadcrumb global */}
+        {currentLead && activeTab !== "lead-data" && (
+          <SelectedLeadBreadcrumb 
+            leadName={currentLead.name}
+            onClearSelection={handleClearLeadSelection}
+          />
+        )}
+
         {/* Main Navigation Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <div className="bg-card rounded-lg p-4 shadow-card">
@@ -229,22 +272,82 @@ export function SolarDashboard() {
           )}
 
           <TabsContent value="consumption">
-            <ConsumptionCalculator currentLead={currentLead} />
+            {!currentLead ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Nenhum lead selecionado</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Selecione um lead na aba "Dados do Lead" para usar a calculadora
+                  </p>
+                  <Button onClick={() => setActiveTab("lead-data")}>
+                    Ir para Dados do Lead
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <ConsumptionCalculator currentLead={currentLead} />
+            )}
           </TabsContent>
 
           {hasPermission('technical_simulations') && (
             <TabsContent value="simulation">
-              <TechnicalSimulation currentLead={currentLead} />
+              {!currentLead ? (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Nenhum lead selecionado</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Selecione um lead na aba "Dados do Lead" para fazer a simulação
+                    </p>
+                    <Button onClick={() => setActiveTab("lead-data")}>
+                      Ir para Dados do Lead
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <TechnicalSimulation currentLead={currentLead} />
+              )}
             </TabsContent>
           )}
 
           <TabsContent value="financial">
-            <FinancialAnalysis currentLead={currentLead} />
+            {!currentLead ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Nenhum lead selecionado</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Selecione um lead na aba "Dados do Lead" para fazer a análise financeira
+                  </p>
+                  <Button onClick={() => setActiveTab("lead-data")}>
+                    Ir para Dados do Lead
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <FinancialAnalysis currentLead={currentLead} />
+            )}
           </TabsContent>
 
           {hasPermission('generate_proposals') && (
             <TabsContent value="proposal">
-              <ProposalGenerator currentLead={currentLead} />
+              {!currentLead ? (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Nenhum lead selecionado</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Selecione um lead na aba "Dados do Lead" para gerar uma proposta
+                    </p>
+                    <Button onClick={() => setActiveTab("lead-data")}>
+                      Ir para Dados do Lead
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <ProposalGenerator currentLead={currentLead} />
+              )}
             </TabsContent>
           )}
         </Tabs>

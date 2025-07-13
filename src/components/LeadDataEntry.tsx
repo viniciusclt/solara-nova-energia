@@ -7,7 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Download, Upload, MapPin, User, Building, Zap } from "lucide-react";
+import { Download, Upload, MapPin, User, Building, Zap, ArrowLeft, List } from "lucide-react";
+import { LeadList } from "./LeadList";
+import { SelectedLeadBreadcrumb } from "./SelectedLeadBreadcrumb";
 import { useToast } from "@/hooks/use-toast";
 import { 
   validateEmail, 
@@ -92,12 +94,123 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [showLeadList, setShowLeadList] = useState(!currentLead);
 
   useEffect(() => {
     if (currentLead) {
       setLeadData(currentLead);
+      setShowLeadList(false);
     }
   }, [currentLead]);
+
+  useEffect(() => {
+    // Verificar se há um lead selecionado no localStorage
+    const savedLeadId = localStorage.getItem('selectedLeadId');
+    if (savedLeadId && !currentLead) {
+      loadLeadById(savedLeadId);
+    }
+  }, []);
+
+  const loadLeadById = async (leadId: string) => {
+    try {
+      const { data: lead, error } = await supabase
+        .from('leads')
+        .select('*')
+        .eq('id', leadId)
+        .single();
+
+      if (error) throw error;
+
+      if (lead) {
+        const formattedLead = formatLeadFromDB(lead);
+        setLeadData(formattedLead);
+        onLeadUpdate(formattedLead);
+        setShowLeadList(false);
+      }
+    } catch (error) {
+      console.error('Error loading lead:', error);
+      localStorage.removeItem('selectedLeadId');
+    }
+  };
+
+  const formatLeadFromDB = (dbLead: any): LeadData => {
+    return {
+      id: dbLead.id,
+      name: dbLead.name || "",
+      cpfCnpj: dbLead.cpf_cnpj || "",
+      rg: dbLead.rg || "",
+      birthDate: dbLead.birth_date || "",
+      email: dbLead.email || "",
+      phone: dbLead.phone || "",
+      address: dbLead.address || {
+        state: "RJ",
+        city: "",
+        neighborhood: "",
+        cep: "",
+        street: "",
+        number: "",
+      },
+      concessionaria: dbLead.concessionaria || "",
+      grupo: dbLead.grupo || "",
+      tipoFornecimento: dbLead.tipo_fornecimento || "",
+      cdd: dbLead.cdd || 0,
+      tensaoAlimentacao: dbLead.tensao_alimentacao || "",
+      modalidadeTarifaria: dbLead.modalidade_tarifaria || "",
+      numeroCliente: dbLead.numero_cliente || "",
+      numeroInstalacao: dbLead.numero_instalacao || "",
+      consumoMensal: dbLead.consumo_mensal || new Array(12).fill(0),
+      consumoMedio: dbLead.consumo_medio || 0,
+      incrementoConsumo: dbLead.incremento_consumo || 0,
+      comentarios: dbLead.comentarios || ""
+    };
+  };
+
+  const handleLeadSelect = (lead: any) => {
+    const formattedLead = formatLeadFromDB(lead);
+    setLeadData(formattedLead);
+    onLeadUpdate(formattedLead);
+    setShowLeadList(false);
+  };
+
+  const handleNewLead = () => {
+    const emptyLead: LeadData = {
+      name: "",
+      cpfCnpj: "",
+      rg: "",
+      birthDate: "",
+      email: "",
+      phone: "",
+      address: {
+        state: "RJ",
+        city: "",
+        neighborhood: "",
+        cep: "",
+        street: "",
+        number: "",
+      },
+      concessionaria: "",
+      grupo: "",
+      tipoFornecimento: "",
+      cdd: 0,
+      tensaoAlimentacao: "",
+      modalidadeTarifaria: "",
+      numeroCliente: "",
+      numeroInstalacao: "",
+      consumoMensal: new Array(12).fill(0),
+      consumoMedio: 0,
+      incrementoConsumo: 0,
+      comentarios: ""
+    };
+    
+    setLeadData(emptyLead);
+    onLeadUpdate(emptyLead);
+    setShowLeadList(false);
+    localStorage.removeItem('selectedLeadId');
+  };
+
+  const handleBackToList = () => {
+    setShowLeadList(true);
+  };
 
   const handleInputChange = (field: string, value: any) => {
     // Sanitize string inputs
@@ -315,15 +428,80 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
     }
   };
 
-  const salvarLead = () => {
-    // Log data export for security audit
-    logDataExport('lead_data', 1);
-    
-    onLeadUpdate(leadData);
-    toast({
-      title: "Lead Salvo",
-      description: "Dados do lead salvos com sucesso!"
-    });
+  const salvarLead = async () => {
+    try {
+      // Log data export for security audit
+      logDataExport('lead_data', 1);
+      
+      const leadToSave = {
+        name: leadData.name,
+        cpf_cnpj: leadData.cpfCnpj,
+        rg: leadData.rg,
+        birth_date: leadData.birthDate,
+        email: leadData.email,
+        phone: leadData.phone,
+        address: leadData.address,
+        concessionaria: leadData.concessionaria,
+        grupo: leadData.grupo,
+        tipo_fornecimento: leadData.tipoFornecimento,
+        cdd: leadData.cdd,
+        tensao_alimentacao: leadData.tensaoAlimentacao,
+        modalidade_tarifaria: leadData.modalidadeTarifaria,
+        numero_cliente: leadData.numeroCliente,
+        numero_instalacao: leadData.numeroInstalacao,
+        consumo_mensal: leadData.consumoMensal,
+        consumo_medio: leadData.consumoMedio,
+        incremento_consumo: leadData.incrementoConsumo,
+        comentarios: leadData.comentarios,
+        user_id: leadData.id ? undefined : await supabase.auth.getUser().then(res => res.data.user?.id),
+        company_id: await supabase.auth.getUser().then(res => res.data.user?.id).then(async userId => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('company_id')
+            .eq('id', userId)
+            .single();
+          return profile?.company_id;
+        })
+      };
+
+      let result;
+      if (leadData.id) {
+        // Atualizar lead existente
+        result = await supabase
+          .from('leads')
+          .update(leadToSave)
+          .eq('id', leadData.id)
+          .select()
+          .single();
+      } else {
+        // Criar novo lead
+        result = await supabase
+          .from('leads')
+          .insert(leadToSave)
+          .select()
+          .single();
+      }
+
+      if (result.error) throw result.error;
+
+      // Atualizar o estado local com o ID do lead salvo
+      const savedLead = { ...leadData, id: result.data.id };
+      setLeadData(savedLead);
+      onLeadUpdate(savedLead);
+      localStorage.setItem('selectedLeadId', result.data.id);
+
+      toast({
+        title: "Lead Salvo",
+        description: "Dados do lead salvos com sucesso!"
+      });
+    } catch (error) {
+      console.error('Error saving lead:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao salvar lead",
+        variant: "destructive"
+      });
+    }
   };
 
   const meses = [
@@ -331,8 +509,37 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
     "Jul", "Ago", "Set", "Out", "Nov", "Dez"
   ];
 
+  // Se deve mostrar a lista de leads
+  if (showLeadList) {
+    return (
+      <div className="space-y-6">
+        <LeadList 
+          onLeadSelect={handleLeadSelect}
+          selectedLeadId={leadData.id || null}
+          onNewLead={handleNewLead}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {/* Breadcrumb do lead selecionado */}
+      <div className="flex items-center justify-between">
+        <SelectedLeadBreadcrumb 
+          leadName={leadData.name || null}
+          onClearSelection={handleBackToList}
+        />
+        <Button 
+          variant="outline" 
+          onClick={handleBackToList}
+          className="flex items-center gap-2"
+        >
+          <List className="h-4 w-4" />
+          Ver Lista de Leads
+        </Button>
+      </div>
+
       {/* Header com ações */}
       <Card className="shadow-card">
         <CardHeader>
