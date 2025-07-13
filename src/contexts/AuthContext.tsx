@@ -117,10 +117,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           user_id: userId,
           action: 'login',
           details: { timestamp: new Date().toISOString() }
-        });
+         });
+
+      // Sempre define loading como false ao final
+      setLoading(false);
 
     } catch (error) {
-      // Secure error handling - avoid exposing internal details
+      console.error('Erro ao buscar perfil:', error);
+      // Se falhar, ainda assim define loading como false para evitar tela branca
+      setProfile(null);
+      setCompany(null);
+      setIsSubscriptionActive(false);
+      setLoading(false);
     }
   };
 
@@ -132,13 +140,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          await fetchProfile(session.user.id);
+          // Usar setTimeout para evitar problemas de recursão
+          setTimeout(() => {
+            fetchProfile(session.user.id);
+          }, 0);
         } else {
           setProfile(null);
           setCompany(null);
           setIsSubscriptionActive(false);
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
@@ -147,7 +158,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
+        setTimeout(() => {
+          fetchProfile(session.user.id);
+        }, 0);
       } else {
         setLoading(false);
       }

@@ -32,8 +32,28 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
-  if (!user || !profile) {
+  if (!user) {
     return null;
+  }
+
+  if (!profile && !loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen p-4">
+        <Alert className="max-w-md">
+          <AlertDescription>
+            Erro ao carregar perfil do usuário. Tente fazer logout e login novamente.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
 
   // Check access level requirement
