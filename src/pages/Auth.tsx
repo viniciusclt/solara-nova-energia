@@ -185,7 +185,7 @@ export default function Auth() {
                     password: e.target.value
                   }))} required />
                     <button type="button" className="absolute right-3 top-3 h-4 w-4 text-muted-foreground hover:text-foreground" onClick={() => setShowLoginPassword(!showLoginPassword)}>
-                      {showLoginPassword ? <EyeOff className="h-4 w-4 px-px mx-[31px]" /> : <Eye className="h-4 w-4" />}
+                      {showLoginPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                   {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}

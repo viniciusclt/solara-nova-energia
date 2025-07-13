@@ -68,9 +68,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (profileError) throw profileError;
+      
+      if (!profileData) {
+        console.warn('Perfil não encontrado para o usuário');
+        setProfile(null);
+        setLoading(false);
+        return;
+      }
+      
       setProfile(profileData);
 
       if (profileData.company_id) {
@@ -78,7 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .from('companies')
           .select('*')
           .eq('id', profileData.company_id)
-          .single();
+          .maybeSingle();
         
         setCompany(companyData);
 
@@ -87,7 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .from('subscriptions')
           .select('status, end_date')
           .eq('company_id', profileData.company_id)
-          .single();
+          .maybeSingle();
 
         if (subscriptionData) {
           const isActive = (subscriptionData.status === 'ativa' || subscriptionData.status === 'gratuita') &&
