@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Mail, Lock, User } from 'lucide-react';
+import { Loader2, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { validateEmail, validatePassword, validateName, checkRateLimit } from '@/lib/validation';
 
@@ -18,6 +18,9 @@ export default function Auth() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [attemptCount, setAttemptCount] = useState(0);
   const [lastAttemptTime, setLastAttemptTime] = useState<number>(0);
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -174,13 +177,20 @@ export default function Auth() {
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="login-password"
-                      type="password"
+                      type={showLoginPassword ? "text" : "password"}
                       placeholder="Sua senha"
-                      className="pl-10"
+                      className="pl-10 pr-10"
                       value={loginForm.password}
                       onChange={(e) => setLoginForm(prev => ({ ...prev, password: e.target.value }))}
                       required
                     />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-3 h-4 w-4 text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowLoginPassword(!showLoginPassword)}
+                    >
+                      {showLoginPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
                   {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
                 </div>
@@ -246,13 +256,20 @@ export default function Auth() {
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="signup-password"
-                      type="password"
+                      type={showSignupPassword ? "text" : "password"}
                       placeholder="Mínimo 8 caracteres"
-                      className="pl-10"
+                      className="pl-10 pr-10"
                       value={signupForm.password}
                       onChange={(e) => setSignupForm(prev => ({ ...prev, password: e.target.value }))}
                       required
                     />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-3 h-4 w-4 text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowSignupPassword(!showSignupPassword)}
+                    >
+                      {showSignupPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
                   {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
                 </div>
@@ -263,13 +280,20 @@ export default function Auth() {
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="signup-confirm"
-                      type="password"
+                      type={showConfirmPassword ? "text" : "password"}
                       placeholder="Confirme sua senha"
-                      className="pl-10"
+                      className="pl-10 pr-10"
                       value={signupForm.confirmPassword}
                       onChange={(e) => setSignupForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
                       required
                     />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-3 h-4 w-4 text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
                   {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword}</p>}
                 </div>
