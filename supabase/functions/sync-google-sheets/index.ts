@@ -18,7 +18,11 @@ interface GoogleSheetsSettings {
     phone: string;
     cpfCnpj: string;
     address: string;
+    concessionaria: string;
+    tipoFornecimento: string;
+    grupo: string;
     consumoMedio: string;
+    incrementoConsumo: string;
   };
 }
 
@@ -244,6 +248,13 @@ function processRow(row: any[], settings: GoogleSheetsSettings, userId: string, 
     throw new Error('Name is required');
   }
 
+  // Get values with fallbacks
+  const concessionaria = getValue(settings.columnMapping.concessionaria) || 'Light';
+  const grupo = getValue(settings.columnMapping.grupo) || 'B1';
+  const tipoFornecimento = getValue(settings.columnMapping.tipoFornecimento) || 'Monofásico';
+  const consumoMedio = parseFloat(getValue(settings.columnMapping.consumoMedio)) || 0;
+  const incrementoConsumo = parseFloat(getValue(settings.columnMapping.incrementoConsumo)) || 0;
+
   return {
     user_id: userId,
     company_id: companyId,
@@ -259,20 +270,20 @@ function processRow(row: any[], settings: GoogleSheetsSettings, userId: string, 
       neighborhood: '',
       number: ''
     },
-    consumo_medio: parseFloat(getValue(settings.columnMapping.consumoMedio)) || 0,
+    consumo_medio: consumoMedio,
+    incremento_consumo: incrementoConsumo,
     source: 'google_sheets',
     source_ref: settings.spreadsheetUrl,
-    // Default values for required fields
-    concessionaria: 'Light',
-    grupo: 'B1',
-    tipo_fornecimento: 'Monofásico',
+    // Use mapped values or defaults
+    concessionaria: concessionaria,
+    grupo: grupo,
+    tipo_fornecimento: tipoFornecimento,
     cdd: 0,
     tensao_alimentacao: '220V',
     modalidade_tarifaria: 'Convencional',
     numero_cliente: '',
     numero_instalacao: '',
     consumo_mensal: Array(12).fill(0),
-    incremento_consumo: 0,
     comentarios: 'Importado do Google Sheets'
   };
 }

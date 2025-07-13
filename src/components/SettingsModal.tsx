@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Settings, Sheet, RefreshCw, History, AlertCircle, CheckCircle2, Clock } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Settings, Sheet, RefreshCw, History, AlertCircle, CheckCircle2, Clock, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,8 +25,17 @@ interface GoogleSheetsSettings {
     phone: string;
     cpfCnpj: string;
     address: string;
+    concessionaria: string;
+    tipoFornecimento: string;
+    grupo: string;
     consumoMedio: string;
+    incrementoConsumo: string;
   };
+}
+
+interface SheetColumn {
+  letter: string;
+  header: string;
 }
 
 interface ImportLog {
@@ -61,9 +71,16 @@ export const SettingsModal: React.FC = () => {
       phone: "C",
       cpfCnpj: "D",
       address: "E",
-      consumoMedio: "F"
+      concessionaria: "F",
+      tipoFornecimento: "G",
+      grupo: "H",
+      consumoMedio: "I",
+      incrementoConsumo: "J"
     }
   });
+
+  const [availableColumns, setAvailableColumns] = useState<SheetColumn[]>([]);
+  const [isDetectingHeaders, setIsDetectingHeaders] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -268,6 +285,149 @@ export const SettingsModal: React.FC = () => {
     }
   };
 
+  const extractSpreadsheetId = (url: string): string | null => {
+    const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+    return match ? match[1] : null;
+  };
+
+  const columnLetterToIndex = (letter: string): number => {
+    let index = 0;
+    for (let i = 0; i < letter.length; i++) {
+      index = index * 26 + (letter.charCodeAt(i) - 64);
+    }
+    return index - 1;
+  };
+
+  const columnIndexToLetter = (index: number): string => {
+    let letter = '';
+    while (index >= 0) {
+      letter = String.fromCharCode((index % 26) + 65) + letter;
+      index = Math.floor(index / 26) - 1;
+    }
+    return letter;
+  };
+
+  const detectHeaders = async () => {
+    if (!googleSheetsSettings.spreadsheetUrl || !googleSheetsSettings.sheetName) {
+      toast({
+        title: "Dados Necessários",
+        description: "Configure a URL da planilha e nome da aba antes de detectar headers.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const spreadsheetId = extractSpreadsheetId(googleSheetsSettings.spreadsheetUrl);
+    if (!spreadsheetId) {
+      toast({
+        title: "URL Inválida",
+        description: "A URL da planilha não é válida.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsDetectingHeaders(true);
+    try {
+      // Get API key from database
+      const { data: apiKeyData } = await supabase
+        .from('integration_settings')
+        .select('*')
+        .eq('integration_type', 'google_api')
+        .single();
+
+      if (!apiKeyData?.settings || !(apiKeyData.settings as any).api_key) {
+        toast({
+          title: "API Key Necessária",
+          description: "Configure sua Google API Key antes de detectar headers.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const apiKey = (apiKeyData.settings as any).api_key;
+      const range = `${googleSheetsSettings.sheetName}!1:1`;
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${apiKey}`;
+
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error.message || 'Erro ao acessar a planilha');
+      }
+
+      if (data.values && data.values[0]) {
+        const headers = data.values[0];
+        const columns: SheetColumn[] = headers.map((header: string, index: number) => ({
+          letter: columnIndexToLetter(index),
+          header: header || `Coluna ${columnIndexToLetter(index)}`
+        }));
+
+        setAvailableColumns(columns);
+        
+        // Auto-match headers
+        autoMatchColumns(columns);
+
+        toast({
+          title: "Headers Detectados",
+          description: `${headers.length} colunas encontradas e mapeamento automático aplicado.`
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Erro ao Detectar Headers",
+        description: error.message || "Verifique a URL, API Key e permissões da planilha.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDetectingHeaders(false);
+    }
+  };
+
+  const autoMatchColumns = (columns: SheetColumn[]) => {
+    const fieldMatchers: Record<string, string[]> = {
+      name: ['nome', 'name', 'cliente', 'lead', 'contato'],
+      email: ['email', 'e-mail', 'correio', 'mail'],
+      phone: ['telefone', 'phone', 'celular', 'tel', 'fone', 'contato'],
+      cpfCnpj: ['cpf', 'cnpj', 'documento', 'doc', 'cpf/cnpj'],
+      address: ['endereço', 'endereco', 'address', 'rua', 'local'],
+      concessionaria: ['concessionária', 'concessionaria', 'distribuidora', 'empresa'],
+      tipoFornecimento: ['tipo', 'fornecimento', 'monofásico', 'bifásico', 'trifásico', 'fase'],
+      grupo: ['grupo', 'subgrupo', 'classe', 'categoria', 'b1', 'b3'],
+      consumoMedio: ['consumo', 'kwh', 'energia', 'gasto', 'média', 'medio'],
+      incrementoConsumo: ['incremento', 'aumento', 'crescimento', 'variação', 'variacao']
+    };
+
+    const newMapping = { ...googleSheetsSettings.columnMapping };
+
+    Object.entries(fieldMatchers).forEach(([field, keywords]) => {
+      const matchedColumn = columns.find(col => 
+        keywords.some(keyword => 
+          col.header.toLowerCase().includes(keyword.toLowerCase())
+        )
+      );
+      
+      if (matchedColumn) {
+        newMapping[field as keyof typeof newMapping] = matchedColumn.letter;
+      }
+    });
+
+    setGoogleSheetsSettings(prev => ({
+      ...prev,
+      columnMapping: newMapping
+    }));
+  };
+
+  const updateColumnMapping = (field: string, columnLetter: string) => {
+    setGoogleSheetsSettings(prev => ({
+      ...prev,
+      columnMapping: {
+        ...prev.columnMapping,
+        [field]: columnLetter
+      }
+    }));
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
@@ -341,58 +501,320 @@ export const SettingsModal: React.FC = () => {
                   />
                 </div>
 
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={detectHeaders}
+                    disabled={isDetectingHeaders || !googleSheetsSettings.spreadsheetUrl || !googleSheetsSettings.sheetName}
+                  >
+                    <Search className={`h-4 w-4 ${isDetectingHeaders ? 'animate-spin' : ''}`} />
+                    {isDetectingHeaders ? "Detectando..." : "Detectar Headers"}
+                  </Button>
+                  {availableColumns.length > 0 && (
+                    <Badge variant="secondary" className="ml-auto">
+                      {availableColumns.length} colunas detectadas
+                    </Badge>
+                  )}
+                </div>
+
                 <Separator />
 
                 <div className="space-y-4">
                   <Label className="text-base font-medium">Mapeamento de Colunas</Label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="col-name">Nome (Coluna)</Label>
-                      <Input
-                        id="col-name"
-                        placeholder="A"
-                        value={googleSheetsSettings.columnMapping.name}
-                        onChange={(e) => setGoogleSheetsSettings(prev => ({
-                          ...prev,
-                          columnMapping: { ...prev.columnMapping, name: e.target.value }
-                        }))}
-                      />
+                  {availableColumns.length === 0 && (
+                    <div className="text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg border-dashed border">
+                      Use o botão "Detectar Headers" para carregar automaticamente as colunas da planilha e facilitar o mapeamento.
                     </div>
-                    <div>
-                      <Label htmlFor="col-email">Email (Coluna)</Label>
-                      <Input
-                        id="col-email"
-                        placeholder="B"
-                        value={googleSheetsSettings.columnMapping.email}
-                        onChange={(e) => setGoogleSheetsSettings(prev => ({
-                          ...prev,
-                          columnMapping: { ...prev.columnMapping, email: e.target.value }
-                        }))}
-                      />
+                  )}
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Nome */}
+                    <div className="space-y-2">
+                      <Label>Nome <span className="text-destructive">*</span></Label>
+                      {availableColumns.length > 0 ? (
+                        <Select 
+                          value={googleSheetsSettings.columnMapping.name} 
+                          onValueChange={(value) => updateColumnMapping('name', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione a coluna" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableColumns.map((col) => (
+                              <SelectItem key={col.letter} value={col.letter}>
+                                {col.letter}: {col.header}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input
+                          placeholder="A"
+                          value={googleSheetsSettings.columnMapping.name}
+                          onChange={(e) => updateColumnMapping('name', e.target.value)}
+                        />
+                      )}
                     </div>
-                    <div>
-                      <Label htmlFor="col-phone">Telefone (Coluna)</Label>
-                      <Input
-                        id="col-phone"
-                        placeholder="C"
-                        value={googleSheetsSettings.columnMapping.phone}
-                        onChange={(e) => setGoogleSheetsSettings(prev => ({
-                          ...prev,
-                          columnMapping: { ...prev.columnMapping, phone: e.target.value }
-                        }))}
-                      />
+
+                    {/* Email */}
+                    <div className="space-y-2">
+                      <Label>Email</Label>
+                      {availableColumns.length > 0 ? (
+                        <Select 
+                          value={googleSheetsSettings.columnMapping.email} 
+                          onValueChange={(value) => updateColumnMapping('email', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione a coluna" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Não mapear</SelectItem>
+                            {availableColumns.map((col) => (
+                              <SelectItem key={col.letter} value={col.letter}>
+                                {col.letter}: {col.header}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input
+                          placeholder="B"
+                          value={googleSheetsSettings.columnMapping.email}
+                          onChange={(e) => updateColumnMapping('email', e.target.value)}
+                        />
+                      )}
                     </div>
-                    <div>
-                      <Label htmlFor="col-cpf">CPF/CNPJ (Coluna)</Label>
-                      <Input
-                        id="col-cpf"
-                        placeholder="D"
-                        value={googleSheetsSettings.columnMapping.cpfCnpj}
-                        onChange={(e) => setGoogleSheetsSettings(prev => ({
-                          ...prev,
-                          columnMapping: { ...prev.columnMapping, cpfCnpj: e.target.value }
-                        }))}
-                      />
+
+                    {/* Telefone */}
+                    <div className="space-y-2">
+                      <Label>Telefone</Label>
+                      {availableColumns.length > 0 ? (
+                        <Select 
+                          value={googleSheetsSettings.columnMapping.phone} 
+                          onValueChange={(value) => updateColumnMapping('phone', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione a coluna" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Não mapear</SelectItem>
+                            {availableColumns.map((col) => (
+                              <SelectItem key={col.letter} value={col.letter}>
+                                {col.letter}: {col.header}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input
+                          placeholder="C"
+                          value={googleSheetsSettings.columnMapping.phone}
+                          onChange={(e) => updateColumnMapping('phone', e.target.value)}
+                        />
+                      )}
+                    </div>
+
+                    {/* CPF/CNPJ */}
+                    <div className="space-y-2">
+                      <Label>CPF/CNPJ</Label>
+                      {availableColumns.length > 0 ? (
+                        <Select 
+                          value={googleSheetsSettings.columnMapping.cpfCnpj} 
+                          onValueChange={(value) => updateColumnMapping('cpfCnpj', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione a coluna" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Não mapear</SelectItem>
+                            {availableColumns.map((col) => (
+                              <SelectItem key={col.letter} value={col.letter}>
+                                {col.letter}: {col.header}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input
+                          placeholder="D"
+                          value={googleSheetsSettings.columnMapping.cpfCnpj}
+                          onChange={(e) => updateColumnMapping('cpfCnpj', e.target.value)}
+                        />
+                      )}
+                    </div>
+
+                    {/* Endereço */}
+                    <div className="space-y-2">
+                      <Label>Endereço</Label>
+                      {availableColumns.length > 0 ? (
+                        <Select 
+                          value={googleSheetsSettings.columnMapping.address} 
+                          onValueChange={(value) => updateColumnMapping('address', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione a coluna" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Não mapear</SelectItem>
+                            {availableColumns.map((col) => (
+                              <SelectItem key={col.letter} value={col.letter}>
+                                {col.letter}: {col.header}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input
+                          placeholder="E"
+                          value={googleSheetsSettings.columnMapping.address}
+                          onChange={(e) => updateColumnMapping('address', e.target.value)}
+                        />
+                      )}
+                    </div>
+
+                    {/* Concessionária */}
+                    <div className="space-y-2">
+                      <Label>Concessionária</Label>
+                      {availableColumns.length > 0 ? (
+                        <Select 
+                          value={googleSheetsSettings.columnMapping.concessionaria} 
+                          onValueChange={(value) => updateColumnMapping('concessionaria', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione a coluna" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Não mapear</SelectItem>
+                            {availableColumns.map((col) => (
+                              <SelectItem key={col.letter} value={col.letter}>
+                                {col.letter}: {col.header}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input
+                          placeholder="F"
+                          value={googleSheetsSettings.columnMapping.concessionaria}
+                          onChange={(e) => updateColumnMapping('concessionaria', e.target.value)}
+                        />
+                      )}
+                    </div>
+
+                    {/* Tipo de Fornecimento */}
+                    <div className="space-y-2">
+                      <Label>Tipo de Fornecimento</Label>
+                      {availableColumns.length > 0 ? (
+                        <Select 
+                          value={googleSheetsSettings.columnMapping.tipoFornecimento} 
+                          onValueChange={(value) => updateColumnMapping('tipoFornecimento', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione a coluna" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Não mapear</SelectItem>
+                            {availableColumns.map((col) => (
+                              <SelectItem key={col.letter} value={col.letter}>
+                                {col.letter}: {col.header}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input
+                          placeholder="G"
+                          value={googleSheetsSettings.columnMapping.tipoFornecimento}
+                          onChange={(e) => updateColumnMapping('tipoFornecimento', e.target.value)}
+                        />
+                      )}
+                    </div>
+
+                    {/* Grupo/Subgrupo */}
+                    <div className="space-y-2">
+                      <Label>Grupo/Subgrupo</Label>
+                      {availableColumns.length > 0 ? (
+                        <Select 
+                          value={googleSheetsSettings.columnMapping.grupo} 
+                          onValueChange={(value) => updateColumnMapping('grupo', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione a coluna" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Não mapear</SelectItem>
+                            {availableColumns.map((col) => (
+                              <SelectItem key={col.letter} value={col.letter}>
+                                {col.letter}: {col.header}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input
+                          placeholder="H"
+                          value={googleSheetsSettings.columnMapping.grupo}
+                          onChange={(e) => updateColumnMapping('grupo', e.target.value)}
+                        />
+                      )}
+                    </div>
+
+                    {/* Consumo Médio */}
+                    <div className="space-y-2">
+                      <Label>Consumo Médio (kWh)</Label>
+                      {availableColumns.length > 0 ? (
+                        <Select 
+                          value={googleSheetsSettings.columnMapping.consumoMedio} 
+                          onValueChange={(value) => updateColumnMapping('consumoMedio', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione a coluna" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Não mapear</SelectItem>
+                            {availableColumns.map((col) => (
+                              <SelectItem key={col.letter} value={col.letter}>
+                                {col.letter}: {col.header}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input
+                          placeholder="I"
+                          value={googleSheetsSettings.columnMapping.consumoMedio}
+                          onChange={(e) => updateColumnMapping('consumoMedio', e.target.value)}
+                        />
+                      )}
+                    </div>
+
+                    {/* Incremento de Consumo */}
+                    <div className="space-y-2">
+                      <Label>Incremento de Consumo</Label>
+                      {availableColumns.length > 0 ? (
+                        <Select 
+                          value={googleSheetsSettings.columnMapping.incrementoConsumo} 
+                          onValueChange={(value) => updateColumnMapping('incrementoConsumo', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione a coluna" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Não mapear</SelectItem>
+                            {availableColumns.map((col) => (
+                              <SelectItem key={col.letter} value={col.letter}>
+                                {col.letter}: {col.header}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input
+                          placeholder="J"
+                          value={googleSheetsSettings.columnMapping.incrementoConsumo}
+                          onChange={(e) => updateColumnMapping('incrementoConsumo', e.target.value)}
+                        />
+                      )}
                     </div>
                   </div>
                 </div>
