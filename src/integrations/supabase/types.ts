@@ -170,8 +170,31 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      change_user_access_type: {
+        Args: {
+          target_user_id: string
+          new_access_type: Database["public"]["Enums"]["user_access_type"]
+        }
+        Returns: boolean
+      }
       check_user_subscription: {
         Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      log_security_event: {
+        Args: {
+          event_type: string
+          event_details?: Json
+          target_user_id?: string
+        }
+        Returns: undefined
+      }
+      validate_cnpj: {
+        Args: { cnpj: string }
+        Returns: boolean
+      }
+      validate_email: {
+        Args: { email: string }
         Returns: boolean
       }
     }

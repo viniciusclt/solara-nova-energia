@@ -9,12 +9,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Mail, Lock, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { validateEmail, validatePassword, validateName } from '@/lib/validation';
 
 export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [signupForm, setSignupForm] = useState({ email: '', password: '', name: '', confirmPassword: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [attemptCount, setAttemptCount] = useState(0);
+  const [lastAttemptTime, setLastAttemptTime] = useState<number>(0);
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -25,27 +28,40 @@ export default function Auth() {
     return null;
   }
 
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  const validatePassword = (password: string) => {
-    return password.length >= 8;
+  // Rate limiting: max 5 attempts per 10 minutes
+  const isRateLimited = () => {
+    const now = Date.now();
+    const tenMinutes = 10 * 60 * 1000;
+    
+    if (now - lastAttemptTime > tenMinutes) {
+      setAttemptCount(0);
+      return false;
+    }
+    
+    return attemptCount >= 5;
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check rate limiting
+    if (isRateLimited()) {
+      setErrors({ general: 'Muitas tentativas de login. Tente novamente em 10 minutos.' });
+      return;
+    }
+    
     setIsLoading(true);
     setErrors({});
 
-    // Validation
+    // Enhanced validation
     const newErrors: Record<string, string> = {};
     if (!validateEmail(loginForm.email)) {
       newErrors.email = 'Email inválido';
     }
-    if (!validatePassword(loginForm.password)) {
-      newErrors.password = 'Senha deve ter pelo menos 8 caracteres';
+    
+    const passwordValidation = validatePassword(loginForm.password);
+    if (!passwordValidation.isValid) {
+      newErrors.password = passwordValidation.message || 'Senha inválida';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -54,17 +70,18 @@ export default function Auth() {
       return;
     }
 
+    // Update attempt tracking
+    setAttemptCount(prev => prev + 1);
+    setLastAttemptTime(Date.now());
+
     const { error } = await signIn(loginForm.email, loginForm.password);
     
     if (error) {
-      if (error.message.includes('Invalid login credentials')) {
-        setErrors({ general: 'Credenciais inválidas' });
-      } else if (error.message.includes('Email not confirmed')) {
-        setErrors({ general: 'Email não confirmado. Verifique sua caixa de entrada.' });
-      } else {
-        setErrors({ general: error.message });
-      }
+      // Security: Use generic error messages
+      setErrors({ general: 'Credenciais inválidas' });
     } else {
+      // Reset attempt count on successful login
+      setAttemptCount(0);
       toast({
         title: "Login realizado com sucesso!",
         description: "Bem-vindo de volta.",
@@ -80,17 +97,27 @@ export default function Auth() {
     setIsLoading(true);
     setErrors({});
 
-    // Validation
+    // Enhanced validation
     const newErrors: Record<string, string> = {};
-    if (!signupForm.name.trim()) {
-      newErrors.name = 'Nome é obrigatório';
+    
+    // Name validation
+    const nameValidation = validateName(signupForm.name);
+    if (!nameValidation.isValid) {
+      newErrors.name = nameValidation.message || 'Nome inválido';
     }
+    
+    // Email validation
     if (!validateEmail(signupForm.email)) {
       newErrors.email = 'Email inválido';
     }
-    if (!validatePassword(signupForm.password)) {
-      newErrors.password = 'Senha deve ter pelo menos 8 caracteres';
+    
+    // Password validation
+    const passwordValidation = validatePassword(signupForm.password);
+    if (!passwordValidation.isValid) {
+      newErrors.password = passwordValidation.message || 'Senha inválida';
     }
+    
+    // Password confirmation
     if (signupForm.password !== signupForm.confirmPassword) {
       newErrors.confirmPassword = 'Senhas não coincidem';
     }
@@ -104,11 +131,8 @@ export default function Auth() {
     const { error } = await signUp(signupForm.email, signupForm.password, signupForm.name);
     
     if (error) {
-      if (error.message.includes('User already registered')) {
-        setErrors({ general: 'Email já cadastrado' });
-      } else {
-        setErrors({ general: error.message });
-      }
+      // Security: Use generic error messages
+      setErrors({ general: 'Erro ao criar conta. Tente novamente.' });
     } else {
       toast({
         title: "Cadastro realizado!",

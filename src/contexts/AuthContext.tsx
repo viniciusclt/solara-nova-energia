@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { validateEmail, validatePassword, validateName, sanitizeInput } from '@/lib/validation';
 
 export type UserAccessType = 'vendedor' | 'engenheiro' | 'admin' | 'super_admin';
 
@@ -149,49 +150,134 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
+      // Basic input validation
+      if (!email || !password) {
+        const error = new Error('Email e senha são obrigatórios');
+        return { error };
+      }
+
+      // Validate email format
+      const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+      if (!emailRegex.test(email)) {
+        const error = new Error('Formato de email inválido');
+        return { error };
+      }
+
       const { error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.toLowerCase().trim(),
         password,
       });
       
       if (error) {
+        // Security: Use generic error messages to prevent user enumeration
+        let secureMessage = "Credenciais inválidas";
+        
+        // Log failed login attempt - simplified for now
+        try {
+          await supabase
+            .from('audit_logs')
+            .insert({
+              user_id: user?.id || 'anonymous',
+              action: 'failed_login',
+              details: { 
+                email: email.toLowerCase().trim(),
+                timestamp: new Date().toISOString()
+              }
+            });
+        } catch {
+          // Fail silently for security logging
+        }
+
         toast({
           title: "Erro no login",
-          description: error.message,
+          description: secureMessage,
           variant: "destructive",
         });
       }
       
       return { error };
     } catch (error) {
-      return { error };
+      // Log unexpected errors
+      console.error('Login error:', error);
+      return { error: new Error('Erro interno. Tente novamente.') };
     }
   };
 
   const signUp = async (email: string, password: string, name: string) => {
     try {
+      // Input validation
+      if (!email || !password || !name) {
+        const error = new Error('Todos os campos são obrigatórios');
+        return { error };
+      }
+
+      // Validate email format
+      if (!validateEmail(email)) {
+        const error = new Error('Formato de email inválido');
+        return { error };
+      }
+
+      // Validate password strength
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.isValid) {
+        const error = new Error(passwordValidation.message);
+        return { error };
+      }
+
+      // Validate name
+      const nameValidation = validateName(name);
+      if (!nameValidation.isValid) {
+        const error = new Error(nameValidation.message);
+        return { error };
+      }
+
       const { error } = await supabase.auth.signUp({
-        email,
+        email: email.toLowerCase().trim(),
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/`,
           data: {
-            name,
+            name: sanitizeInput(name),
           },
         },
       });
       
       if (error) {
+        // Security: Use generic error messages
+        let secureMessage = "Erro ao criar conta. Tente novamente.";
+        
+        // Some specific errors we can show
+        if (error.message.includes('User already registered')) {
+          secureMessage = "Este email já está cadastrado";
+        }
+
         toast({
           title: "Erro no cadastro",
-          description: error.message,
+          description: secureMessage,
           variant: "destructive",
         });
+      } else {
+        // Log successful signup attempt
+        try {
+          await supabase
+            .from('audit_logs')
+            .insert({
+              user_id: user?.id || 'pending',
+              action: 'signup_attempt',
+              details: { 
+                email: email.toLowerCase().trim(),
+                timestamp: new Date().toISOString()
+              }
+            });
+        } catch {
+          // Fail silently for security logging
+        }
       }
       
       return { error };
     } catch (error) {
-      return { error };
+      console.error('Signup error:', error);
+      return { error: new Error('Erro interno. Tente novamente.') };
     }
   };
 
