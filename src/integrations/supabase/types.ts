@@ -14,16 +14,170 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          ip_address: unknown | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      companies: {
+        Row: {
+          address: string | null
+          cnpj: string
+          created_at: string
+          id: string
+          name: string
+          num_employees: number | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          cnpj: string
+          created_at?: string
+          id?: string
+          name: string
+          num_employees?: number | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          cnpj?: string
+          created_at?: string
+          id?: string
+          name?: string
+          num_employees?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          access_type: Database["public"]["Enums"]["user_access_type"]
+          company_id: string | null
+          created_at: string
+          email: string
+          id: string
+          last_login: string | null
+          name: string
+          two_factor_secret: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_type?: Database["public"]["Enums"]["user_access_type"]
+          company_id?: string | null
+          created_at?: string
+          email: string
+          id: string
+          last_login?: string | null
+          name: string
+          two_factor_secret?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_type?: Database["public"]["Enums"]["user_access_type"]
+          company_id?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          last_login?: string | null
+          name?: string
+          two_factor_secret?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          authorized_employees: number
+          company_id: string
+          created_at: string
+          end_date: string | null
+          id: string
+          is_free: boolean | null
+          monthly_value: number | null
+          start_date: string
+          status: Database["public"]["Enums"]["subscription_status"]
+          stripe_subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          authorized_employees?: number
+          company_id: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_free?: boolean | null
+          monthly_value?: number | null
+          start_date?: string
+          status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          authorized_employees?: number
+          company_id?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_free?: boolean | null
+          monthly_value?: number | null
+          start_date?: string
+          status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_user_subscription: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      subscription_status: "ativa" | "expirada" | "gratuita" | "cancelada"
+      user_access_type: "vendedor" | "engenheiro" | "admin" | "super_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +304,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      subscription_status: ["ativa", "expirada", "gratuita", "cancelada"],
+      user_access_type: ["vendedor", "engenheiro", "admin", "super_admin"],
+    },
   },
 } as const

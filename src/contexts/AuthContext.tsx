@@ -1,0 +1,244 @@
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+
+export type UserAccessType = 'vendedor' | 'engenheiro' | 'admin' | 'super_admin';
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  name: string;
+  access_type: UserAccessType;
+  company_id: string | null;
+  last_login: string | null;
+}
+
+export interface Company {
+  id: string;
+  name: string;
+  cnpj: string;
+  address: string | null;
+  num_employees: number;
+}
+
+interface AuthContextType {
+  user: User | null;
+  session: Session | null;
+  profile: UserProfile | null;
+  company: Company | null;
+  loading: boolean;
+  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, name: string) => Promise<{ error: any }>;
+  signOut: () => Promise<void>;
+  hasPermission: (action: string) => boolean;
+  isSubscriptionActive: boolean;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+const PERMISSIONS = {
+  vendedor: ['view_leads', 'generate_proposals', 'view_sales_dashboard'],
+  engenheiro: ['technical_simulations', 'edit_kits', 'view_climate_data', 'view_leads', 'generate_proposals'],
+  admin: ['manage_employees', 'view_reports', 'approve_budgets', 'view_leads', 'generate_proposals', 'technical_simulations'],
+  super_admin: ['all']
+};
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [company, setCompany] = useState<Company | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isSubscriptionActive, setIsSubscriptionActive] = useState(false);
+  const { toast } = useToast();
+
+  const fetchProfile = async (userId: string) => {
+    try {
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (profileError) throw profileError;
+      setProfile(profileData);
+
+      if (profileData.company_id) {
+        const { data: companyData } = await supabase
+          .from('companies')
+          .select('*')
+          .eq('id', profileData.company_id)
+          .single();
+        
+        setCompany(companyData);
+
+        // Check subscription status
+        const { data: subscriptionData } = await supabase
+          .from('subscriptions')
+          .select('status, end_date')
+          .eq('company_id', profileData.company_id)
+          .single();
+
+        if (subscriptionData) {
+          const isActive = (subscriptionData.status === 'ativa' || subscriptionData.status === 'gratuita') &&
+                          (!subscriptionData.end_date || new Date(subscriptionData.end_date) > new Date());
+          setIsSubscriptionActive(isActive);
+        }
+      }
+
+      // Update last login
+      await supabase
+        .from('profiles')
+        .update({ last_login: new Date().toISOString() })
+        .eq('id', userId);
+
+      // Log login action
+      await supabase
+        .from('audit_logs')
+        .insert({
+          user_id: userId,
+          action: 'login',
+          details: { timestamp: new Date().toISOString() }
+        });
+
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
+  };
+
+  useEffect(() => {
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        } else {
+          setProfile(null);
+          setCompany(null);
+          setIsSubscriptionActive(false);
+        }
+        setLoading(false);
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      } else {
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const signIn = async (email: string, password: string) => {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        toast({
+          title: "Erro no login",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+      
+      return { error };
+    } catch (error) {
+      return { error };
+    }
+  };
+
+  const signUp = async (email: string, password: string, name: string) => {
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            name,
+          },
+        },
+      });
+      
+      if (error) {
+        toast({
+          title: "Erro no cadastro",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+      
+      return { error };
+    } catch (error) {
+      return { error };
+    }
+  };
+
+  const signOut = async () => {
+    try {
+      if (user) {
+        await supabase
+          .from('audit_logs')
+          .insert({
+            user_id: user.id,
+            action: 'logout',
+            details: { timestamp: new Date().toISOString() }
+          });
+      }
+      
+      await supabase.auth.signOut();
+      setProfile(null);
+      setCompany(null);
+      setIsSubscriptionActive(false);
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  const hasPermission = (action: string): boolean => {
+    if (!profile) return false;
+    
+    const userPermissions = PERMISSIONS[profile.access_type];
+    return userPermissions.includes('all') || userPermissions.includes(action);
+  };
+
+  const value = {
+    user,
+    session,
+    profile,
+    company,
+    loading,
+    signIn,
+    signUp,
+    signOut,
+    hasPermission,
+    isSubscriptionActive,
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+};

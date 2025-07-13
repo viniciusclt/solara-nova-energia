@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
 import { 
   Sun, 
   Calculator, 
@@ -13,7 +14,9 @@ import {
   Users,
   BarChart3,
   Settings,
-  Download
+  Download,
+  LogOut,
+  User
 } from "lucide-react";
 import { LeadDataEntry } from "./LeadDataEntry";
 import { ConsumptionCalculator } from "./ConsumptionCalculator";
@@ -24,6 +27,27 @@ import { ProposalGenerator } from "./ProposalGenerator";
 export function SolarDashboard() {
   const [currentLead, setCurrentLead] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("lead-data");
+  const { profile, company, signOut, hasPermission } = useAuth();
+
+  const getAccessTypeLabel = (type: string) => {
+    const labels = {
+      vendedor: 'Vendedor',
+      engenheiro: 'Engenheiro', 
+      admin: 'Administrador',
+      super_admin: 'Super Admin'
+    };
+    return labels[type as keyof typeof labels] || type;
+  };
+
+  const getAccessTypeVariant = (type: string) => {
+    const variants = {
+      vendedor: 'default',
+      engenheiro: 'secondary',
+      admin: 'outline',
+      super_admin: 'destructive'
+    };
+    return variants[type as keyof typeof variants] as any || 'default';
+  };
 
   const dashboardStats = [
     {
@@ -57,12 +81,42 @@ export function SolarDashboard() {
   ];
 
   const navigationTabs = [
-    { id: "lead-data", label: "Dados do Lead", icon: Users, description: "Importar e gerenciar dados dos leads" },
-    { id: "consumption", label: "Calculadora", icon: Calculator, description: "Calcular incremento de consumo" },
-    { id: "simulation", label: "Simulação", icon: Sun, description: "Análise técnica do sistema" },
-    { id: "financial", label: "Financeiro", icon: TrendingUp, description: "Análise de retorno e financiamento" },
-    { id: "proposal", label: "Proposta", icon: FileText, description: "Gerar proposta comercial" }
-  ];
+    { 
+      id: "lead-data", 
+      label: "Dados do Lead", 
+      icon: Users, 
+      description: "Importar e gerenciar dados dos leads",
+      permission: "view_leads"
+    },
+    { 
+      id: "consumption", 
+      label: "Calculadora", 
+      icon: Calculator, 
+      description: "Calcular incremento de consumo",
+      permission: null
+    },
+    { 
+      id: "simulation", 
+      label: "Simulação", 
+      icon: Sun, 
+      description: "Análise técnica do sistema",
+      permission: "technical_simulations"
+    },
+    { 
+      id: "financial", 
+      label: "Financeiro", 
+      icon: TrendingUp, 
+      description: "Análise de retorno e financiamento",
+      permission: null
+    },
+    { 
+      id: "proposal", 
+      label: "Proposta", 
+      icon: FileText, 
+      description: "Gerar proposta comercial",
+      permission: "generate_proposals"
+    }
+  ].filter(tab => !tab.permission || hasPermission(tab.permission));
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/30">
@@ -87,13 +141,25 @@ export function SolarDashboard() {
             </div>
             
             <div className="flex items-center gap-4">
+              <div className="text-right">
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  <span className="font-medium">{profile?.name}</span>
+                  <Badge variant={getAccessTypeVariant(profile?.access_type || '')}>
+                    {getAccessTypeLabel(profile?.access_type || '')}
+                  </Badge>
+                </div>
+                {company && (
+                  <p className="text-sm text-muted-foreground">{company.name}</p>
+                )}
+              </div>
               <Button variant="outline" size="sm">
                 <Settings className="h-4 w-4" />
                 Configurações
               </Button>
-              <Button variant="gradient" size="sm">
-                <Download className="h-4 w-4" />
-                Exportar Dados
+              <Button variant="outline" size="sm" onClick={signOut}>
+                <LogOut className="h-4 w-4" />
+                Sair
               </Button>
             </div>
           </div>
@@ -153,25 +219,31 @@ export function SolarDashboard() {
           </div>
 
           {/* Tab Contents */}
-          <TabsContent value="lead-data">
-            <LeadDataEntry currentLead={currentLead} onLeadUpdate={setCurrentLead} />
-          </TabsContent>
+          {hasPermission('view_leads') && (
+            <TabsContent value="lead-data">
+              <LeadDataEntry currentLead={currentLead} onLeadUpdate={setCurrentLead} />
+            </TabsContent>
+          )}
 
           <TabsContent value="consumption">
             <ConsumptionCalculator currentLead={currentLead} />
           </TabsContent>
 
-          <TabsContent value="simulation">
-            <TechnicalSimulation currentLead={currentLead} />
-          </TabsContent>
+          {hasPermission('technical_simulations') && (
+            <TabsContent value="simulation">
+              <TechnicalSimulation currentLead={currentLead} />
+            </TabsContent>
+          )}
 
           <TabsContent value="financial">
             <FinancialAnalysis currentLead={currentLead} />
           </TabsContent>
 
-          <TabsContent value="proposal">
-            <ProposalGenerator currentLead={currentLead} />
-          </TabsContent>
+          {hasPermission('generate_proposals') && (
+            <TabsContent value="proposal">
+              <ProposalGenerator currentLead={currentLead} />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </div>
