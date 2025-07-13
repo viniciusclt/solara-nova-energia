@@ -445,6 +445,21 @@ export function SettingsModal() {
                   <Label>Tipo de Acesso</Label>
                   <Badge variant="outline">{profile?.access_type}</Badge>
                 </div>
+                
+                <Separator />
+                
+                <div className="space-y-4">
+                  <Label className="text-base font-medium">API Keys</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="google-api-key">Google API Key</Label>
+                    <div className="text-sm text-muted-foreground mb-2">
+                      Chave necessária para sincronização com Google Sheets
+                    </div>
+                    <div className="p-4 border rounded-lg bg-muted">
+                      <p className="text-sm">Configure sua Google API Key nas configurações do Supabase.</p>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
