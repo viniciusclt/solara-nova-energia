@@ -183,9 +183,38 @@ function extractSpreadsheetId(url: string): string | null {
 }
 
 async function fetchGoogleSheetsData(spreadsheetId: string, settings: GoogleSheetsSettings): Promise<any[][]> {
-  const apiKey = Deno.env.get('GOOGLE_API_KEY');
+  // First try to get API key from the database (user's saved key)
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+
+  let apiKey = null;
+  
+  // Try to get API key from integration_settings
+  try {
+    const { data: apiKeyData } = await supabaseClient
+      .from('integration_settings')
+      .select('settings')
+      .eq('integration_type', 'google_api')
+      .eq('is_active', true)
+      .single();
+    
+    if (apiKeyData && (apiKeyData.settings as any).api_key) {
+      apiKey = (apiKeyData.settings as any).api_key;
+      console.log('Using user-configured API key');
+    }
+  } catch (error) {
+    console.log('No user API key found, trying environment variable');
+  }
+
+  // Fallback to environment variable
   if (!apiKey) {
-    throw new Error('Google API key not configured');
+    apiKey = Deno.env.get('GOOGLE_API_KEY');
+  }
+
+  if (!apiKey) {
+    throw new Error('Google API key not configured. Please add your API key in the settings.');
   }
 
   const range = `${settings.sheetName}!A:Z`; // Fetch all columns, up to Z

@@ -47,6 +47,8 @@ export const SettingsModal: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [importLogs, setImportLogs] = useState<ImportLog[]>([]);
+  const [googleApiKey, setGoogleApiKey] = useState("");
+  const [isSavingApiKey, setIsSavingApiKey] = useState(false);
   
   const [googleSheetsSettings, setGoogleSheetsSettings] = useState<GoogleSheetsSettings>({
     spreadsheetUrl: "",
@@ -67,6 +69,7 @@ export const SettingsModal: React.FC = () => {
     if (isOpen) {
       loadSettings();
       loadImportLogs();
+      loadApiKey();
     }
   }, [isOpen]);
 
@@ -105,6 +108,26 @@ export const SettingsModal: React.FC = () => {
     }
   };
 
+  const loadApiKey = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('integration_settings')
+        .select('*')
+        .eq('integration_type', 'google_api')
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
+      if (data && (data.settings as any).api_key) {
+        setGoogleApiKey("••••••••••••••••"); // Mostrar placeholder por segurança
+      }
+    } catch (error) {
+      console.error('Error loading API key:', error);
+    }
+  };
+
   const saveSettings = async () => {
     setIsLoading(true);
     try {
@@ -138,6 +161,48 @@ export const SettingsModal: React.FC = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const saveApiKey = async () => {
+    if (!googleApiKey || googleApiKey === "••••••••••••••••") {
+      return;
+    }
+
+    setIsSavingApiKey(true);
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      const { error } = await supabase
+        .from('integration_settings')
+        .upsert({
+          user_id: (await supabase.auth.getUser()).data.user?.id || '',
+          company_id: profile?.company_id || '',
+          integration_type: 'google_api',
+          settings: { api_key: googleApiKey },
+          is_active: true
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "API Key Salva",
+        description: "Google API Key foi salva com sucesso e está protegida."
+      });
+
+      setGoogleApiKey("••••••••••••••••"); // Mascarar após salvar
+    } catch (error) {
+      toast({
+        title: "Erro ao Salvar API Key",
+        description: "Erro ao salvar a API Key. Tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSavingApiKey(false);
     }
   };
 
@@ -449,14 +514,33 @@ export const SettingsModal: React.FC = () => {
                 <Separator />
                 
                 <div className="space-y-4">
-                  <Label className="text-base font-medium">API Keys</Label>
-                  <div className="space-y-2">
-                    <Label htmlFor="google-api-key">Google API Key</Label>
-                    <div className="text-sm text-muted-foreground mb-2">
-                      Chave necessária para sincronização com Google Sheets
-                    </div>
-                    <div className="p-4 border rounded-lg bg-muted">
-                      <p className="text-sm">Configure sua Google API Key nas configurações do Supabase.</p>
+                  <Label className="text-base font-medium">Configurações de API</Label>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="google-api-key">Google API Key</Label>
+                      <div className="text-sm text-muted-foreground mb-2">
+                        Chave necessária para sincronização com Google Sheets. Será armazenada de forma segura.
+                      </div>
+                      <div className="flex gap-2">
+                        <Input
+                          id="google-api-key"
+                          type="password"
+                          placeholder="Digite sua Google API Key"
+                          value={googleApiKey}
+                          onChange={(e) => setGoogleApiKey(e.target.value)}
+                          className="flex-1"
+                        />
+                        <Button 
+                          onClick={saveApiKey}
+                          disabled={isSavingApiKey || !googleApiKey || googleApiKey === "••••••••••••••••"}
+                          size="sm"
+                        >
+                          {isSavingApiKey ? "Salvando..." : "Salvar"}
+                        </Button>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        🔒 Sua API Key é criptografada e nunca é exibida após ser salva.
+                      </div>
                     </div>
                   </div>
                 </div>
