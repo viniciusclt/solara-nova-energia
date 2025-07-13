@@ -141,7 +141,7 @@ export const SettingsModal: React.FC = () => {
         .from('integration_settings')
         .upsert({
           user_id: (await supabase.auth.getUser()).data.user?.id || '',
-          company_id: profile?.company_id || '',
+          company_id: profile?.company_id || null, // Use null instead of empty string
           integration_type: 'google_sheets',
           settings: googleSheetsSettings as any,
           is_active: true
@@ -181,7 +181,7 @@ export const SettingsModal: React.FC = () => {
         .from('integration_settings')
         .upsert({
           user_id: (await supabase.auth.getUser()).data.user?.id || '',
-          company_id: profile?.company_id || '',
+          company_id: profile?.company_id || null, // Use null instead of empty string
           integration_type: 'google_api',
           settings: { api_key: googleApiKey },
           is_active: true
