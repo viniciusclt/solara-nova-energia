@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -40,7 +40,7 @@ interface ImportLog {
   completed_at: string;
 }
 
-export function SettingsModal() {
+export const SettingsModal: React.FC = () => {
   const { toast } = useToast();
   const { profile } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
