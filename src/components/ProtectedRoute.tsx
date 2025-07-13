@@ -2,7 +2,9 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, UserAccessType } from '@/contexts/AuthContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -40,8 +42,15 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return (
       <div className="flex items-center justify-center min-h-screen p-4">
         <Alert className="max-w-md">
-          <AlertDescription>
-            Erro ao carregar perfil do usuário. Tente fazer logout e login novamente.
+          <AlertDescription className="space-y-4">
+            <p>Erro ao carregar perfil do usuário. Tente fazer logout e login novamente.</p>
+            <Button 
+              onClick={() => supabase.auth.signOut()} 
+              variant="outline" 
+              className="w-full"
+            >
+              Fazer Logout
+            </Button>
           </AlertDescription>
         </Alert>
       </div>
