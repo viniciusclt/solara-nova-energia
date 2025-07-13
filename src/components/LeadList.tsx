@@ -190,7 +190,10 @@ export function LeadList({ onLeadSelect, selectedLeadId, onNewLead }: LeadListPr
   };
 
   const getUniqueValues = (field: 'concessionaria' | 'grupo') => {
-    return Array.from(new Set(leads.map(lead => lead[field]).filter(Boolean)));
+    return Array.from(new Set(
+      leads.map(lead => lead[field])
+        .filter(value => value && value.trim() !== '') // Remove empty strings and null/undefined
+    ));
   };
 
   if (loading) {
@@ -233,12 +236,12 @@ export function LeadList({ onLeadSelect, selectedLeadId, onNewLead }: LeadListPr
 
           <div>
             <Label htmlFor="concessionaria">Concessionária</Label>
-            <Select value={filterConcessionaria} onValueChange={setFilterConcessionaria}>
+            <Select value={filterConcessionaria || "none"} onValueChange={(value) => setFilterConcessionaria(value === "none" ? "" : value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Todas" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas</SelectItem>
+                <SelectItem value="none">Todas</SelectItem>
                 {getUniqueValues('concessionaria').map(value => (
                   <SelectItem key={value} value={value}>{value}</SelectItem>
                 ))}
@@ -248,12 +251,12 @@ export function LeadList({ onLeadSelect, selectedLeadId, onNewLead }: LeadListPr
 
           <div>
             <Label htmlFor="grupo">Grupo</Label>
-            <Select value={filterGrupo} onValueChange={setFilterGrupo}>
+            <Select value={filterGrupo || "none"} onValueChange={(value) => setFilterGrupo(value === "none" ? "" : value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="none">Todos</SelectItem>
                 {getUniqueValues('grupo').map(value => (
                   <SelectItem key={value} value={value}>{value}</SelectItem>
                 ))}
