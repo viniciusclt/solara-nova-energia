@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +34,8 @@ export function LeadList({ onLeadSelect, selectedLeadId, onNewLead }: LeadListPr
   const { toast } = useToast();
   const { profile } = useAuth();
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
+  const [allConcessionarias, setAllConcessionarias] = useState<string[]>([]);
+  const [allGrupos, setAllGrupos] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterConcessionaria, setFilterConcessionaria] = useState("");
@@ -43,15 +44,60 @@ export function LeadList({ onLeadSelect, selectedLeadId, onNewLead }: LeadListPr
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const pageSize = 10;
 
+  // Carregar opções de filtro na inicialização
   useEffect(() => {
-    fetchLeads();
-  }, [currentPage, sortBy, sortOrder]);
+    fetchFilterOptions();
+  }, []);
 
+  // Buscar leads quando filtros ou página mudarem
   useEffect(() => {
-    filterAndSortLeads();
-  }, [leads, searchTerm, filterConcessionaria, filterGrupo]);
+    const timer = setTimeout(() => {
+      fetchLeads();
+    }, searchTerm ? 300 : 0); // Debounce para busca por texto
+
+    return () => clearTimeout(timer);
+  }, [currentPage, sortBy, sortOrder, searchTerm, filterConcessionaria, filterGrupo]);
+
+  // Resetar página quando filtros mudarem
+  useEffect(() => {
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [searchTerm, filterConcessionaria, filterGrupo]);
+
+  const fetchFilterOptions = async () => {
+    try {
+      // Buscar todas as concessionárias únicas
+      const { data: concessionariaData } = await supabase
+        .from('leads')
+        .select('concessionaria')
+        .not('concessionaria', 'is', null)
+        .neq('concessionaria', '');
+
+      const concessionarias = Array.from(
+        new Set(concessionariaData?.map(item => item.concessionaria).filter(Boolean))
+      ).sort();
+
+      // Buscar todos os grupos únicos
+      const { data: grupoData } = await supabase
+        .from('leads')
+        .select('grupo')
+        .not('grupo', 'is', null)
+        .neq('grupo', '');
+
+      const grupos = Array.from(
+        new Set(grupoData?.map(item => item.grupo).filter(Boolean))
+      ).sort();
+
+      setAllConcessionarias(concessionarias);
+      setAllGrupos(grupos);
+    } catch (error) {
+      console.error('Error fetching filter options:', error);
+    }
+  };
 
   const fetchLeads = async () => {
     try {
@@ -59,15 +105,31 @@ export function LeadList({ onLeadSelect, selectedLeadId, onNewLead }: LeadListPr
       
       let query = supabase
         .from('leads')
-        .select('id, name, email, phone, concessionaria, grupo, consumo_medio, created_at, updated_at')
-        .order(sortBy, { ascending: sortOrder === 'asc' })
-        .range((currentPage - 1) * pageSize, currentPage * pageSize - 1);
+        .select('id, name, email, phone, concessionaria, grupo, consumo_medio, created_at, updated_at', { count: 'exact' })
+        .order(sortBy, { ascending: sortOrder === 'asc' });
+
+      // Aplicar filtros na query
+      if (searchTerm) {
+        query = query.or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`);
+      }
+
+      if (filterConcessionaria) {
+        query = query.eq('concessionaria', filterConcessionaria);
+      }
+
+      if (filterGrupo) {
+        query = query.eq('grupo', filterGrupo);
+      }
+
+      // Aplicar paginação
+      query = query.range((currentPage - 1) * pageSize, currentPage * pageSize - 1);
 
       const { data, error, count } = await query;
 
       if (error) throw error;
 
       setLeads(data || []);
+      setTotalCount(count || 0);
       setTotalPages(Math.ceil((count || 0) / pageSize));
     } catch (error) {
       console.error('Error fetching leads:', error);
@@ -81,31 +143,15 @@ export function LeadList({ onLeadSelect, selectedLeadId, onNewLead }: LeadListPr
     }
   };
 
-  const filterAndSortLeads = () => {
-    let filtered = [...leads];
-
-    // Busca por texto
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(lead => 
-        lead.name.toLowerCase().includes(term) ||
-        lead.email?.toLowerCase().includes(term) ||
-        lead.phone?.includes(term)
-      );
+  const handleFilterChange = useCallback((type: 'concessionaria' | 'grupo', value: string) => {
+    const newValue = value === "none" ? "" : value;
+    
+    if (type === 'concessionaria') {
+      setFilterConcessionaria(newValue);
+    } else {
+      setFilterGrupo(newValue);
     }
-
-    // Filtro por concessionária
-    if (filterConcessionaria) {
-      filtered = filtered.filter(lead => lead.concessionaria === filterConcessionaria);
-    }
-
-    // Filtro por grupo
-    if (filterGrupo) {
-      filtered = filtered.filter(lead => lead.grupo === filterGrupo);
-    }
-
-    setFilteredLeads(filtered);
-  };
+  }, []);
 
   const handleLeadSelect = (lead: Lead) => {
     onLeadSelect(lead);
@@ -189,11 +235,13 @@ export function LeadList({ onLeadSelect, selectedLeadId, onNewLead }: LeadListPr
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
-  const getUniqueValues = (field: 'concessionaria' | 'grupo') => {
-    return Array.from(new Set(
-      leads.map(lead => lead[field])
-        .filter(value => value && value.trim() !== '') // Remove empty strings and null/undefined
-    ));
+  const getFilterCount = () => {
+    const hasFilters = searchTerm || filterConcessionaria || filterGrupo;
+    if (!hasFilters) return `Total: ${totalCount} leads`;
+    
+    const start = (currentPage - 1) * pageSize + 1;
+    const end = Math.min(currentPage * pageSize, totalCount);
+    return `Mostrando ${start}-${end} de ${totalCount} leads`;
   };
 
   if (loading) {
@@ -214,7 +262,7 @@ export function LeadList({ onLeadSelect, selectedLeadId, onNewLead }: LeadListPr
           Selecionar Lead
         </CardTitle>
         <CardDescription>
-          Escolha um lead existente ou crie um novo
+          {getFilterCount()}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -236,13 +284,13 @@ export function LeadList({ onLeadSelect, selectedLeadId, onNewLead }: LeadListPr
 
           <div>
             <Label htmlFor="concessionaria">Concessionária</Label>
-            <Select value={filterConcessionaria || "none"} onValueChange={(value) => setFilterConcessionaria(value === "none" ? "" : value)}>
+            <Select value={filterConcessionaria || "none"} onValueChange={(value) => handleFilterChange('concessionaria', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Todas" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Todas</SelectItem>
-                {getUniqueValues('concessionaria').map(value => (
+                {allConcessionarias.map(value => (
                   <SelectItem key={value} value={value}>{value}</SelectItem>
                 ))}
               </SelectContent>
@@ -251,13 +299,13 @@ export function LeadList({ onLeadSelect, selectedLeadId, onNewLead }: LeadListPr
 
           <div>
             <Label htmlFor="grupo">Grupo</Label>
-            <Select value={filterGrupo || "none"} onValueChange={(value) => setFilterGrupo(value === "none" ? "" : value)}>
+            <Select value={filterGrupo || "none"} onValueChange={(value) => handleFilterChange('grupo', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Todos</SelectItem>
-                {getUniqueValues('grupo').map(value => (
+                {allGrupos.map(value => (
                   <SelectItem key={value} value={value}>{value}</SelectItem>
                 ))}
               </SelectContent>
@@ -287,7 +335,7 @@ export function LeadList({ onLeadSelect, selectedLeadId, onNewLead }: LeadListPr
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredLeads.map((lead) => (
+              {leads.map((lead) => (
                 <TableRow 
                   key={lead.id}
                   className={selectedLeadId === lead.id ? "bg-muted" : ""}
@@ -363,7 +411,7 @@ export function LeadList({ onLeadSelect, selectedLeadId, onNewLead }: LeadListPr
           </Pagination>
         )}
 
-        {filteredLeads.length === 0 && (
+        {leads.length === 0 && !loading && (
           <div className="text-center py-8 text-muted-foreground">
             Nenhum lead encontrado
           </div>
