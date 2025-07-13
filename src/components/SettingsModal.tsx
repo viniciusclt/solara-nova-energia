@@ -419,11 +419,13 @@ export const SettingsModal: React.FC = () => {
   };
 
   const updateColumnMapping = (field: string, columnLetter: string) => {
+    // Convert "none" to empty string for storage
+    const value = columnLetter === "none" ? "" : columnLetter;
     setGoogleSheetsSettings(prev => ({
       ...prev,
       columnMapping: {
         ...prev.columnMapping,
-        [field]: columnLetter
+        [field]: value
       }
     }));
   };
@@ -533,7 +535,7 @@ export const SettingsModal: React.FC = () => {
                       <Label>Nome <span className="text-destructive">*</span></Label>
                       {availableColumns.length > 0 ? (
                         <Select 
-                          value={googleSheetsSettings.columnMapping.name} 
+                          value={googleSheetsSettings.columnMapping.name || "none"} 
                           onValueChange={(value) => updateColumnMapping('name', value)}
                         >
                           <SelectTrigger>
@@ -561,14 +563,14 @@ export const SettingsModal: React.FC = () => {
                       <Label>Email</Label>
                       {availableColumns.length > 0 ? (
                         <Select 
-                          value={googleSheetsSettings.columnMapping.email} 
+                          value={googleSheetsSettings.columnMapping.email || "none"} 
                           onValueChange={(value) => updateColumnMapping('email', value)}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione a coluna" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Não mapear</SelectItem>
+                            <SelectItem value="none">Não mapear</SelectItem>
                             {availableColumns.map((col) => (
                               <SelectItem key={col.letter} value={col.letter}>
                                 {col.letter}: {col.header}
@@ -590,14 +592,14 @@ export const SettingsModal: React.FC = () => {
                       <Label>Telefone</Label>
                       {availableColumns.length > 0 ? (
                         <Select 
-                          value={googleSheetsSettings.columnMapping.phone} 
+                          value={googleSheetsSettings.columnMapping.phone || "none"} 
                           onValueChange={(value) => updateColumnMapping('phone', value)}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione a coluna" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Não mapear</SelectItem>
+                            <SelectItem value="none">Não mapear</SelectItem>
                             {availableColumns.map((col) => (
                               <SelectItem key={col.letter} value={col.letter}>
                                 {col.letter}: {col.header}
@@ -619,14 +621,14 @@ export const SettingsModal: React.FC = () => {
                       <Label>CPF/CNPJ</Label>
                       {availableColumns.length > 0 ? (
                         <Select 
-                          value={googleSheetsSettings.columnMapping.cpfCnpj} 
+                          value={googleSheetsSettings.columnMapping.cpfCnpj || "none"}
                           onValueChange={(value) => updateColumnMapping('cpfCnpj', value)}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione a coluna" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Não mapear</SelectItem>
+                            <SelectItem value="none">Não mapear</SelectItem>
                             {availableColumns.map((col) => (
                               <SelectItem key={col.letter} value={col.letter}>
                                 {col.letter}: {col.header}
@@ -648,14 +650,14 @@ export const SettingsModal: React.FC = () => {
                       <Label>Endereço</Label>
                       {availableColumns.length > 0 ? (
                         <Select 
-                          value={googleSheetsSettings.columnMapping.address} 
+                          value={googleSheetsSettings.columnMapping.address || "none"}
                           onValueChange={(value) => updateColumnMapping('address', value)}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione a coluna" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Não mapear</SelectItem>
+                            <SelectItem value="none">Não mapear</SelectItem>
                             {availableColumns.map((col) => (
                               <SelectItem key={col.letter} value={col.letter}>
                                 {col.letter}: {col.header}
@@ -677,14 +679,14 @@ export const SettingsModal: React.FC = () => {
                       <Label>Concessionária</Label>
                       {availableColumns.length > 0 ? (
                         <Select 
-                          value={googleSheetsSettings.columnMapping.concessionaria} 
+                          value={googleSheetsSettings.columnMapping.concessionaria || "none"}
                           onValueChange={(value) => updateColumnMapping('concessionaria', value)}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione a coluna" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Não mapear</SelectItem>
+                            <SelectItem value="none">Não mapear</SelectItem>
                             {availableColumns.map((col) => (
                               <SelectItem key={col.letter} value={col.letter}>
                                 {col.letter}: {col.header}
@@ -706,14 +708,14 @@ export const SettingsModal: React.FC = () => {
                       <Label>Tipo de Fornecimento</Label>
                       {availableColumns.length > 0 ? (
                         <Select 
-                          value={googleSheetsSettings.columnMapping.tipoFornecimento} 
+                          value={googleSheetsSettings.columnMapping.tipoFornecimento || "none"}
                           onValueChange={(value) => updateColumnMapping('tipoFornecimento', value)}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione a coluna" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Não mapear</SelectItem>
+                            <SelectItem value="none">Não mapear</SelectItem>
                             {availableColumns.map((col) => (
                               <SelectItem key={col.letter} value={col.letter}>
                                 {col.letter}: {col.header}
@@ -735,14 +737,14 @@ export const SettingsModal: React.FC = () => {
                       <Label>Grupo/Subgrupo</Label>
                       {availableColumns.length > 0 ? (
                         <Select 
-                          value={googleSheetsSettings.columnMapping.grupo} 
+                          value={googleSheetsSettings.columnMapping.grupo || "none"} 
                           onValueChange={(value) => updateColumnMapping('grupo', value)}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione a coluna" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Não mapear</SelectItem>
+                            <SelectItem value="none">Não mapear</SelectItem>
                             {availableColumns.map((col) => (
                               <SelectItem key={col.letter} value={col.letter}>
                                 {col.letter}: {col.header}
@@ -764,14 +766,14 @@ export const SettingsModal: React.FC = () => {
                       <Label>Consumo Médio (kWh)</Label>
                       {availableColumns.length > 0 ? (
                         <Select 
-                          value={googleSheetsSettings.columnMapping.consumoMedio} 
+                          value={googleSheetsSettings.columnMapping.consumoMedio || "none"} 
                           onValueChange={(value) => updateColumnMapping('consumoMedio', value)}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione a coluna" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Não mapear</SelectItem>
+                            <SelectItem value="none">Não mapear</SelectItem>
                             {availableColumns.map((col) => (
                               <SelectItem key={col.letter} value={col.letter}>
                                 {col.letter}: {col.header}
@@ -793,14 +795,14 @@ export const SettingsModal: React.FC = () => {
                       <Label>Incremento de Consumo</Label>
                       {availableColumns.length > 0 ? (
                         <Select 
-                          value={googleSheetsSettings.columnMapping.incrementoConsumo} 
+                          value={googleSheetsSettings.columnMapping.incrementoConsumo || "none"} 
                           onValueChange={(value) => updateColumnMapping('incrementoConsumo', value)}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione a coluna" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Não mapear</SelectItem>
+                            <SelectItem value="none">Não mapear</SelectItem>
                             {availableColumns.map((col) => (
                               <SelectItem key={col.letter} value={col.letter}>
                                 {col.letter}: {col.header}
