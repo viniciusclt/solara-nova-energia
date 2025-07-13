@@ -9,6 +9,17 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Download, Upload, MapPin, User, Building, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { 
+  validateEmail, 
+  validatePhone, 
+  validateDate, 
+  validateCEP, 
+  validateAddress, 
+  validateName,
+  validateNumericRange,
+  sanitizeInput 
+} from "@/lib/validation";
+import { useSecurityAudit } from "@/hooks/useSecurityAudit";
 
 interface LeadData {
   id?: string;
@@ -49,6 +60,7 @@ interface LeadDataEntryProps {
 
 export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps) {
   const { toast } = useToast();
+  const { logFailedValidation, logDataExport } = useSecurityAudit();
   const [leadData, setLeadData] = useState<LeadData>({
     name: "",
     cpfCnpj: "",
@@ -87,18 +99,91 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
   }, [currentLead]);
 
   const handleInputChange = (field: string, value: any) => {
+    // Sanitize string inputs
+    const sanitizedValue = typeof value === 'string' ? sanitizeInput(value) : value;
+    
+    // Validate specific fields
+    let isValid = true;
+    let errorMessage = '';
+    
+    switch (field) {
+      case 'name':
+        const nameValidation = validateName(sanitizedValue);
+        isValid = nameValidation.isValid;
+        errorMessage = nameValidation.message || '';
+        break;
+      case 'email':
+        isValid = validateEmail(sanitizedValue);
+        errorMessage = 'Email inválido';
+        break;
+      case 'phone':
+        const phoneValidation = validatePhone(sanitizedValue);
+        isValid = phoneValidation.isValid;
+        errorMessage = phoneValidation.message || '';
+        break;
+      case 'birthDate':
+        const dateValidation = validateDate(sanitizedValue);
+        isValid = dateValidation.isValid;
+        errorMessage = dateValidation.message || '';
+        break;
+      case 'consumoMedio':
+        const consumoValidation = validateNumericRange(Number(sanitizedValue), 0, 10000, 'Consumo médio');
+        isValid = consumoValidation.isValid;
+        errorMessage = consumoValidation.message || '';
+        break;
+    }
+    
+    if (!isValid) {
+      logFailedValidation(field, String(value), errorMessage);
+      toast({
+        title: "Erro de Validação",
+        description: errorMessage,
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setLeadData(prev => ({
       ...prev,
-      [field]: value
+      [field]: sanitizedValue
     }));
   };
 
   const handleAddressChange = (field: string, value: string) => {
+    const sanitizedValue = sanitizeInput(value);
+    
+    // Validate address fields
+    let isValid = true;
+    let errorMessage = '';
+    
+    switch (field) {
+      case 'cep':
+        const cepValidation = validateCEP(sanitizedValue);
+        isValid = cepValidation.isValid;
+        errorMessage = cepValidation.message || '';
+        break;
+      case 'street':
+        const addressValidation = validateAddress(sanitizedValue);
+        isValid = addressValidation.isValid;
+        errorMessage = addressValidation.message || '';
+        break;
+    }
+    
+    if (!isValid) {
+      logFailedValidation(`address.${field}`, value, errorMessage);
+      toast({
+        title: "Erro de Validação",
+        description: errorMessage,
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setLeadData(prev => ({
       ...prev,
       address: {
         ...prev.address,
-        [field]: value
+        [field]: sanitizedValue
       }
     }));
   };
@@ -182,6 +267,9 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
   };
 
   const salvarLead = () => {
+    // Log data export for security audit
+    logDataExport('lead_data', 1);
+    
     onLeadUpdate(leadData);
     toast({
       title: "Lead Salvo",

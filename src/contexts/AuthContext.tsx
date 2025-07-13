@@ -112,7 +112,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
 
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      // Secure error handling - avoid exposing internal details
     }
   };
 
@@ -197,8 +197,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       return { error };
     } catch (error) {
-      // Log unexpected errors
-      console.error('Login error:', error);
+      // Secure error handling - avoid console logging in production
       return { error: new Error('Erro interno. Tente novamente.') };
     }
   };
@@ -276,7 +275,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       return { error };
     } catch (error) {
-      console.error('Signup error:', error);
+      // Secure error handling - avoid console logging in production
       return { error: new Error('Erro interno. Tente novamente.') };
     }
   };
@@ -298,7 +297,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCompany(null);
       setIsSubscriptionActive(false);
     } catch (error) {
-      console.error('Error signing out:', error);
+      // Secure error handling - avoid console logging in production
     }
   };
 

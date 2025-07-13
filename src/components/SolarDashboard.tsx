@@ -4,6 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
+import { SecurityAlert } from "./SecurityAlert";
+import { useSecurityAudit } from "@/hooks/useSecurityAudit";
 import { 
   Sun, 
   Calculator, 
@@ -28,6 +30,7 @@ export function SolarDashboard() {
   const [currentLead, setCurrentLead] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("lead-data");
   const { profile, company, signOut, hasPermission } = useAuth();
+  const { logSuspiciousActivity } = useSecurityAudit();
 
   const getAccessTypeLabel = (type: string) => {
     const labels = {
@@ -168,6 +171,8 @@ export function SolarDashboard() {
 
       {/* Dashboard Stats */}
       <div className="container mx-auto px-4 py-6">
+        <SecurityAlert onSecurityIssue={(issue) => logSuspiciousActivity('security_alert', { issue })} />
+        
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {dashboardStats.map((stat, index) => (
             <Card key={index} className="shadow-card hover:shadow-solar transition-smooth">

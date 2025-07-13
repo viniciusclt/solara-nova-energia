@@ -74,9 +74,11 @@ export const validateCNPJ = (cnpj: string): boolean => {
 };
 
 export const sanitizeInput = (input: string): string => {
-  // Remove potential XSS characters
+  // Remove potential XSS characters and limit length
   return input
-    .replace(/[<>'"&]/g, '')
+    .replace(/[<>'"&`]/g, '')
+    .replace(/javascript:/gi, '')
+    .replace(/on\w+=/gi, '')
     .trim()
     .substring(0, 500); // Limit length
 };
@@ -111,4 +113,111 @@ export const validateCompanyName = (name: string): { isValid: boolean; message?:
   }
   
   return { isValid: true };
+};
+
+// Enhanced security validations
+
+export const validatePhone = (phone: string): { isValid: boolean; message?: string } => {
+  // Remove non-numeric characters
+  const cleanPhone = phone.replace(/[^0-9]/g, '');
+  
+  // Brazilian phone validation - allow 10 or 11 digits
+  if (cleanPhone.length < 10 || cleanPhone.length > 11) {
+    return { isValid: false, message: 'Telefone deve ter 10 ou 11 dígitos' };
+  }
+  
+  // Basic validation for mobile numbers (11 digits) and landlines (10 digits)
+  if (cleanPhone.length === 11 && cleanPhone.charAt(2) !== '9') {
+    return { isValid: false, message: 'Número de celular deve começar com 9 após o DDD' };
+  }
+  
+  return { isValid: true };
+};
+
+export const validateDate = (date: string): { isValid: boolean; message?: string } => {
+  if (!date) {
+    return { isValid: false, message: 'Data é obrigatória' };
+  }
+  
+  const dateObj = new Date(date);
+  const now = new Date();
+  
+  if (isNaN(dateObj.getTime())) {
+    return { isValid: false, message: 'Data inválida' };
+  }
+  
+  // Check if date is not in the future (for birth dates)
+  if (dateObj > now) {
+    return { isValid: false, message: 'Data não pode ser no futuro' };
+  }
+  
+  // Check if person is at least 18 years old
+  const eighteenYearsAgo = new Date();
+  eighteenYearsAgo.setFullYear(now.getFullYear() - 18);
+  
+  if (dateObj > eighteenYearsAgo) {
+    return { isValid: false, message: 'Pessoa deve ter pelo menos 18 anos' };
+  }
+  
+  return { isValid: true };
+};
+
+export const validateNumericRange = (value: number, min: number, max: number, fieldName: string): { isValid: boolean; message?: string } => {
+  if (isNaN(value)) {
+    return { isValid: false, message: `${fieldName} deve ser um número válido` };
+  }
+  
+  if (value < min || value > max) {
+    return { isValid: false, message: `${fieldName} deve estar entre ${min} e ${max}` };
+  }
+  
+  return { isValid: true };
+};
+
+export const validateCEP = (cep: string): { isValid: boolean; message?: string } => {
+  const cleanCEP = cep.replace(/[^0-9]/g, '');
+  
+  if (cleanCEP.length !== 8) {
+    return { isValid: false, message: 'CEP deve ter 8 dígitos' };
+  }
+  
+  // Basic validation - check if it's not all zeros or all the same digit
+  if (/^0{8}$/.test(cleanCEP) || /^(\d)\1{7}$/.test(cleanCEP)) {
+    return { isValid: false, message: 'CEP inválido' };
+  }
+  
+  return { isValid: true };
+};
+
+export const validateAddress = (address: string): { isValid: boolean; message?: string } => {
+  const sanitized = sanitizeInput(address);
+  
+  if (sanitized.length < 5) {
+    return { isValid: false, message: 'Endereço deve ter pelo menos 5 caracteres' };
+  }
+  
+  if (sanitized.length > 200) {
+    return { isValid: false, message: 'Endereço muito longo' };
+  }
+  
+  return { isValid: true };
+};
+
+// Rate limiting helper
+export const checkRateLimit = (key: string, maxAttempts: number = 5, windowMs: number = 600000): boolean => {
+  const now = Date.now();
+  const attempts = JSON.parse(localStorage.getItem(`rate_limit_${key}`) || '[]') as number[];
+  
+  // Remove old attempts outside the window
+  const recentAttempts = attempts.filter(timestamp => now - timestamp < windowMs);
+  
+  if (recentAttempts.length >= maxAttempts) {
+    return false; // Rate limited
+  }
+  
+  // Add current attempt and save
+  recentAttempts.push(now);
+  localStorage.setItem(`rate_limit_${key}`, JSON.stringify(recentAttempts));
+  
+  return true; // Not rate limited
 };

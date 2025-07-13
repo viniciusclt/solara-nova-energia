@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Mail, Lock, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { validateEmail, validatePassword, validateName } from '@/lib/validation';
+import { validateEmail, validatePassword, validateName, checkRateLimit } from '@/lib/validation';
 
 export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
@@ -28,17 +28,9 @@ export default function Auth() {
     return null;
   }
 
-  // Rate limiting: max 5 attempts per 10 minutes
+  // Enhanced rate limiting using utility function
   const isRateLimited = () => {
-    const now = Date.now();
-    const tenMinutes = 10 * 60 * 1000;
-    
-    if (now - lastAttemptTime > tenMinutes) {
-      setAttemptCount(0);
-      return false;
-    }
-    
-    return attemptCount >= 5;
+    return !checkRateLimit('login_attempts', 5, 600000); // 5 attempts per 10 minutes
   };
 
   const handleLogin = async (e: React.FormEvent) => {
