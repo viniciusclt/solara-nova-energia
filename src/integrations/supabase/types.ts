@@ -71,6 +71,174 @@ export type Database = {
         }
         Relationships: []
       }
+      import_logs: {
+        Row: {
+          company_id: string
+          completed_at: string | null
+          error_details: Json | null
+          failed_imports: number | null
+          id: string
+          import_settings: Json | null
+          source_type: string
+          source_url: string | null
+          started_at: string
+          status: string | null
+          successful_imports: number | null
+          total_records: number | null
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          completed_at?: string | null
+          error_details?: Json | null
+          failed_imports?: number | null
+          id?: string
+          import_settings?: Json | null
+          source_type: string
+          source_url?: string | null
+          started_at?: string
+          status?: string | null
+          successful_imports?: number | null
+          total_records?: number | null
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          completed_at?: string | null
+          error_details?: Json | null
+          failed_imports?: number | null
+          id?: string
+          import_settings?: Json | null
+          source_type?: string
+          source_url?: string | null
+          started_at?: string
+          status?: string | null
+          successful_imports?: number | null
+          total_records?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      integration_settings: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          integration_type: string
+          is_active: boolean | null
+          settings: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          integration_type: string
+          is_active?: boolean | null
+          settings: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          integration_type?: string
+          is_active?: boolean | null
+          settings?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      leads: {
+        Row: {
+          address: Json | null
+          birth_date: string | null
+          cdd: number | null
+          comentarios: string | null
+          company_id: string
+          concessionaria: string | null
+          consumo_medio: number | null
+          consumo_mensal: Json | null
+          cpf_cnpj: string | null
+          created_at: string
+          email: string | null
+          grupo: string | null
+          id: string
+          incremento_consumo: number | null
+          modalidade_tarifaria: string | null
+          name: string
+          numero_cliente: string | null
+          numero_instalacao: string | null
+          phone: string | null
+          rg: string | null
+          source: string | null
+          source_ref: string | null
+          tensao_alimentacao: string | null
+          tipo_fornecimento: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: Json | null
+          birth_date?: string | null
+          cdd?: number | null
+          comentarios?: string | null
+          company_id: string
+          concessionaria?: string | null
+          consumo_medio?: number | null
+          consumo_mensal?: Json | null
+          cpf_cnpj?: string | null
+          created_at?: string
+          email?: string | null
+          grupo?: string | null
+          id?: string
+          incremento_consumo?: number | null
+          modalidade_tarifaria?: string | null
+          name: string
+          numero_cliente?: string | null
+          numero_instalacao?: string | null
+          phone?: string | null
+          rg?: string | null
+          source?: string | null
+          source_ref?: string | null
+          tensao_alimentacao?: string | null
+          tipo_fornecimento?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: Json | null
+          birth_date?: string | null
+          cdd?: number | null
+          comentarios?: string | null
+          company_id?: string
+          concessionaria?: string | null
+          consumo_medio?: number | null
+          consumo_mensal?: Json | null
+          cpf_cnpj?: string | null
+          created_at?: string
+          email?: string | null
+          grupo?: string | null
+          id?: string
+          incremento_consumo?: number | null
+          modalidade_tarifaria?: string | null
+          name?: string
+          numero_cliente?: string | null
+          numero_instalacao?: string | null
+          phone?: string | null
+          rg?: string | null
+          source?: string | null
+          source_ref?: string | null
+          tensao_alimentacao?: string | null
+          tipo_fornecimento?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           access_type: Database["public"]["Enums"]["user_access_type"]

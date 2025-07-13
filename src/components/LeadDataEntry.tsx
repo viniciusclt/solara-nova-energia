@@ -20,6 +20,7 @@ import {
   sanitizeInput 
 } from "@/lib/validation";
 import { useSecurityAudit } from "@/hooks/useSecurityAudit";
+import { supabase } from "@/integrations/supabase/client";
 
 interface LeadData {
   id?: string;
@@ -224,41 +225,89 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
   const importarGoogleSheets = async () => {
     setIsLoading(true);
     try {
-      // Simulação de importação do Google Sheets
-      const dadosSimulados = {
-        name: "VIEIRA",
-        cpfCnpj: "123.456.789-00",
-        rg: "12.345.678-9",
-        email: "vieira@email.com",
-        phone: "(21) 99999-9999",
-        address: {
-          state: "RJ",
-          city: "Rio de Janeiro",
-          neighborhood: "Anil",
-          cep: "22750-001",
-          street: "R. Flordelice",
-          number: "467",
-        },
-        concessionaria: "Light",
-        grupo: "B1",
-        tipoFornecimento: "Monofásico",
-        consumoMensal: [1123, 1050, 980, 920, 850, 780, 720, 750, 820, 890, 950, 936],
-        consumoMedio: 856,
-        incrementoConsumo: 4.5,
-        comentarios: "Cliente interessado em sistema residencial"
-      };
+      // Get the latest settings
+      const { data: settings, error } = await supabase
+        .from('integration_settings')
+        .select('settings')
+        .eq('integration_type', 'google_sheets')
+        .single();
 
-      setLeadData(prev => ({ ...prev, ...dadosSimulados }));
-      onLeadUpdate({ ...leadData, ...dadosSimulados });
-      
-      toast({
-        title: "Dados Importados",
-        description: "Dados do lead importados com sucesso do Google Sheets."
+      if (error || !settings) {
+        toast({
+          title: "Configuração Necessária",
+          description: "Configure o Google Sheets nas configurações antes de importar.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Call the sync function
+      const { data, error: syncError } = await supabase.functions.invoke('sync-google-sheets', {
+        body: { settings: settings.settings }
       });
+
+      if (syncError) throw syncError;
+
+      toast({
+        title: "Importação Concluída",
+        description: `${data.successfulImports} leads importados com sucesso.`
+      });
+
+      // Load a sample lead for demonstration
+      if (data.successfulImports > 0) {
+        const { data: leads } = await supabase
+          .from('leads')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (leads && leads.length > 0) {
+          const lead = leads[0];
+          const formattedLead: LeadData = {
+            name: lead.name,
+            cpfCnpj: lead.cpf_cnpj || "",
+            rg: lead.rg || "",
+            birthDate: lead.birth_date || "",
+            email: lead.email || "",
+            phone: lead.phone || "",
+            address: (typeof lead.address === 'object' && lead.address !== null) ? {
+              state: (lead.address as any).state || "RJ",
+              city: (lead.address as any).city || "",
+              neighborhood: (lead.address as any).neighborhood || "",
+              cep: (lead.address as any).cep || "",
+              street: (lead.address as any).street || "",
+              number: (lead.address as any).number || ""
+            } : {
+              state: "RJ",
+              city: "",
+              neighborhood: "",
+              cep: "",
+              street: "",
+              number: ""
+            },
+            concessionaria: lead.concessionaria || "Light",
+            grupo: lead.grupo || "B1",
+            tipoFornecimento: lead.tipo_fornecimento || "Monofásico",
+            cdd: lead.cdd || 0,
+            tensaoAlimentacao: lead.tensao_alimentacao || "220V",
+            modalidadeTarifaria: lead.modalidade_tarifaria || "Convencional",
+            numeroCliente: lead.numero_cliente || "",
+            numeroInstalacao: lead.numero_instalacao || "",
+            consumoMensal: Array.isArray(lead.consumo_mensal) ? lead.consumo_mensal as number[] : Array(12).fill(0),
+            consumoMedio: lead.consumo_medio || 0,
+            incrementoConsumo: lead.incremento_consumo || 0,
+            comentarios: lead.comentarios || ""
+          };
+
+          setLeadData(formattedLead);
+          onLeadUpdate(formattedLead);
+        }
+      }
     } catch (error) {
+      console.error('Import error:', error);
       toast({
         title: "Erro na Importação",
-        description: "Erro ao importar dados. Tente novamente.",
+        description: "Erro ao importar dados. Verifique as configurações.",
         variant: "destructive"
       });
     } finally {

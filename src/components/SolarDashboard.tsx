@@ -25,6 +25,7 @@ import { ConsumptionCalculator } from "./ConsumptionCalculator";
 import { TechnicalSimulation } from "./TechnicalSimulation";
 import { FinancialAnalysis } from "./FinancialAnalysis";
 import { ProposalGenerator } from "./ProposalGenerator";
+import { SettingsModal } from "./SettingsModal";
 
 export function SolarDashboard() {
   const [currentLead, setCurrentLead] = useState<any>(null);
@@ -156,10 +157,7 @@ export function SolarDashboard() {
                   <p className="text-sm text-muted-foreground">{company.name}</p>
                 )}
               </div>
-              <Button variant="outline" size="sm">
-                <Settings className="h-4 w-4" />
-                Configurações
-              </Button>
+              <SettingsModal />
               <Button variant="outline" size="sm" onClick={signOut}>
                 <LogOut className="h-4 w-4" />
                 Sair
