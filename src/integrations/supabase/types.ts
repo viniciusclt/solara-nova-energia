@@ -181,6 +181,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      get_current_user_access_type: {
+        Args: Record<PropertyKey, never>
+        Returns: Database["public"]["Enums"]["user_access_type"]
+      }
+      get_current_user_company_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       log_security_event: {
         Args: {
           event_type: string
