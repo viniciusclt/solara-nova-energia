@@ -11,7 +11,9 @@
   - Fazer push para GitHub (conectado ao Lovable) para validação inicial
   - _Requirements: Base estável para desenvolvimento_
 
-- [-] 2. Implementar melhorias de UI/UX responsiva
+- [x] 2. Implementar melhorias de UI/UX responsiva
+
+
 
   - Criar componente ResponsiveText para quebra automática de texto em botões
   - Implementar ResponsiveButton com subtítulos que se adaptam ao tamanho da tela
@@ -23,7 +25,8 @@
   - Fazer push para GitHub (conectado ao Lovable) para validação
   - _Requirements: 1.1, 1.2_
 
-- [ ] 3. Melhorar sistema de busca de leads
+- [-] 3. Melhorar sistema de busca de leads
+
   - Criar componente LeadSearchDropdown com busca suspensa
   - Implementar debounce de 300ms para evitar requisições excessivas
   - Corrigir problema de perda de foco durante digitação

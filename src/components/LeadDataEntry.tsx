@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Download, Upload, MapPin, User, Building, Zap, ArrowLeft, List } from "lucide-react";
 import { LeadList } from "./LeadList";
+import { LeadSearchDropdown } from "./LeadSearchDropdown";
+import { LeadTablePage } from "./LeadTablePage";
 import { SelectedLeadBreadcrumb } from "./SelectedLeadBreadcrumb";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -95,6 +97,7 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
 
   const [isLoading, setIsLoading] = useState(false);
   const [showLeadList, setShowLeadList] = useState(!currentLead);
+  const [showTableView, setShowTableView] = useState(false);
 
   useEffect(() => {
     if (currentLead) {
@@ -509,15 +512,46 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
     "Jul", "Ago", "Set", "Out", "Nov", "Dez"
   ];
 
-  // Se deve mostrar a lista de leads
-  if (showLeadList) {
+  // Se deve mostrar a tabela completa de leads
+  if (showTableView) {
     return (
       <div className="space-y-6">
-        <LeadList 
+        <LeadTablePage 
           onLeadSelect={handleLeadSelect}
           selectedLeadId={leadData.id || null}
           onNewLead={handleNewLead}
+          onBack={() => setShowTableView(false)}
+          showActions={true}
         />
+      </div>
+    );
+  }
+
+  // Se deve mostrar a busca de leads
+  if (showLeadList) {
+    return (
+      <div className="space-y-6">
+        <Card className="shadow-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5 text-primary" />
+              Selecionar Lead
+            </CardTitle>
+            <CardDescription>
+              Busque por nome, email ou telefone para encontrar um lead existente
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <LeadSearchDropdown 
+              onLeadSelect={handleLeadSelect}
+              selectedLeadId={leadData.id || null}
+              onNewLead={handleNewLead}
+              onViewTable={() => setShowTableView(true)}
+              placeholder="Digite o nome, email ou telefone do lead..."
+              maxResults={8}
+            />
+          </CardContent>
+        </Card>
       </div>
     );
   }
