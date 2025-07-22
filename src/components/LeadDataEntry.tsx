@@ -306,7 +306,9 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
   };
 
   const handleConsumoMensalChange = (month: number, value: number) => {
-    const newConsumo = [...leadData.consumoMensal];
+    // Garantir que consumoMensal existe e tem 12 elementos
+    const currentConsumo = leadData.consumoMensal || new Array(12).fill(0);
+    const newConsumo = [...currentConsumo];
     newConsumo[month] = value;
     
     const media = newConsumo.reduce((sum, val) => sum + val, 0) / 12;
@@ -888,7 +890,7 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
                 <Input
                   id={`consumo-${index}`}
                   type="number"
-                  value={leadData.consumoMensal[index]}
+                  value={leadData.consumoMensal?.[index] || 0}
                   onChange={(e) => handleConsumoMensalChange(index, Number(e.target.value))}
                   className="text-sm"
                 />

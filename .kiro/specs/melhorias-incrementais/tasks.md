@@ -25,7 +25,9 @@
   - Fazer push para GitHub (conectado ao Lovable) para validação
   - _Requirements: 1.1, 1.2_
 
-- [-] 3. Melhorar sistema de busca de leads
+- [x] 3. Melhorar sistema de busca de leads
+
+
 
   - Criar componente LeadSearchDropdown com busca suspensa
   - Implementar debounce de 300ms para evitar requisições excessivas
