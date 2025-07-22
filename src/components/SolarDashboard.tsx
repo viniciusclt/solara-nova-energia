@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { ResponsiveText } from "@/components/ui/responsive-text";
 import { useAuth } from "@/contexts/AuthContext";
 import { SecurityAlert } from "./SecurityAlert";
 import { useSecurityAudit } from "@/hooks/useSecurityAudit";
@@ -179,8 +180,8 @@ export function SolarDashboard() {
               </div>
             </div>
             
-            <div className="flex items-center gap-4">
-              <div className="text-right">
+            <div className="flex items-center gap-2 sm:gap-4">
+              <div className="text-right hidden sm:block">
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4" />
                   <span className="font-medium">{profile?.name}</span>
@@ -192,10 +193,18 @@ export function SolarDashboard() {
                   <p className="text-sm text-muted-foreground">{company.name}</p>
                 )}
               </div>
+              
+              {/* Mobile user info - simplified */}
+              <div className="sm:hidden">
+                <Badge variant={getAccessTypeVariant(profile?.access_type || '')}>
+                  {profile?.name?.split(' ')[0]}
+                </Badge>
+              </div>
+              
               <SettingsModal />
               <Button variant="outline" size="sm" onClick={signOut}>
                 <LogOut className="h-4 w-4" />
-                Sair
+                <span className="hidden sm:inline">Sair</span>
               </Button>
             </div>
           </div>
@@ -206,7 +215,7 @@ export function SolarDashboard() {
       <div className="container mx-auto px-4 py-6">
         <SecurityAlert onSecurityIssue={(issue) => logSuspiciousActivity('security_alert', { issue })} />
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {dashboardStats.map((stat, index) => (
             <Card key={index} className="shadow-card hover:shadow-solar transition-smooth">
               <CardContent className="p-6">
@@ -245,7 +254,7 @@ export function SolarDashboard() {
         {/* Main Navigation Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <div className="bg-card rounded-lg p-4 shadow-card">
-            <TabsList className="grid w-full grid-cols-5 bg-muted/50 h-auto">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 bg-muted/50 h-auto gap-1">
               {navigationTabs.map((tab) => (
                 <TabsTrigger 
                   key={tab.id} 
@@ -255,9 +264,12 @@ export function SolarDashboard() {
                   <tab.icon className="h-5 w-5" />
                   <div className="text-center">
                     <div className="font-medium text-sm">{tab.label}</div>
-                    <div className="text-xs text-muted-foreground hidden sm:block">
-                      {tab.description}
-                    </div>
+                    <ResponsiveText
+                      text={tab.description}
+                      maxWidth={100}
+                      hideOnSmall={true}
+                      breakLines={true}
+                    />
                   </div>
                 </TabsTrigger>
               ))}

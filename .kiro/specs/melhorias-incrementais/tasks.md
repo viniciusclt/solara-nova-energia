@@ -1,6 +1,8 @@
 # Implementation Plan - Melhorias Incrementais SolarCalc Pro
 
 - [x] 1. Restaurar versão estável e criar ponto de partida
+
+
   - Fazer checkout do commit a3a84c3 "Fix lead listing and filtering"
   - Executar npm install para instalar dependências
   - Executar npm run build para verificar compilação
@@ -9,7 +11,8 @@
   - Fazer push para GitHub (conectado ao Lovable) para validação inicial
   - _Requirements: Base estável para desenvolvimento_
 
-- [ ] 2. Implementar melhorias de UI/UX responsiva
+- [-] 2. Implementar melhorias de UI/UX responsiva
+
   - Criar componente ResponsiveText para quebra automática de texto em botões
   - Implementar ResponsiveButton com subtítulos que se adaptam ao tamanho da tela
   - Corrigir layout dos botões da home para evitar extrapolação de texto
