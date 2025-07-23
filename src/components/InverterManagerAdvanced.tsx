@@ -106,7 +106,7 @@ export function InverterManagerAdvanced() {
       } else {
         // Usar dados do Supabase em produção
         const { data, error } = await supabase
-          .from('inverters')
+          .from('inverters' as never)
           .select('*')
           .order('name');
 
@@ -140,14 +140,17 @@ export function InverterManagerAdvanced() {
       if (isEditing && currentInverter.id) {
         // Atualizar inversor existente
         result = await supabase
-          .from('inverters')
+          .from('inverters' as 'audit_logs')
           .update(inverterToSave)
           .eq('id', currentInverter.id);
       } else {
         // Criar novo inversor
         result = await supabase
-          .from('inverters')
-          .insert(inverterToSave);
+          .from('inverters' as 'audit_logs')
+          .insert({
+            ...inverterToSave,
+            action: 'create_inverter'
+          });
       }
 
       if (result.error) throw result.error;
@@ -174,7 +177,7 @@ export function InverterManagerAdvanced() {
 
     try {
       const { error } = await supabase
-        .from('inverters')
+        .from('inverters' as never)
         .delete()
         .eq('id', id);
 
@@ -843,7 +846,13 @@ export function InverterManagerAdvanced() {
                         <Checkbox 
                           id={`protection-${protection}`} 
                           checked={selectedProtections.includes(protection)}
-                          onCheckedChange={() => handleProtectionToggle(protection)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              handleProtectionToggle(protection);
+                            } else {
+                              handleProtectionToggle(protection);
+                            }
+                          }}
                         />
                         <Label htmlFor={`protection-${protection}`} className="text-sm">{protection}</Label>
                       </div>
@@ -864,7 +873,13 @@ export function InverterManagerAdvanced() {
                         <Checkbox 
                           id={`cert-${cert}`} 
                           checked={selectedCertifications.includes(cert)}
-                          onCheckedChange={() => handleCertificationToggle(cert)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              handleCertificationToggle(cert);
+                            } else {
+                              handleCertificationToggle(cert);
+                            }
+                          }}
                         />
                         <Label htmlFor={`cert-${cert}`} className="text-sm">{cert}</Label>
                       </div>
@@ -885,7 +900,13 @@ export function InverterManagerAdvanced() {
                         <Checkbox 
                           id={`comm-${comm}`} 
                           checked={selectedCommunicationInterfaces.includes(comm)}
-                          onCheckedChange={() => handleCommunicationToggle(comm)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              handleCommunicationToggle(comm);
+                            } else {
+                              handleCommunicationToggle(comm);
+                            }
+                          }}
                         />
                         <Label htmlFor={`comm-${comm}`} className="text-sm">{comm}</Label>
                       </div>
@@ -946,7 +967,7 @@ export function InverterManagerAdvanced() {
                   fileTypes={['application/pdf']}
                   maxSize={10}
                   currentFileUrl={currentInverter.datasheet || ""}
-                  onUploadComplete={(url) => setCurrentInverter({ ...currentInverter, datasheet: url })}
+                  onUploadComplete={(url) => setCurrentInverter({ ...currentInverter, datasheet: url || undefined })}
                   onError={(error) => toast({
                     title: "Erro no Upload",
                     description: error,
