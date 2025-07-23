@@ -22,6 +22,9 @@ import {
   TrendingUp
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { proposalPDFGenerator } from "@/services/proposalPDFGenerator";
+import { proposalSharingService } from "@/services/proposalSharingService";
+import { ProposalTemplateSelector } from "./ProposalTemplateSelector";
 
 interface ProposalData {
   tipoInvestimento: string;
@@ -53,6 +56,7 @@ export function ProposalGenerator({ currentLead }: ProposalGeneratorProps) {
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [proposalGenerated, setProposalGenerated] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState('standard');
 
   const sustentabilityData = {
     reducaoCO2: 3.2, // toneladas/ano
@@ -90,11 +94,45 @@ export function ProposalGenerator({ currentLead }: ProposalGeneratorProps) {
     "Documentação técnica completa"
   ];
 
+  const createProposalData = () => {
+    return {
+      lead: {
+        name: currentLead?.name || "Cliente",
+        email: currentLead?.email,
+        phone: currentLead?.phone,
+        address: currentLead?.address,
+        consumoMedio: currentLead?.consumoMedio || 780
+      },
+      simulation: {
+        potencia: 7.2,
+        geracaoAnual: 10800,
+        economia: 9180,
+        payback: 2.1,
+        tir: 18.5,
+        vpl: 155000
+      },
+      financial: {
+        valorSistema: 18500,
+        valorFinal: 20150,
+        margem: 8.9,
+        economiaAnual: 9180,
+        economia25Anos: 275400
+      },
+      kit: {
+        nome: "Kit 7.2kWp - Canadian Solar",
+        potencia: 7.2,
+        preco: 20150,
+        fabricante: "Canadian Solar"
+      }
+    };
+  };
+
   const generatePDF = async () => {
     setIsGenerating(true);
     try {
-      // Simulação da geração de PDF
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const proposalData = createProposalData();
+      
+      proposalPDFGenerator.downloadPDFWithTemplate(selectedTemplateId, proposalData);
       
       setProposalGenerated(true);
       toast({
@@ -102,6 +140,7 @@ export function ProposalGenerator({ currentLead }: ProposalGeneratorProps) {
         description: "PDF da proposta comercial criado com sucesso!"
       });
     } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
       toast({
         title: "Erro na Geração",
         description: "Erro ao gerar PDF. Tente novamente.",
@@ -109,6 +148,56 @@ export function ProposalGenerator({ currentLead }: ProposalGeneratorProps) {
       });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const previewPDF = async () => {
+    try {
+      const proposalData = createProposalData();
+      
+      const pdfUrl = await proposalPDFGenerator.previewPDFWithTemplate(selectedTemplateId, proposalData);
+      if (pdfUrl) {
+        window.open(pdfUrl, '_blank');
+        
+        toast({
+          title: "Preview Aberto",
+          description: "PDF aberto em nova aba para visualização"
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao visualizar PDF:', error);
+      toast({
+        title: "Erro na Visualização",
+        description: "Erro ao abrir preview do PDF",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const printPDF = async () => {
+    try {
+      const proposalData = createProposalData();
+      
+      const pdfUrl = await proposalPDFGenerator.previewPDF(proposalData);
+      const printWindow = window.open(pdfUrl, '_blank');
+      
+      if (printWindow) {
+        printWindow.onload = () => {
+          printWindow.print();
+        };
+      }
+      
+      toast({
+        title: "Enviado para Impressão",
+        description: "PDF enviado para impressão"
+      });
+    } catch (error) {
+      console.error('Erro ao imprimir PDF:', error);
+      toast({
+        title: "Erro na Impressão",
+        description: "Erro ao enviar PDF para impressão",
+        variant: "destructive"
+      });
     }
   };
 
@@ -128,24 +217,50 @@ export function ProposalGenerator({ currentLead }: ProposalGeneratorProps) {
   };
 
   const shareProposal = async () => {
-    const link = `https://app.solarcalc.com/proposta/12345`;
-    
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'Proposta Sistema Solar',
-          text: 'Confira sua proposta personalizada de energia solar',
-          url: link,
+    try {
+      const proposalData = createProposalData();
+      const leadName = currentLead?.name || "Cliente";
+      
+      const { shareUrl } = await proposalSharingService.createSharedProposal(
+        proposalData,
+        leadName,
+        proposalData.prazoValidade
+      );
+      
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: 'Proposta Sistema Solar',
+            text: `Confira sua proposta personalizada de energia solar para ${leadName}`,
+            url: shareUrl,
+          });
+          
+          toast({
+            title: "Proposta Compartilhada",
+            description: "Link compartilhado com sucesso!"
+          });
+        } catch (error) {
+          // Se o compartilhamento nativo falhar, copia para clipboard
+          navigator.clipboard.writeText(shareUrl);
+          toast({
+            title: "Link Copiado",
+            description: "Link da proposta copiado para a área de transferência"
+          });
+        }
+      } else {
+        // Fallback para copiar para clipboard
+        navigator.clipboard.writeText(shareUrl);
+        toast({
+          title: "Link Copiado",
+          description: "Link da proposta copiado para a área de transferência"
         });
-      } catch (error) {
-        console.log('Erro ao compartilhar:', error);
       }
-    } else {
-      // Fallback para copiar para clipboard
-      navigator.clipboard.writeText(link);
+    } catch (error) {
+      console.error('Erro ao compartilhar proposta:', error);
       toast({
-        title: "Link Copiado",
-        description: "Link da proposta copiado para a área de transferência"
+        title: "Erro ao Compartilhar",
+        description: "Não foi possível criar o link de compartilhamento",
+        variant: "destructive"
       });
     }
   };
@@ -473,27 +588,48 @@ export function ProposalGenerator({ currentLead }: ProposalGeneratorProps) {
         </TabsContent>
 
         <TabsContent value="preview">
-          <Card className="shadow-card">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Preview da Proposta</CardTitle>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
-                    <Eye className="h-4 w-4" />
-                    Visualizar
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={shareProposal}>
-                    <Share2 className="h-4 w-4" />
-                    Compartilhar
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <Printer className="h-4 w-4" />
-                    Imprimir
-                  </Button>
+          <div className="space-y-6">
+            {/* Template Selector */}
+            <Card className="shadow-card">
+              <CardHeader>
+                <CardTitle>Selecionar Template</CardTitle>
+                <CardDescription>
+                  Escolha o template que melhor se adequa ao seu cliente
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ProposalTemplateSelector
+                  data={createProposalData()}
+                  selectedTemplateId={selectedTemplateId}
+                  onTemplateSelect={setSelectedTemplateId}
+                  showPreview={false}
+                  showDownload={false}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Preview Actions */}
+            <Card className="shadow-card">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Preview da Proposta</CardTitle>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={previewPDF}>
+                      <Eye className="h-4 w-4" />
+                      Visualizar
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={shareProposal}>
+                      <Share2 className="h-4 w-4" />
+                      Compartilhar
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={printPDF}>
+                      <Printer className="h-4 w-4" />
+                      Imprimir
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent>
+              </CardHeader>
+              <CardContent>
               <div className="bg-muted/30 p-6 rounded-lg border-2 border-dashed border-border">
                 <div className="text-center space-y-4">
                   <div className="text-4xl">📄</div>
@@ -538,7 +674,8 @@ export function ProposalGenerator({ currentLead }: ProposalGeneratorProps) {
                 </div>
               </div>
             </CardContent>
-          </Card>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

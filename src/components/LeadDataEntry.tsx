@@ -26,6 +26,7 @@ import {
 } from "@/lib/validation";
 import { useSecurityAudit } from "@/hooks/useSecurityAudit";
 import { supabase } from "@/integrations/supabase/client";
+import { DemoDataService } from "@/services/DemoDataService";
 
 interface LeadData {
   id?: string;
@@ -112,6 +113,18 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
     const savedLeadId = localStorage.getItem('selectedLeadId');
     if (savedLeadId && !currentLead) {
       loadLeadById(savedLeadId);
+    } else {
+      // Carregar dados de demonstração em localhost se não há lead atual
+      const demoDataService = DemoDataService.getInstance();
+      if (demoDataService.shouldUseDemoData() && !currentLead) {
+        const demoLeads = demoDataService.getLeads();
+        if (demoLeads.length > 0) {
+          const firstDemoLead = demoLeads[0];
+          setLeadData(firstDemoLead);
+          onLeadUpdate(firstDemoLead);
+          setShowLeadList(false);
+        }
+      }
     }
   }, []);
 

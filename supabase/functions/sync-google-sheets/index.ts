@@ -303,9 +303,48 @@ function processRow(row: any[], settings: GoogleSheetsSettings, userId: string, 
     getNumericValue(settings.columnMapping.consumoDez)
   ];
 
-  // Se não há dados mensais mapeados, usar array padrão
-  const hasMonthlyData = consumoMensal.some(value => value > 0);
-  const finalConsumoMensal = hasMonthlyData ? consumoMensal : Array(12).fill(0);
+  // Validar dados mensais
+  const validatedConsumoMensal = consumoMensal.map(value => {
+    // Garantir que valores negativos sejam convertidos para zero
+    if (value < 0) return 0;
+    
+    // Garantir que valores não numéricos sejam convertidos para zero
+    if (isNaN(value)) return 0;
+    
+    // Limitar valores extremamente altos (possíveis erros de digitação)
+    // Considerando 100.000 kWh como limite razoável para consumo mensal
+    if (value > 100000) return 100000;
+    
+    return value;
+  });
+
+  // Se não há dados mensais mapeados, usar array padrão ou média
+  const hasMonthlyData = validatedConsumoMensal.some(value => value > 0);
+  
+  // Calcular média dos valores mensais para validação
+  const monthlyAverage = hasMonthlyData 
+    ? validatedConsumoMensal.reduce((sum, val) => sum + val, 0) / validatedConsumoMensal.filter(val => val > 0).length
+    : 0;
+  
+  // Se temos consumo médio mas não temos dados mensais, distribuir o consumo médio pelos meses
+  let finalConsumoMensal: number[];
+  if (!hasMonthlyData && consumoMedio > 0) {
+    // Distribuir o consumo médio pelos 12 meses com pequenas variações (±20%)
+    finalConsumoMensal = Array(12).fill(0).map(() => {
+      const variation = 0.8 + Math.random() * 0.4; // Variação entre 0.8 e 1.2 (±20%)
+      return Math.round(consumoMedio * variation * 10) / 10; // Arredondar para 1 casa decimal
+    });
+  } else if (hasMonthlyData && Math.abs(monthlyAverage - consumoMedio) > consumoMedio * 0.5 && consumoMedio > 0) {
+    // Se a média mensal difere muito do consumo médio informado (mais de 50%), 
+    // normalizar os valores para que a média fique próxima ao consumo médio
+    const normalizationFactor = consumoMedio / monthlyAverage;
+    finalConsumoMensal = validatedConsumoMensal.map(val => 
+      Math.round(val * normalizationFactor * 10) / 10
+    );
+    console.log(`Normalizing monthly consumption values by factor ${normalizationFactor.toFixed(2)}`);
+  } else {
+    finalConsumoMensal = hasMonthlyData ? validatedConsumoMensal : Array(12).fill(0);
+  }
 
   // Processar campos de endereço detalhado
   const addressFields = {

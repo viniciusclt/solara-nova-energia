@@ -28,6 +28,7 @@ import { FinancialAnalysis } from "./FinancialAnalysis";
 import { ProposalGenerator } from "./ProposalGenerator";
 import { SettingsModal } from "./SettingsModal";
 import { SelectedLeadBreadcrumb } from "./SelectedLeadBreadcrumb";
+import { DemoDataIndicator } from "./DemoDataIndicator";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -364,6 +365,9 @@ export function SolarDashboard() {
           )}
         </Tabs>
       </div>
+      
+      {/* Demo Data Indicator */}
+      <DemoDataIndicator />
     </div>
   );
 }

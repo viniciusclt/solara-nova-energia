@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,8 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { Sun, Zap, Database, TrendingUp, AlertTriangle, CheckCircle } from "lucide-react";
+import { Sun, Zap, Database, TrendingUp, AlertTriangle, CheckCircle, Settings, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { SolarModule } from "@/types";
+import { EquipmentManager } from "./EquipmentManager";
+import { PVSolImporter } from "./PVSolImporter";
+import { DemoDataService } from "@/services/DemoDataService";
 
 interface SimulationData {
   desvioAzimutal: number;
@@ -19,6 +24,7 @@ interface SimulationData {
   quantidadeModulos: number;
   modeloInversor: string;
   potenciaInversor: number;
+  quantidadeInversores: number;
   pr: number; // Performance Ratio
   geracaoNecessaria: number;
   tamanhoSistema: number;
@@ -39,6 +45,10 @@ interface TechnicalSimulationProps {
 export function TechnicalSimulation({ currentLead }: TechnicalSimulationProps) {
   const { toast } = useToast();
   const [simulationLevel, setSimulationLevel] = useState<"basico" | "preciso">("basico");
+  const [showEquipmentManager, setShowEquipmentManager] = useState(false);
+  const [equipmentManagerTab, setEquipmentManagerTab] = useState<"modules" | "inverters">("modules");
+  const [showPVSolImporter, setShowPVSolImporter] = useState(false);
+  const [pvsolData, setPvsolData] = useState<any[]>([]);
   const [simulation, setSimulation] = useState<SimulationData>({
     desvioAzimutal: 15,
     inclinacao: 15,
@@ -47,6 +57,7 @@ export function TechnicalSimulation({ currentLead }: TechnicalSimulationProps) {
     quantidadeModulos: 12,
     modeloInversor: "QI-2500-E",
     potenciaInversor: 2500,
+    quantidadeInversores: 1,
     pr: 0,
     geracaoNecessaria: 0,
     tamanhoSistema: 0,
@@ -60,19 +71,34 @@ export function TechnicalSimulation({ currentLead }: TechnicalSimulationProps) {
     temperaturaMaxima: 35
   });
 
-  const moduloPresets = [
-    { nome: "ASTRONERGY 600W", potencia: 600, area: 2.7 },
-    { nome: "CANADIAN 545W", potencia: 545, area: 2.56 },
-    { nome: "JINKO 550W", potencia: 550, area: 2.59 },
-    { nome: "TRINA 545W", potencia: 545, area: 2.52 }
-  ];
+  // Usar dados de demonstração em localhost, senão usar presets padrão
+  const demoDataService = DemoDataService.getInstance();
+  const shouldUseDemoData = demoDataService.shouldUseDemoData();
+  
+  const moduloPresets = shouldUseDemoData 
+    ? demoDataService.getModules().map(module => ({
+        nome: `${module.brand} ${module.model}`,
+        potencia: module.power,
+        area: module.area
+      }))
+    : [
+        { nome: "ASTRONERGY 600W", potencia: 600, area: 2.7 },
+        { nome: "CANADIAN 545W", potencia: 545, area: 2.56 },
+        { nome: "JINKO 550W", potencia: 550, area: 2.59 },
+        { nome: "TRINA 545W", potencia: 545, area: 2.52 }
+      ];
 
-  const inversorPresets = [
-    { nome: "QI-2500-E", potencia: 2500 },
-    { nome: "QI-3000-E", potencia: 3000 },
-    { nome: "GROWATT MIN 2500TL-X", potencia: 2500 },
-    { nome: "FRONIUS PRIMO 3.0-1", potencia: 3000 }
-  ];
+  const inversorPresets = shouldUseDemoData
+    ? demoDataService.getInverters().map(inverter => ({
+        nome: `${inverter.brand} ${inverter.model}`,
+        potencia: inverter.power
+      }))
+    : [
+        { nome: "QI-2500-E", potencia: 2500 },
+        { nome: "QI-3000-E", potencia: 3000 },
+        { nome: "GROWATT MIN 2500TL-X", potencia: 2500 },
+        { nome: "FRONIUS PRIMO 3.0-1", potencia: 3000 }
+      ];
 
   const calcularPerdas = () => {
     const perdas = {
@@ -108,8 +134,9 @@ export function TechnicalSimulation({ currentLead }: TechnicalSimulationProps) {
     const geracaoAnual = (potenciaTotal * simulation.hsp * 365 * (pr / 100)) / 1000; // kWh/ano
     const geracaoMensalMedia = geracaoAnual / 12;
     
-    // Oversize
-    const oversizeCalc = (potenciaTotal / simulation.potenciaInversor) * 100;
+    // Oversize (considerando múltiplos inversores)
+    const potenciaTotalInversores = simulation.potenciaInversor * simulation.quantidadeInversores;
+    const oversizeCalc = (potenciaTotal / potenciaTotalInversores) * 100;
     
     // Área utilizada
     const moduloSelecionado = moduloPresets.find(m => m.nome === simulation.modeloModulo);
@@ -136,6 +163,58 @@ export function TechnicalSimulation({ currentLead }: TechnicalSimulationProps) {
 
   const isOversizeOptimal = simulation.oversize >= 100 && simulation.oversize <= 138;
   const isGeracaoSuficiente = simulation.geracaoAnual >= simulation.geracaoNecessaria * 0.9;
+
+  const handleOpenEquipmentManager = (tab: "modules" | "inverters") => {
+    setEquipmentManagerTab(tab);
+    setShowEquipmentManager(true);
+  };
+
+  const handleCloseEquipmentManager = () => {
+    setShowEquipmentManager(false);
+  };
+
+  const handlePVSolDataImported = (data: any[]) => {
+    setPvsolData(data);
+    setShowPVSolImporter(false);
+    
+    // Calcular geração anual a partir dos dados PV*Sol
+    const geracaoAnual = data.reduce((sum, month) => sum + month.generation, 0);
+    const geracaoMensalMedia = geracaoAnual / 12;
+    
+    // Atualizar simulação com dados PV*Sol
+    setSimulation(prev => ({
+      ...prev,
+      geracaoAnual,
+      geracaoMediaMensal: geracaoMensalMedia
+    }));
+
+    toast({
+      title: "Dados PV*Sol Importados",
+      description: `Simulação atualizada com ${data.length} meses de dados precisos`
+    });
+  };
+
+  const handleClosePVSolImporter = () => {
+    setShowPVSolImporter(false);
+  };
+
+  if (showEquipmentManager) {
+    return (
+      <EquipmentManager 
+        onBack={handleCloseEquipmentManager}
+        defaultTab={equipmentManagerTab}
+      />
+    );
+  }
+
+  if (showPVSolImporter) {
+    return (
+      <PVSolImporter 
+        onDataImported={handlePVSolDataImported}
+        onClose={handleClosePVSolImporter}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -166,6 +245,16 @@ export function TechnicalSimulation({ currentLead }: TechnicalSimulationProps) {
               >
                 Nível 2 - Preciso
               </Button>
+              {simulationLevel === "preciso" && (
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowPVSolImporter(true)}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Importar PV*Sol
+                </Button>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -211,6 +300,12 @@ export function TechnicalSimulation({ currentLead }: TechnicalSimulationProps) {
                   <><AlertTriangle className="h-3 w-3 mr-1" /> Oversize fora do ideal</>
                 )}
               </Badge>
+              {pvsolData.length > 0 && (
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                  <FileText className="h-3 w-3 mr-1" />
+                  Dados PV*Sol ({pvsolData.length} meses)
+                </Badge>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -329,7 +424,13 @@ export function TechnicalSimulation({ currentLead }: TechnicalSimulationProps) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="shadow-card">
               <CardHeader>
-                <CardTitle>Módulos Fotovoltaicos</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Módulos Fotovoltaicos</CardTitle>
+                  <Button variant="outline" size="sm" onClick={() => handleOpenEquipmentManager("modules")}>
+                    <Settings className="h-4 w-4 mr-2" />
+                    Gerenciar
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -387,7 +488,13 @@ export function TechnicalSimulation({ currentLead }: TechnicalSimulationProps) {
 
             <Card className="shadow-card">
               <CardHeader>
-                <CardTitle>Inversor</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Inversor</CardTitle>
+                  <Button variant="outline" size="sm" onClick={() => handleOpenEquipmentManager("inverters")}>
+                    <Settings className="h-4 w-4 mr-2" />
+                    Gerenciar
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -413,14 +520,33 @@ export function TechnicalSimulation({ currentLead }: TechnicalSimulationProps) {
                   </Select>
                 </div>
 
-                <div>
-                  <Label htmlFor="potenciaInversor">Potência (W)</Label>
-                  <Input
-                    id="potenciaInversor"
-                    type="number"
-                    value={simulation.potenciaInversor}
-                    onChange={(e) => setSimulation(prev => ({ ...prev, potenciaInversor: Number(e.target.value) }))}
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="potenciaInversor">Potência (W)</Label>
+                    <Input
+                      id="potenciaInversor"
+                      type="number"
+                      value={simulation.potenciaInversor}
+                      onChange={(e) => setSimulation(prev => ({ ...prev, potenciaInversor: Number(e.target.value) }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="quantidadeInversores">Quantidade</Label>
+                    <Input
+                      id="quantidadeInversores"
+                      type="number"
+                      min="1"
+                      value={simulation.quantidadeInversores}
+                      onChange={(e) => setSimulation(prev => ({ ...prev, quantidadeInversores: Number(e.target.value) }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-muted/50 p-3 rounded-lg">
+                  <div className="text-sm font-medium">Potência Total dos Inversores</div>
+                  <div className="text-xl font-bold text-secondary">
+                    {((simulation.quantidadeInversores * simulation.potenciaInversor) / 1000).toFixed(2)} kWp
+                  </div>
                 </div>
 
                 <div className="bg-muted/50 p-3 rounded-lg">
@@ -428,7 +554,7 @@ export function TechnicalSimulation({ currentLead }: TechnicalSimulationProps) {
                   <div className={`text-xl font-bold ${
                     simulation.oversize >= 100 && simulation.oversize <= 138 ? 'text-success' : 'text-warning'
                   }`}>
-                    {((simulation.quantidadeModulos * simulation.potenciaModulo) / simulation.potenciaInversor * 100).toFixed(1)}%
+                    {((simulation.quantidadeModulos * simulation.potenciaModulo) / (simulation.potenciaInversor * simulation.quantidadeInversores) * 100).toFixed(1)}%
                   </div>
                   <div className="text-xs text-muted-foreground">
                     Ideal: 100% - 138%

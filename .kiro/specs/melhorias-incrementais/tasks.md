@@ -56,13 +56,7 @@
   - Fazer push para GitHub (conectado ao Lovable) para validação
   - _Requirements: 2.3_
 
-- [-] 5. Expandir mapeamento de colunas Google Sheets
-
-
-
-
-
-
+- [x] 5. Expandir mapeamento de colunas Google Sheets
 
   - Estender interface GoogleSheetsMapping para incluir consumo mensal
   - Adicionar campos de mapeamento para Jan-Dez no componente de importação
@@ -75,7 +69,8 @@
   - Fazer push para GitHub (conectado ao Lovable) para validação
   - _Requirements: 2.2_
 
-- [ ] 6. Expandir modelo de dados para módulos solares
+- [x] 6. Expandir modelo de dados para módulos solares
+
   - Estender interface SolarModule com campos técnicos completos (Voc, Isc, Vmp, Imp)
   - Adicionar campos de coeficientes de temperatura (Pmax, Voc, Isc)
   - Implementar campos de dimensões físicas (comprimento, largura, espessura, peso)
@@ -88,7 +83,10 @@
   - Fazer push para GitHub (conectado ao Lovable) para validação
   - _Requirements: 3.1, 3.4_
 
-- [ ] 7. Expandir modelo de dados para inversores
+- [x] 7. Expandir modelo de dados para inversores
+
+
+
   - Estender interface Inverter com especificações DC completas
   - Adicionar especificações AC detalhadas (Pn, Pmax, Vgrid, fases)
   - Implementar campos de eficiência (máxima, EU, MPPT)
@@ -102,7 +100,8 @@
   - Fazer push para GitHub (conectado ao Lovable) para validação
   - _Requirements: 3.1, 3.2_
 
-- [ ] 8. Reorganizar sistema de gerenciamento de equipamentos
+- [x] 8. Reorganizar sistema de gerenciamento de equipamentos
+
   - Remover botão "Gerenciar Equipamentos" da aba Calculadora
   - Renomear botão para "Gerenciar" na seção de equipamentos de consumo
   - Mover "Gerenciador de Módulos Solares" para dentro de "Gerenciar Equipamentos"
@@ -115,7 +114,10 @@
   - Fazer push para GitHub (conectado ao Lovable) para validação
   - _Requirements: 3.5_
 
-- [ ] 9. Implementar sistema básico de upload de datasheets
+- [x] 9. Implementar sistema básico de upload de datasheets
+
+
+
   - Criar componente FileUpload para PDFs de datasheets
   - Implementar validação de tipo de arquivo (apenas PDF)
   - Adicionar limite de tamanho de arquivo (10MB)
@@ -129,7 +131,10 @@
   - Fazer push para GitHub (conectado ao Lovable) para validação
   - _Requirements: 3.3_
 
-- [ ] 10. Implementar simulação Nível 2 com importação PV*Sol
+- [x] 10. Implementar simulação Nível 2 com importação PV*Sol
+
+
+
   - Criar componente PVSolImporter para importação de dados tabulares
   - Implementar parser para formato de tabela PV*Sol (Mês x Gerador)
   - Adicionar interface para colar dados de simulação externa
@@ -142,7 +147,10 @@
   - Fazer push para GitHub (conectado ao Lovable) para validação
   - _Requirements: 4.1_
 
-- [ ] 11. Adicionar quantidade de inversores na simulação
+- [x] 11. Adicionar quantidade de inversores na simulação
+
+
+
   - Estender interface de configuração de simulação
   - Adicionar campo de quantidade de inversores
   - Implementar validação de compatibilidade (potência total)
@@ -154,7 +162,11 @@
   - Fazer push para GitHub (conectado ao Lovable) para validação
   - _Requirements: 4.2_
 
-- [ ] 12. Implementar sistema de kits financeiros com importação Excel
+- [x] 12. Implementar sistema de kits financeiros com importação Excel
+
+
+
+
   - Criar componente ExcelImporter para importação de kits
   - Implementar template de Excel para download
   - Adicionar validação de dados importados do Excel
@@ -167,7 +179,12 @@
   - Fazer push para GitHub (conectado ao Lovable) para validação
   - _Requirements: 5.1_
 
-- [ ] 13. Implementar geração de PDF para propostas
+- [x] 13. Implementar geração de PDF para propostas
+
+
+
+
+
   - Criar serviço ProposalPDFGenerator usando jsPDF
   - Implementar template básico de proposta em PDF
   - Adicionar geração de gráficos e tabelas no PDF
@@ -180,7 +197,12 @@
   - Fazer push para GitHub (conectado ao Lovable) para validação
   - _Requirements: 5.2_
 
-- [ ] 14. Implementar sistema de compartilhamento de propostas
+- [x] 14. Implementar sistema de compartilhamento de propostas
+
+
+
+
+
   - Criar serviço ProposalSharingService
   - Implementar geração de links únicos para propostas
   - Adicionar sistema de rastreamento de visualizações
@@ -194,6 +216,10 @@
   - _Requirements: 5.3_
 
 - [ ] 15. Criar templates profissionais de proposta
+
+
+
+
   - Implementar Template 1: Réplica do protótipo anexado
   - Criar Template 2: Metodologia AIDA com design minimalista
   - Desenvolver Template 3: Foco em dados e ROI

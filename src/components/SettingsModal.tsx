@@ -571,6 +571,25 @@ export const SettingsModal: React.FC = () => {
             return row[colIndex] || '';
           };
 
+          // Obter valores de consumo mensal
+          const consumoMensal = [
+            getValue(googleSheetsSettings.columnMapping.consumoJan),
+            getValue(googleSheetsSettings.columnMapping.consumoFev),
+            getValue(googleSheetsSettings.columnMapping.consumoMar),
+            getValue(googleSheetsSettings.columnMapping.consumoAbr),
+            getValue(googleSheetsSettings.columnMapping.consumoMai),
+            getValue(googleSheetsSettings.columnMapping.consumoJun),
+            getValue(googleSheetsSettings.columnMapping.consumoJul),
+            getValue(googleSheetsSettings.columnMapping.consumoAgo),
+            getValue(googleSheetsSettings.columnMapping.consumoSet),
+            getValue(googleSheetsSettings.columnMapping.consumoOut),
+            getValue(googleSheetsSettings.columnMapping.consumoNov),
+            getValue(googleSheetsSettings.columnMapping.consumoDez)
+          ];
+
+          // Verificar se há dados mensais mapeados
+          const hasMonthlyData = consumoMensal.some(value => value !== '');
+
           return {
             rowIndex: index + 2, // +2 because we start from row 2 (after header)
             name: getValue(googleSheetsSettings.columnMapping.name),
@@ -581,9 +600,20 @@ export const SettingsModal: React.FC = () => {
             concessionaria: getValue(googleSheetsSettings.columnMapping.concessionaria),
             consumoMedio: getValue(googleSheetsSettings.columnMapping.consumoMedio),
             // Monthly consumption preview
+            consumoMensal: hasMonthlyData ? consumoMensal : null,
+            // Individual monthly values for detailed preview
             consumoJan: getValue(googleSheetsSettings.columnMapping.consumoJan),
             consumoFev: getValue(googleSheetsSettings.columnMapping.consumoFev),
             consumoMar: getValue(googleSheetsSettings.columnMapping.consumoMar),
+            consumoAbr: getValue(googleSheetsSettings.columnMapping.consumoAbr),
+            consumoMai: getValue(googleSheetsSettings.columnMapping.consumoMai),
+            consumoJun: getValue(googleSheetsSettings.columnMapping.consumoJun),
+            consumoJul: getValue(googleSheetsSettings.columnMapping.consumoJul),
+            consumoAgo: getValue(googleSheetsSettings.columnMapping.consumoAgo),
+            consumoSet: getValue(googleSheetsSettings.columnMapping.consumoSet),
+            consumoOut: getValue(googleSheetsSettings.columnMapping.consumoOut),
+            consumoNov: getValue(googleSheetsSettings.columnMapping.consumoNov),
+            consumoDez: getValue(googleSheetsSettings.columnMapping.consumoDez),
             // Additional fields
             cep: getValue(googleSheetsSettings.columnMapping.cep),
             cidade: getValue(googleSheetsSettings.columnMapping.cidade),
@@ -1021,6 +1051,407 @@ export const SettingsModal: React.FC = () => {
                     <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
                       Configure o mapeamento para os dados de consumo mensal (Janeiro a Dezembro). 
                       Estes campos são opcionais e permitem análises mais detalhadas do perfil de consumo.
+                    </div>
+                    
+                    {/* Botão para mapear automaticamente colunas sequenciais */}
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          // Solicitar a coluna inicial (Janeiro)
+                          const startColumn = prompt("Digite a letra da coluna para Janeiro:");
+                          if (!startColumn) return;
+                          
+                          // Validar formato da coluna
+                          if (!/^[A-Z]+$/.test(startColumn)) {
+                            toast({
+                              title: "Formato Inválido",
+                              description: "A coluna deve ser uma letra de A a Z",
+                              variant: "destructive"
+                            });
+                            return;
+                          }
+                          
+                          // Mapear 12 colunas sequenciais a partir da inicial
+                          const newMapping = { ...googleSheetsSettings.columnMapping };
+                          const months = ['consumoJan', 'consumoFev', 'consumoMar', 'consumoAbr', 
+                                         'consumoMai', 'consumoJun', 'consumoJul', 'consumoAgo', 
+                                         'consumoSet', 'consumoOut', 'consumoNov', 'consumoDez'];
+                          
+                          let currentCol = startColumn;
+                          months.forEach(month => {
+                            newMapping[month] = currentCol;
+                            // Avançar para próxima coluna (ex: A -> B, Z -> AA)
+                            currentCol = columnIndexToLetter(columnLetterToIndex(currentCol) + 1);
+                          });
+                          
+                          setGoogleSheetsSettings(prev => ({
+                            ...prev,
+                            columnMapping: newMapping
+                          }));
+                          
+                          toast({
+                            title: "Mapeamento Automático",
+                            description: `Colunas de consumo mensal mapeadas de ${startColumn} a ${columnIndexToLetter(columnLetterToIndex(startColumn) + 11)}`,
+                          });
+                        }}
+                      >
+                        Mapear Colunas Sequenciais
+                      </Button>
+                      <span className="text-xs text-muted-foreground">
+                        Use quando os meses estiverem em colunas consecutivas
+                      </span>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-2">
+                      {/* Janeiro */}
+                      <div className="space-y-2">
+                        <Label>Janeiro</Label>
+                        {availableColumns.length > 0 ? (
+                          <Select 
+                            value={googleSheetsSettings.columnMapping.consumoJan || "none"} 
+                            onValueChange={(value) => updateColumnMapping('consumoJan', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a coluna" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Não mapear</SelectItem>
+                              {availableColumns.map((col) => (
+                                <SelectItem key={col.letter} value={col.letter}>
+                                  {col.letter}: {col.header}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input
+                            placeholder="K"
+                            value={googleSheetsSettings.columnMapping.consumoJan}
+                            onChange={(e) => updateColumnMapping('consumoJan', e.target.value)}
+                          />
+                        )}
+                      </div>
+
+                      {/* Fevereiro */}
+                      <div className="space-y-2">
+                        <Label>Fevereiro</Label>
+                        {availableColumns.length > 0 ? (
+                          <Select 
+                            value={googleSheetsSettings.columnMapping.consumoFev || "none"} 
+                            onValueChange={(value) => updateColumnMapping('consumoFev', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a coluna" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Não mapear</SelectItem>
+                              {availableColumns.map((col) => (
+                                <SelectItem key={col.letter} value={col.letter}>
+                                  {col.letter}: {col.header}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input
+                            placeholder="L"
+                            value={googleSheetsSettings.columnMapping.consumoFev}
+                            onChange={(e) => updateColumnMapping('consumoFev', e.target.value)}
+                          />
+                        )}
+                      </div>
+
+                      {/* Março */}
+                      <div className="space-y-2">
+                        <Label>Março</Label>
+                        {availableColumns.length > 0 ? (
+                          <Select 
+                            value={googleSheetsSettings.columnMapping.consumoMar || "none"} 
+                            onValueChange={(value) => updateColumnMapping('consumoMar', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a coluna" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Não mapear</SelectItem>
+                              {availableColumns.map((col) => (
+                                <SelectItem key={col.letter} value={col.letter}>
+                                  {col.letter}: {col.header}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input
+                            placeholder="M"
+                            value={googleSheetsSettings.columnMapping.consumoMar}
+                            onChange={(e) => updateColumnMapping('consumoMar', e.target.value)}
+                          />
+                        )}
+                      </div>
+
+                      {/* Abril */}
+                      <div className="space-y-2">
+                        <Label>Abril</Label>
+                        {availableColumns.length > 0 ? (
+                          <Select 
+                            value={googleSheetsSettings.columnMapping.consumoAbr || "none"} 
+                            onValueChange={(value) => updateColumnMapping('consumoAbr', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a coluna" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Não mapear</SelectItem>
+                              {availableColumns.map((col) => (
+                                <SelectItem key={col.letter} value={col.letter}>
+                                  {col.letter}: {col.header}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input
+                            placeholder="N"
+                            value={googleSheetsSettings.columnMapping.consumoAbr}
+                            onChange={(e) => updateColumnMapping('consumoAbr', e.target.value)}
+                          />
+                        )}
+                      </div>
+
+                      {/* Maio */}
+                      <div className="space-y-2">
+                        <Label>Maio</Label>
+                        {availableColumns.length > 0 ? (
+                          <Select 
+                            value={googleSheetsSettings.columnMapping.consumoMai || "none"} 
+                            onValueChange={(value) => updateColumnMapping('consumoMai', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a coluna" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Não mapear</SelectItem>
+                              {availableColumns.map((col) => (
+                                <SelectItem key={col.letter} value={col.letter}>
+                                  {col.letter}: {col.header}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input
+                            placeholder="O"
+                            value={googleSheetsSettings.columnMapping.consumoMai}
+                            onChange={(e) => updateColumnMapping('consumoMai', e.target.value)}
+                          />
+                        )}
+                      </div>
+
+                      {/* Junho */}
+                      <div className="space-y-2">
+                        <Label>Junho</Label>
+                        {availableColumns.length > 0 ? (
+                          <Select 
+                            value={googleSheetsSettings.columnMapping.consumoJun || "none"} 
+                            onValueChange={(value) => updateColumnMapping('consumoJun', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a coluna" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Não mapear</SelectItem>
+                              {availableColumns.map((col) => (
+                                <SelectItem key={col.letter} value={col.letter}>
+                                  {col.letter}: {col.header}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input
+                            placeholder="P"
+                            value={googleSheetsSettings.columnMapping.consumoJun}
+                            onChange={(e) => updateColumnMapping('consumoJun', e.target.value)}
+                          />
+                        )}
+                      </div>
+
+                      {/* Julho */}
+                      <div className="space-y-2">
+                        <Label>Julho</Label>
+                        {availableColumns.length > 0 ? (
+                          <Select 
+                            value={googleSheetsSettings.columnMapping.consumoJul || "none"} 
+                            onValueChange={(value) => updateColumnMapping('consumoJul', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a coluna" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Não mapear</SelectItem>
+                              {availableColumns.map((col) => (
+                                <SelectItem key={col.letter} value={col.letter}>
+                                  {col.letter}: {col.header}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input
+                            placeholder="Q"
+                            value={googleSheetsSettings.columnMapping.consumoJul}
+                            onChange={(e) => updateColumnMapping('consumoJul', e.target.value)}
+                          />
+                        )}
+                      </div>
+
+                      {/* Agosto */}
+                      <div className="space-y-2">
+                        <Label>Agosto</Label>
+                        {availableColumns.length > 0 ? (
+                          <Select 
+                            value={googleSheetsSettings.columnMapping.consumoAgo || "none"} 
+                            onValueChange={(value) => updateColumnMapping('consumoAgo', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a coluna" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Não mapear</SelectItem>
+                              {availableColumns.map((col) => (
+                                <SelectItem key={col.letter} value={col.letter}>
+                                  {col.letter}: {col.header}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input
+                            placeholder="R"
+                            value={googleSheetsSettings.columnMapping.consumoAgo}
+                            onChange={(e) => updateColumnMapping('consumoAgo', e.target.value)}
+                          />
+                        )}
+                      </div>
+
+                      {/* Setembro */}
+                      <div className="space-y-2">
+                        <Label>Setembro</Label>
+                        {availableColumns.length > 0 ? (
+                          <Select 
+                            value={googleSheetsSettings.columnMapping.consumoSet || "none"} 
+                            onValueChange={(value) => updateColumnMapping('consumoSet', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a coluna" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Não mapear</SelectItem>
+                              {availableColumns.map((col) => (
+                                <SelectItem key={col.letter} value={col.letter}>
+                                  {col.letter}: {col.header}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input
+                            placeholder="S"
+                            value={googleSheetsSettings.columnMapping.consumoSet}
+                            onChange={(e) => updateColumnMapping('consumoSet', e.target.value)}
+                          />
+                        )}
+                      </div>
+
+                      {/* Outubro */}
+                      <div className="space-y-2">
+                        <Label>Outubro</Label>
+                        {availableColumns.length > 0 ? (
+                          <Select 
+                            value={googleSheetsSettings.columnMapping.consumoOut || "none"} 
+                            onValueChange={(value) => updateColumnMapping('consumoOut', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a coluna" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Não mapear</SelectItem>
+                              {availableColumns.map((col) => (
+                                <SelectItem key={col.letter} value={col.letter}>
+                                  {col.letter}: {col.header}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input
+                            placeholder="T"
+                            value={googleSheetsSettings.columnMapping.consumoOut}
+                            onChange={(e) => updateColumnMapping('consumoOut', e.target.value)}
+                          />
+                        )}
+                      </div>
+
+                      {/* Novembro */}
+                      <div className="space-y-2">
+                        <Label>Novembro</Label>
+                        {availableColumns.length > 0 ? (
+                          <Select 
+                            value={googleSheetsSettings.columnMapping.consumoNov || "none"} 
+                            onValueChange={(value) => updateColumnMapping('consumoNov', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a coluna" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Não mapear</SelectItem>
+                              {availableColumns.map((col) => (
+                                <SelectItem key={col.letter} value={col.letter}>
+                                  {col.letter}: {col.header}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input
+                            placeholder="U"
+                            value={googleSheetsSettings.columnMapping.consumoNov}
+                            onChange={(e) => updateColumnMapping('consumoNov', e.target.value)}
+                          />
+                        )}
+                      </div>
+
+                      {/* Dezembro */}
+                      <div className="space-y-2">
+                        <Label>Dezembro</Label>
+                        {availableColumns.length > 0 ? (
+                          <Select 
+                            value={googleSheetsSettings.columnMapping.consumoDez || "none"} 
+                            onValueChange={(value) => updateColumnMapping('consumoDez', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a coluna" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Não mapear</SelectItem>
+                              {availableColumns.map((col) => (
+                                <SelectItem key={col.letter} value={col.letter}>
+                                  {col.letter}: {col.header}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input
+                            placeholder="V"
+                            value={googleSheetsSettings.columnMapping.consumoDez}
+                            onChange={(e) => updateColumnMapping('consumoDez', e.target.value)}
+                          />
+                        )}
+                      </div>
                     </div>
                     
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -1738,42 +2169,157 @@ export const SettingsModal: React.FC = () => {
                       </Button>
                     </div>
                     
-                    <div className="border rounded-lg overflow-hidden">
-                      <div className="overflow-x-auto max-h-96">
-                        <table className="w-full text-sm">
-                          <thead className="bg-muted/50 border-b">
-                            <tr>
-                              <th className="text-left p-2 font-medium">Linha</th>
-                              <th className="text-left p-2 font-medium">Nome</th>
-                              <th className="text-left p-2 font-medium">Email</th>
-                              <th className="text-left p-2 font-medium">Telefone</th>
-                              <th className="text-left p-2 font-medium">Consumo Médio</th>
-                              <th className="text-left p-2 font-medium">Jan</th>
-                              <th className="text-left p-2 font-medium">Fev</th>
-                              <th className="text-left p-2 font-medium">Mar</th>
-                              <th className="text-left p-2 font-medium">CEP</th>
-                              <th className="text-left p-2 font-medium">Cidade</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {previewData.map((row, index) => (
-                              <tr key={index} className="border-b hover:bg-muted/25">
-                                <td className="p-2 text-muted-foreground">{row.rowIndex}</td>
-                                <td className="p-2 font-medium">{row.name || '-'}</td>
-                                <td className="p-2">{row.email || '-'}</td>
-                                <td className="p-2">{row.phone || '-'}</td>
-                                <td className="p-2">{row.consumoMedio || '-'}</td>
-                                <td className="p-2">{row.consumoJan || '-'}</td>
-                                <td className="p-2">{row.consumoFev || '-'}</td>
-                                <td className="p-2">{row.consumoMar || '-'}</td>
-                                <td className="p-2">{row.cep || '-'}</td>
-                                <td className="p-2">{row.cidade || '-'}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
+                    {/* Tabs para diferentes visualizações do preview */}
+                    <Tabs defaultValue="basic" className="w-full">
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="basic">Dados Básicos</TabsTrigger>
+                        <TabsTrigger value="monthly">Consumo Mensal</TabsTrigger>
+                      </TabsList>
+                      
+                      <TabsContent value="basic" className="mt-2">
+                        <div className="border rounded-lg overflow-hidden">
+                          <div className="overflow-x-auto max-h-96">
+                            <table className="w-full text-sm">
+                              <thead className="bg-muted/50 border-b">
+                                <tr>
+                                  <th className="text-left p-2 font-medium">Linha</th>
+                                  <th className="text-left p-2 font-medium">Nome</th>
+                                  <th className="text-left p-2 font-medium">Email</th>
+                                  <th className="text-left p-2 font-medium">Telefone</th>
+                                  <th className="text-left p-2 font-medium">Consumo Médio</th>
+                                  <th className="text-left p-2 font-medium">CEP</th>
+                                  <th className="text-left p-2 font-medium">Cidade</th>
+                                  <th className="text-left p-2 font-medium">Estado</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {previewData.map((row, index) => (
+                                  <tr key={index} className="border-b hover:bg-muted/25">
+                                    <td className="p-2 text-muted-foreground">{row.rowIndex}</td>
+                                    <td className="p-2 font-medium">{row.name || '-'}</td>
+                                    <td className="p-2">{row.email || '-'}</td>
+                                    <td className="p-2">{row.phone || '-'}</td>
+                                    <td className="p-2">{row.consumoMedio || '-'}</td>
+                                    <td className="p-2">{row.cep || '-'}</td>
+                                    <td className="p-2">{row.cidade || '-'}</td>
+                                    <td className="p-2">{row.estado || '-'}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </TabsContent>
+                      
+                      <TabsContent value="monthly" className="mt-2">
+                        <div className="space-y-4">
+                          {/* Resumo do mapeamento de consumo mensal */}
+                          <div className="bg-muted/30 p-3 rounded-lg border">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="h-4 w-4 rounded-full bg-green-500"></div>
+                              <span className="text-sm font-medium">Status do mapeamento mensal:</span>
+                              {previewData.some(row => row.consumoMensal) ? (
+                                <Badge variant="success" className="bg-green-500">Dados mensais detectados</Badge>
+                              ) : (
+                                <Badge variant="secondary">Sem dados mensais</Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {previewData.some(row => row.consumoMensal) 
+                                ? "Os dados de consumo mensal foram detectados e serão importados. Isso permitirá análises mais detalhadas do perfil de consumo."
+                                : "Nenhum dado de consumo mensal foi mapeado. O sistema usará o consumo médio para estimar valores mensais com pequenas variações."}
+                            </p>
+                          </div>
+                          
+                          {/* Tabela de dados mensais */}
+                          <div className="border rounded-lg overflow-hidden">
+                            <div className="overflow-x-auto max-h-96">
+                              <table className="w-full text-sm">
+                                <thead className="bg-muted/50 border-b">
+                                  <tr>
+                                    <th className="text-left p-2 font-medium">Linha</th>
+                                    <th className="text-left p-2 font-medium">Nome</th>
+                                    <th className="text-left p-2 font-medium">Jan</th>
+                                    <th className="text-left p-2 font-medium">Fev</th>
+                                    <th className="text-left p-2 font-medium">Mar</th>
+                                    <th className="text-left p-2 font-medium">Abr</th>
+                                    <th className="text-left p-2 font-medium">Mai</th>
+                                    <th className="text-left p-2 font-medium">Jun</th>
+                                    <th className="text-left p-2 font-medium">Jul</th>
+                                    <th className="text-left p-2 font-medium">Ago</th>
+                                    <th className="text-left p-2 font-medium">Set</th>
+                                    <th className="text-left p-2 font-medium">Out</th>
+                                    <th className="text-left p-2 font-medium">Nov</th>
+                                    <th className="text-left p-2 font-medium">Dez</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {previewData.map((row, index) => {
+                                    // Verificar se há valores negativos para destacar
+                                    const hasNegativeValues = [
+                                      row.consumoJan, row.consumoFev, row.consumoMar, row.consumoAbr,
+                                      row.consumoMai, row.consumoJun, row.consumoJul, row.consumoAgo,
+                                      row.consumoSet, row.consumoOut, row.consumoNov, row.consumoDez
+                                    ].some(val => parseFloat(val) < 0);
+                                    
+                                    return (
+                                      <tr key={index} className={`border-b hover:bg-muted/25 ${hasNegativeValues ? 'bg-red-50' : ''}`}>
+                                        <td className="p-2 text-muted-foreground">{row.rowIndex}</td>
+                                        <td className="p-2 font-medium">{row.name || '-'}</td>
+                                        <td className={`p-2 ${parseFloat(row.consumoJan) < 0 ? 'text-red-500' : ''}`}>
+                                          {row.consumoJan || '-'}
+                                        </td>
+                                        <td className={`p-2 ${parseFloat(row.consumoFev) < 0 ? 'text-red-500' : ''}`}>
+                                          {row.consumoFev || '-'}
+                                        </td>
+                                        <td className={`p-2 ${parseFloat(row.consumoMar) < 0 ? 'text-red-500' : ''}`}>
+                                          {row.consumoMar || '-'}
+                                        </td>
+                                        <td className={`p-2 ${parseFloat(row.consumoAbr) < 0 ? 'text-red-500' : ''}`}>
+                                          {row.consumoAbr || '-'}
+                                        </td>
+                                        <td className={`p-2 ${parseFloat(row.consumoMai) < 0 ? 'text-red-500' : ''}`}>
+                                          {row.consumoMai || '-'}
+                                        </td>
+                                        <td className={`p-2 ${parseFloat(row.consumoJun) < 0 ? 'text-red-500' : ''}`}>
+                                          {row.consumoJun || '-'}
+                                        </td>
+                                        <td className={`p-2 ${parseFloat(row.consumoJul) < 0 ? 'text-red-500' : ''}`}>
+                                          {row.consumoJul || '-'}
+                                        </td>
+                                        <td className={`p-2 ${parseFloat(row.consumoAgo) < 0 ? 'text-red-500' : ''}`}>
+                                          {row.consumoAgo || '-'}
+                                        </td>
+                                        <td className={`p-2 ${parseFloat(row.consumoSet) < 0 ? 'text-red-500' : ''}`}>
+                                          {row.consumoSet || '-'}
+                                        </td>
+                                        <td className={`p-2 ${parseFloat(row.consumoOut) < 0 ? 'text-red-500' : ''}`}>
+                                          {row.consumoOut || '-'}
+                                        </td>
+                                        <td className={`p-2 ${parseFloat(row.consumoNov) < 0 ? 'text-red-500' : ''}`}>
+                                          {row.consumoNov || '-'}
+                                        </td>
+                                        <td className={`p-2 ${parseFloat(row.consumoDez) < 0 ? 'text-red-500' : ''}`}>
+                                          {row.consumoDez || '-'}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                          
+                          {/* Legenda e informações adicionais */}
+                          <div className="text-sm text-muted-foreground">
+                            <p>
+                              <span className="text-red-500 font-medium">Valores negativos</span> serão convertidos para zero durante a importação.
+                              Valores ausentes serão preenchidos com base no consumo médio.
+                            </p>
+                          </div>
+                        </div>
+                      </TabsContent>
+                    </Tabs>
                     
                     <div className="text-sm text-muted-foreground bg-blue-50 p-3 rounded-lg border border-blue-200">
                       <div className="flex items-start gap-2">

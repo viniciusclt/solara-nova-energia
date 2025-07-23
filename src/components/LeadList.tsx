@@ -11,6 +11,7 @@ import { Search, Filter, Plus, Copy, Trash2, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { DemoDataService } from "@/services/DemoDataService";
 
 interface Lead {
   id: string;
@@ -103,6 +104,61 @@ export function LeadList({ onLeadSelect, selectedLeadId, onNewLead }: LeadListPr
     try {
       setLoading(true);
       
+      // Verificar se deve usar dados demo
+      const demoService = DemoDataService.getInstance();
+      if (demoService.shouldUseDemoData()) {
+        const demoLeads = demoService.getLeads().map(lead => ({
+          id: lead.id!,
+          name: lead.name,
+          email: lead.email,
+          phone: lead.phone,
+          concessionaria: lead.concessionaria || null,
+          grupo: lead.grupo || null,
+          consumo_medio: lead.consumoMedio,
+          created_at: lead.created_at!,
+          updated_at: lead.updated_at!
+        }));
+        
+        // Aplicar filtros localmente para dados demo
+        let filteredLeads = demoLeads;
+        
+        if (searchTerm) {
+          const term = searchTerm.toLowerCase();
+          filteredLeads = filteredLeads.filter(lead => 
+            lead.name.toLowerCase().includes(term) ||
+            (lead.email && lead.email.toLowerCase().includes(term)) ||
+            (lead.phone && lead.phone.includes(term))
+          );
+        }
+        
+        if (filterConcessionaria) {
+          filteredLeads = filteredLeads.filter(lead => lead.concessionaria === filterConcessionaria);
+        }
+        
+        if (filterGrupo) {
+          filteredLeads = filteredLeads.filter(lead => lead.grupo === filterGrupo);
+        }
+        
+        // Aplicar ordenação
+        filteredLeads.sort((a, b) => {
+          const aValue = a[sortBy as keyof typeof a] || '';
+          const bValue = b[sortBy as keyof typeof b] || '';
+          const comparison = aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+          return sortOrder === 'asc' ? comparison : -comparison;
+        });
+        
+        // Aplicar paginação
+        const startIndex = (currentPage - 1) * pageSize;
+        const endIndex = startIndex + pageSize;
+        const paginatedLeads = filteredLeads.slice(startIndex, endIndex);
+        
+        setLeads(paginatedLeads);
+        setTotalCount(filteredLeads.length);
+        setTotalPages(Math.ceil(filteredLeads.length / pageSize));
+        return;
+      }
+      
+      // Código original para produção
       let query = supabase
         .from('leads')
         .select('id, name, email, phone, concessionaria, grupo, consumo_medio, created_at, updated_at', { count: 'exact' })

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,8 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { TrendingUp, DollarSign, Calculator, CreditCard, PiggyBank, Target } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { TrendingUp, DollarSign, Calculator, CreditCard, PiggyBank, Target, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { FinancialKitManager } from "./FinancialKitManager";
 
 interface FinancialData {
   valorSistema: number;
@@ -72,12 +75,44 @@ export function FinancialAnalysis({ currentLead }: FinancialAnalysisProps) {
     { banco: "CrediSIS", taxa: 0.99, parcelas: 120, carencia: 12, valorParcela: 0 }
   ]);
 
-  const kitsDisponiveis = [
-    { nome: "Kit 7.2kWp - Astronergy", potencia: 7.2, preco: 18500, precoWp: 2.57 },
-    { nome: "Kit 8.4kWp - Canadian", potencia: 8.4, preco: 22000, precoWp: 2.62 },
-    { nome: "Kit 9.6kWp - Jinko", potencia: 9.6, preco: 25500, precoWp: 2.66 },
-    { nome: "Kit 10.8kWp - Trina", potencia: 10.8, preco: 28200, precoWp: 2.61 }
-  ];
+  const [kitsDisponiveis, setKitsDisponiveis] = useState<any[]>([]);
+  const [isKitManagerOpen, setIsKitManagerOpen] = useState(false);
+
+  useEffect(() => {
+    fetchKits();
+  }, []);
+
+  const fetchKits = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('financial_kits')
+        .select('*')
+        .eq('ativo', true)
+        .order('potencia', { ascending: true });
+
+      if (error) throw error;
+      
+      // Transform database format to component format
+      const transformedKits = (data || []).map(kit => ({
+        id: kit.id,
+        nome: kit.nome,
+        potencia: kit.potencia,
+        preco: kit.preco,
+        precoWp: kit.preco_wp,
+        fabricante: kit.fabricante,
+        categoria: kit.categoria,
+        descricao: kit.descricao
+      }));
+      
+      setKitsDisponiveis(transformedKits);
+    } catch (error: any) {
+      toast({
+        title: "Erro ao carregar kits",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
 
   const calcularEconomia = () => {
     const consumoAnual = (currentLead?.consumoMedio || 780) * 12;
@@ -231,8 +266,29 @@ export function FinancialAnalysis({ currentLead }: FinancialAnalysisProps) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="shadow-card">
               <CardHeader>
-                <CardTitle>Kits Disponíveis</CardTitle>
-                <CardDescription>Selecione um kit base para o orçamento</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Kits Disponíveis</CardTitle>
+                    <CardDescription>Selecione um kit base para o orçamento</CardDescription>
+                  </div>
+                  <Dialog open={isKitManagerOpen} onOpenChange={setIsKitManagerOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Settings className="h-4 w-4 mr-2" />
+                        Gerenciar
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>Gerenciar Kits Financeiros</DialogTitle>
+                        <DialogDescription>
+                          Adicione, edite ou importe kits financeiros
+                        </DialogDescription>
+                      </DialogHeader>
+                      <FinancialKitManager />
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </CardHeader>
               <CardContent className="space-y-3">
                 {kitsDisponiveis.map((kit, index) => (

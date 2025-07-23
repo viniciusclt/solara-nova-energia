@@ -71,6 +71,48 @@ export type Database = {
         }
         Relationships: []
       }
+      financial_kits: {
+        Row: {
+          ativo: boolean
+          categoria: string | null
+          created_at: string
+          descricao: string | null
+          fabricante: string | null
+          id: string
+          nome: string
+          potencia: number
+          preco: number
+          preco_wp: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string | null
+          created_at?: string
+          descricao?: string | null
+          fabricante?: string | null
+          id?: string
+          nome: string
+          potencia: number
+          preco: number
+          preco_wp: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string | null
+          created_at?: string
+          descricao?: string | null
+          fabricante?: string | null
+          id?: string
+          nome?: string
+          potencia?: number
+          preco?: number
+          preco_wp?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       import_logs: {
         Row: {
           company_id: string
@@ -279,6 +321,91 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_views: {
+        Row: {
+          id: string
+          shared_proposal_id: string
+          ip_address: unknown | null
+          user_agent: string | null
+          viewed_at: string
+          session_duration: number | null
+          referrer: string | null
+        }
+        Insert: {
+          id?: string
+          shared_proposal_id: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+          viewed_at?: string
+          session_duration?: number | null
+          referrer?: string | null
+        }
+        Update: {
+          id?: string
+          shared_proposal_id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+          viewed_at?: string
+          session_duration?: number | null
+          referrer?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_views_shared_proposal_id_fkey"
+            columns: ["shared_proposal_id"]
+            isOneToOne: false
+            referencedRelation: "shared_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_proposals: {
+        Row: {
+          id: string
+          share_token: string
+          proposal_data: Json
+          lead_name: string
+          created_by: string | null
+          created_at: string
+          expires_at: string
+          is_active: boolean
+          view_count: number
+          last_viewed_at: string | null
+        }
+        Insert: {
+          id?: string
+          share_token: string
+          proposal_data: Json
+          lead_name: string
+          created_by?: string | null
+          created_at?: string
+          expires_at: string
+          is_active?: boolean
+          view_count?: number
+          last_viewed_at?: string | null
+        }
+        Update: {
+          id?: string
+          share_token?: string
+          proposal_data?: Json
+          lead_name?: string
+          created_by?: string | null
+          created_at?: string
+          expires_at?: string
+          is_active?: boolean
+          view_count?: number
+          last_viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_proposals_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
