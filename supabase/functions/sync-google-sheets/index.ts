@@ -23,6 +23,32 @@ interface GoogleSheetsSettings {
     grupo: string;
     consumoMedio: string;
     incrementoConsumo: string;
+    // Consumo mensal (Jan-Dez)
+    consumoJan: string;
+    consumoFev: string;
+    consumoMar: string;
+    consumoAbr: string;
+    consumoMai: string;
+    consumoJun: string;
+    consumoJul: string;
+    consumoAgo: string;
+    consumoSet: string;
+    consumoOut: string;
+    consumoNov: string;
+    consumoDez: string;
+    // Campos adicionais de endereço
+    cep: string;
+    cidade: string;
+    estado: string;
+    bairro: string;
+    rua: string;
+    numero: string;
+    // Campos elétricos adicionais
+    tensaoAlimentacao: string;
+    modalidadeTarifaria: string;
+    numeroCliente: string;
+    numeroInstalacao: string;
+    cdd: string;
   };
 }
 
@@ -243,6 +269,12 @@ function processRow(row: any[], settings: GoogleSheetsSettings, userId: string, 
     return row[colIndex] || '';
   };
 
+  const getNumericValue = (column: string, defaultValue: number = 0) => {
+    const value = getValue(column);
+    const parsed = parseFloat(value);
+    return isNaN(parsed) ? defaultValue : parsed;
+  };
+
   const name = getValue(settings.columnMapping.name);
   if (!name || name.trim() === '') {
     throw new Error('Name is required');
@@ -252,8 +284,45 @@ function processRow(row: any[], settings: GoogleSheetsSettings, userId: string, 
   const concessionaria = getValue(settings.columnMapping.concessionaria) || 'Light';
   const grupo = getValue(settings.columnMapping.grupo) || 'B1';
   const tipoFornecimento = getValue(settings.columnMapping.tipoFornecimento) || 'Monofásico';
-  const consumoMedio = parseFloat(getValue(settings.columnMapping.consumoMedio)) || 0;
-  const incrementoConsumo = parseFloat(getValue(settings.columnMapping.incrementoConsumo)) || 0;
+  const consumoMedio = getNumericValue(settings.columnMapping.consumoMedio);
+  const incrementoConsumo = getNumericValue(settings.columnMapping.incrementoConsumo);
+
+  // Processar consumo mensal (Jan-Dez)
+  const consumoMensal = [
+    getNumericValue(settings.columnMapping.consumoJan),
+    getNumericValue(settings.columnMapping.consumoFev),
+    getNumericValue(settings.columnMapping.consumoMar),
+    getNumericValue(settings.columnMapping.consumoAbr),
+    getNumericValue(settings.columnMapping.consumoMai),
+    getNumericValue(settings.columnMapping.consumoJun),
+    getNumericValue(settings.columnMapping.consumoJul),
+    getNumericValue(settings.columnMapping.consumoAgo),
+    getNumericValue(settings.columnMapping.consumoSet),
+    getNumericValue(settings.columnMapping.consumoOut),
+    getNumericValue(settings.columnMapping.consumoNov),
+    getNumericValue(settings.columnMapping.consumoDez)
+  ];
+
+  // Se não há dados mensais mapeados, usar array padrão
+  const hasMonthlyData = consumoMensal.some(value => value > 0);
+  const finalConsumoMensal = hasMonthlyData ? consumoMensal : Array(12).fill(0);
+
+  // Processar campos de endereço detalhado
+  const addressFields = {
+    street: getValue(settings.columnMapping.address) || getValue(settings.columnMapping.rua) || '',
+    city: getValue(settings.columnMapping.cidade) || '',
+    state: getValue(settings.columnMapping.estado) || 'RJ',
+    cep: getValue(settings.columnMapping.cep) || '',
+    neighborhood: getValue(settings.columnMapping.bairro) || '',
+    number: getValue(settings.columnMapping.numero) || ''
+  };
+
+  // Processar campos elétricos adicionais
+  const tensaoAlimentacao = getValue(settings.columnMapping.tensaoAlimentacao) || '220V';
+  const modalidadeTarifaria = getValue(settings.columnMapping.modalidadeTarifaria) || 'Convencional';
+  const numeroCliente = getValue(settings.columnMapping.numeroCliente) || '';
+  const numeroInstalacao = getValue(settings.columnMapping.numeroInstalacao) || '';
+  const cdd = getNumericValue(settings.columnMapping.cdd);
 
   return {
     user_id: userId,
@@ -262,14 +331,7 @@ function processRow(row: any[], settings: GoogleSheetsSettings, userId: string, 
     email: getValue(settings.columnMapping.email),
     phone: getValue(settings.columnMapping.phone),
     cpf_cnpj: getValue(settings.columnMapping.cpfCnpj),
-    address: {
-      street: getValue(settings.columnMapping.address) || '',
-      city: '',
-      state: 'RJ',
-      cep: '',
-      neighborhood: '',
-      number: ''
-    },
+    address: addressFields,
     consumo_medio: consumoMedio,
     incremento_consumo: incrementoConsumo,
     source: 'google_sheets',
@@ -278,12 +340,12 @@ function processRow(row: any[], settings: GoogleSheetsSettings, userId: string, 
     concessionaria: concessionaria,
     grupo: grupo,
     tipo_fornecimento: tipoFornecimento,
-    cdd: 0,
-    tensao_alimentacao: '220V',
-    modalidade_tarifaria: 'Convencional',
-    numero_cliente: '',
-    numero_instalacao: '',
-    consumo_mensal: Array(12).fill(0),
+    cdd: cdd,
+    tensao_alimentacao: tensaoAlimentacao,
+    modalidade_tarifaria: modalidadeTarifaria,
+    numero_cliente: numeroCliente,
+    numero_instalacao: numeroInstalacao,
+    consumo_mensal: finalConsumoMensal,
     comentarios: 'Importado do Google Sheets'
   };
 }

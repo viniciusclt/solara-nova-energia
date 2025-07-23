@@ -41,7 +41,9 @@
   - Fazer push para GitHub (conectado ao Lovable) para validação
   - _Requirements: 1.3, 1.4, 1.5, 2.1, 2.4_
 
-- [-] 4. Implementar busca automática por CEP
+- [x] 4. Implementar busca automática por CEP
+
+
 
   - Criar serviço CEPService para integração com API de CEP (ViaCEP)
   - Implementar função de busca automática de endereço por CEP
@@ -54,7 +56,14 @@
   - Fazer push para GitHub (conectado ao Lovable) para validação
   - _Requirements: 2.3_
 
-- [ ] 5. Expandir mapeamento de colunas Google Sheets
+- [-] 5. Expandir mapeamento de colunas Google Sheets
+
+
+
+
+
+
+
   - Estender interface GoogleSheetsMapping para incluir consumo mensal
   - Adicionar campos de mapeamento para Jan-Dez no componente de importação
   - Implementar validação de dados mensais importados
