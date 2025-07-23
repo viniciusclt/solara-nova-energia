@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Download, Upload, MapPin, User, Building, Zap, ArrowLeft, List } from "lucide-react";
+import { CEPInput } from "@/components/ui/cep-input";
 import { LeadList } from "./LeadList";
 import { LeadSearchDropdown } from "./LeadSearchDropdown";
 import { LeadTablePage } from "./LeadTablePage";
@@ -730,11 +731,25 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
               </div>
               <div>
                 <Label htmlFor="cep">CEP</Label>
-                <Input
-                  id="cep"
+                <CEPInput
                   value={leadData.address.cep}
-                  onChange={(e) => handleAddressChange("cep", e.target.value)}
-                  placeholder="22750-001"
+                  onChange={(value) => handleAddressChange("cep", value)}
+                  onAddressFound={(address) => {
+                    setLeadData(prev => ({
+                      ...prev,
+                      address: {
+                        ...prev.address,
+                        cep: address.cep,
+                        street: address.street,
+                        neighborhood: address.neighborhood,
+                        city: address.city,
+                        state: address.state
+                      }
+                    }));
+                  }}
+                  placeholder="00000-000"
+                  autoSearch={true}
+                  showSearchButton={true}
                 />
               </div>
             </div>

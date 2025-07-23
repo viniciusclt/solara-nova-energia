@@ -41,7 +41,8 @@
   - Fazer push para GitHub (conectado ao Lovable) para validação
   - _Requirements: 1.3, 1.4, 1.5, 2.1, 2.4_
 
-- [ ] 4. Implementar busca automática por CEP
+- [-] 4. Implementar busca automática por CEP
+
   - Criar serviço CEPService para integração com API de CEP (ViaCEP)
   - Implementar função de busca automática de endereço por CEP
   - Integrar busca de CEP nos formulários de lead
