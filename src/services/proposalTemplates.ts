@@ -37,7 +37,7 @@ export interface ProposalTemplate {
   id: string;
   name: string;
   description: string;
-  category: 'standard' | 'premium' | 'corporate' | 'minimal' | 'data-focused';
+  category: 'standard' | 'premium' | 'corporate' | 'minimal' | 'data-focused' | 'professional' | 'presentation';
   generatePDF(data: ProposalData): jsPDF;
 }
 
@@ -45,7 +45,7 @@ export abstract class BaseTemplate implements ProposalTemplate {
   abstract id: string;
   abstract name: string;
   abstract description: string;
-  abstract category: 'standard' | 'premium' | 'corporate' | 'minimal' | 'data-focused';
+  abstract category: 'standard' | 'premium' | 'corporate' | 'minimal' | 'data-focused' | 'professional' | 'presentation';
 
   protected doc: jsPDF;
   protected pageWidth: number;

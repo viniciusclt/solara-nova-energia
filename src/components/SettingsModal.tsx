@@ -2219,7 +2219,7 @@ export const SettingsModal: React.FC = () => {
                               <div className="h-4 w-4 rounded-full bg-green-500"></div>
                               <span className="text-sm font-medium">Status do mapeamento mensal:</span>
                               {previewData.some(row => row.consumoMensal) ? (
-                                <Badge variant="success" className="bg-green-500">Dados mensais detectados</Badge>
+                                <Badge variant="default" className="bg-green-500">Dados mensais detectados</Badge>
                               ) : (
                                 <Badge variant="secondary">Sem dados mensais</Badge>
                               )}

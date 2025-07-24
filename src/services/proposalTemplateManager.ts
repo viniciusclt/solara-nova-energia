@@ -4,6 +4,9 @@ import { AidaTemplate } from './templates/AidaTemplate';
 import { DataFocusedTemplate } from './templates/DataFocusedTemplate';
 import { StorytellingTemplate } from './templates/StorytellingTemplate';
 import { PremiumCorporateTemplate } from './templates/PremiumCorporateTemplate';
+import { PrototypeReplicaTemplate } from './templates/PrototypeReplicaTemplate';
+import { ProfessionalA4Template } from './templates/ProfessionalA4Template';
+import { Presentation16x9Template } from './templates/Presentation16x9Template';
 import jsPDF from 'jspdf';
 
 export class ProposalTemplateManager {
@@ -24,11 +27,14 @@ export class ProposalTemplateManager {
 
   private initializeTemplates() {
     const templateInstances = [
+      new PrototypeReplicaTemplate(),
       new StandardTemplate(),
       new AidaTemplate(),
       new DataFocusedTemplate(),
       new StorytellingTemplate(),
-      new PremiumCorporateTemplate()
+      new PremiumCorporateTemplate(),
+      new ProfessionalA4Template(),
+      new Presentation16x9Template()
     ];
 
     templateInstances.forEach(template => {

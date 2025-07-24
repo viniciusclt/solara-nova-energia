@@ -191,7 +191,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         // Security: Use generic error messages to prevent user enumeration
-        let secureMessage = "Credenciais inválidas";
+        const secureMessage = "Credenciais inválidas";
         
         // Log failed login attempt - simplified for now
         try {

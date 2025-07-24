@@ -77,7 +77,7 @@ export function TechnicalSimulation({ currentLead }: TechnicalSimulationProps) {
   
   const moduloPresets = shouldUseDemoData 
     ? demoDataService.getModules().map(module => ({
-        nome: `${module.brand} ${module.model}`,
+        nome: `${module.manufacturer} ${module.model}`,
         potencia: module.power,
         area: module.area
       }))
@@ -90,7 +90,7 @@ export function TechnicalSimulation({ currentLead }: TechnicalSimulationProps) {
 
   const inversorPresets = shouldUseDemoData
     ? demoDataService.getInverters().map(inverter => ({
-        nome: `${inverter.brand} ${inverter.model}`,
+        nome: `${inverter.manufacturer} ${inverter.model}`,
         potencia: inverter.power
       }))
     : [

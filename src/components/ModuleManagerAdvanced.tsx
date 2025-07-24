@@ -80,7 +80,7 @@ export function ModuleManagerAdvanced() {
       } else {
         // Usar dados do Supabase em produção
         const { data, error } = await supabase
-          .from('solar_modules')
+          .from('modules' as 'solar_modules')
           .select('*')
           .order('name');
 

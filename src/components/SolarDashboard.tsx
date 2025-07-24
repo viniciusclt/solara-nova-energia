@@ -19,7 +19,8 @@ import {
   Settings,
   Download,
   LogOut,
-  User
+  User,
+  CheckCircle
 } from "lucide-react";
 import { LeadDataEntry } from "./LeadDataEntry";
 import { ConsumptionCalculator } from "./ConsumptionCalculator";
@@ -29,8 +30,10 @@ import { ProposalGenerator } from "./ProposalGenerator";
 import { SettingsModal } from "./SettingsModal";
 import { SelectedLeadBreadcrumb } from "./SelectedLeadBreadcrumb";
 import { DemoDataIndicator } from "./DemoDataIndicator";
+import VersionDisplay from "./VersionDisplay";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 export function SolarDashboard() {
   const [currentLead, setCurrentLead] = useState<any>(null);
@@ -69,6 +72,7 @@ export function SolarDashboard() {
   };
   const { profile, company, signOut, hasPermission } = useAuth();
   const { logSuspiciousActivity } = useSecurityAudit();
+  const navigate = useNavigate();
 
   const getAccessTypeLabel = (type: string) => {
     const labels = {
@@ -202,6 +206,15 @@ export function SolarDashboard() {
                 </Badge>
               </div>
               
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => navigate('/validation')}
+                className="bg-green-50 hover:bg-green-100 border-green-200 text-green-700"
+              >
+                <CheckCircle className="h-4 w-4" />
+                <span className="hidden sm:inline">Validação</span>
+              </Button>
               <SettingsModal />
               <Button variant="outline" size="sm" onClick={signOut}>
                 <LogOut className="h-4 w-4" />
@@ -368,6 +381,11 @@ export function SolarDashboard() {
       
       {/* Demo Data Indicator */}
       <DemoDataIndicator />
+      
+      {/* Version Display */}
+      <div className="fixed bottom-4 left-4 z-40">
+        <VersionDisplay />
+      </div>
     </div>
   );
 }

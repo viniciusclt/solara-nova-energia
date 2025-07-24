@@ -1,14 +1,37 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Eye, Download, Sparkles, BarChart3, BookOpen, Building2, Zap } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { proposalPDFGenerator } from "@/services/proposalPDFGenerator";
-import { ProposalData, ProposalTemplate } from "@/services/proposalTemplates";
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { 
+  FileText, 
+  Eye, 
+  Download, 
+  Sparkles, 
+  BarChart3, 
+  BookOpen, 
+  Building2, 
+  Zap,
+  Star,
+  Palette,
+  Copy,
+  Settings,
+  FileImage,
+  Monitor
+} from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { proposalTemplateManager } from '@/services/proposalTemplateManager';
+import { ProposalPDFGenerator } from '@/services/proposalPDFGenerator';
+import { TemplateCustomizer } from '@/components/TemplateCustomizer';
+import type { ProposalData, ProposalTemplate } from '@/services/proposalTemplates';
+
+// Create a singleton instance of the PDF generator
+const proposalPDFGenerator = new ProposalPDFGenerator();
 
 interface ProposalTemplateSelectorProps {
   data: ProposalData;
@@ -21,11 +44,14 @@ interface ProposalTemplateSelectorProps {
 }
 
 const templateIcons = {
+  'prototype-replica': Building2,
   'standard': FileText,
   'aida': Zap,
   'data-focused': BarChart3,
   'storytelling': BookOpen,
-  'premium-corporate': Building2
+  'premium-corporate': Building2,
+  'professional-a4': FileImage,
+  'presentation-16x9': Monitor
 };
 
 const categoryColors = {
@@ -33,7 +59,9 @@ const categoryColors = {
   'premium': 'bg-purple-100 text-purple-800',
   'corporate': 'bg-gray-100 text-gray-800',
   'minimal': 'bg-green-100 text-green-800',
-  'data-focused': 'bg-orange-100 text-orange-800'
+  'data-focused': 'bg-orange-100 text-orange-800',
+  'professional': 'bg-emerald-100 text-emerald-800',
+  'presentation': 'bg-indigo-100 text-indigo-800'
 };
 
 export function ProposalTemplateSelector({
@@ -50,15 +78,18 @@ export function ProposalTemplateSelector({
   const [recommendedTemplates, setRecommendedTemplates] = useState<ProposalTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState(selectedTemplateId);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isPreviewing, setIsPreviewing] = useState(false);
+  const [customizationDialogOpen, setCustomizationDialogOpen] = useState(false);
+  const [selectedTemplateForCustomization, setSelectedTemplateForCustomization] = useState<ProposalTemplate | null>(null);
   const [activeTab, setActiveTab] = useState('all');
 
   useEffect(() => {
     // Load available templates
-    const availableTemplates = proposalPDFGenerator.getAvailableTemplates();
+    const availableTemplates = proposalTemplateManager.getAvailableTemplates();
     setTemplates(availableTemplates);
 
     // Get recommendations based on data
-    const recommendations = proposalPDFGenerator.getRecommendedTemplates(data);
+    const recommendations = proposalTemplateManager.getRecommendedTemplates(data);
     setRecommendedTemplates(recommendations);
   }, [data]);
 
@@ -120,6 +151,30 @@ export function ProposalTemplateSelector({
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleCustomizeTemplate = (template: ProposalTemplate) => {
+    setSelectedTemplateForCustomization(template);
+    setCustomizationDialogOpen(true);
+  };
+
+  const handleCustomizationSave = (customization: any) => {
+    // Here you would save the customization to localStorage or backend
+    const customizationKey = `template_customization_${selectedTemplateForCustomization?.id}`;
+    localStorage.setItem(customizationKey, JSON.stringify(customization));
+    
+    toast({
+      title: "Customização salva",
+      description: "As configurações do template foram salvas com sucesso.",
+    });
+    
+    setCustomizationDialogOpen(false);
+  };
+
+  const getTemplateCustomization = (templateId: string) => {
+    const customizationKey = `template_customization_${templateId}`;
+    const saved = localStorage.getItem(customizationKey);
+    return saved ? JSON.parse(saved) : null;
   };
 
   const renderTemplateCard = (template: ProposalTemplate, isRecommended: boolean = false) => {
@@ -198,6 +253,17 @@ export function ProposalTemplateSelector({
                   Baixar
                 </Button>
               )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCustomizeTemplate(template);
+                }}
+                className="px-2"
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
             </div>
           )}
         </CardContent>
@@ -283,6 +349,26 @@ export function ProposalTemplateSelector({
           </div>
         </CardContent>
       </Card>
+
+      {/* Template Customization Dialog */}
+      <Dialog open={customizationDialogOpen} onOpenChange={setCustomizationDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Customizar Template: {selectedTemplateForCustomization?.name}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedTemplateForCustomization && (
+             <TemplateCustomizer
+               templateId={selectedTemplateForCustomization.id}
+               templateName={selectedTemplateForCustomization.name}
+               initialCustomization={getTemplateCustomization(selectedTemplateForCustomization.id)}
+               onSave={handleCustomizationSave}
+               onCustomizationChange={() => {}}
+             />
+           )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -56,7 +56,7 @@ export const validateCNPJ = (cnpj: string): boolean => {
     if (pos < 2) pos = 9;
   }
   
-  let checkDigit1 = sum % 11 < 2 ? 0 : 11 - (sum % 11);
+  const checkDigit1 = sum % 11 < 2 ? 0 : 11 - (sum % 11);
   if (parseInt(cleanCNPJ.charAt(12)) !== checkDigit1) {
     return false;
   }
@@ -69,7 +69,7 @@ export const validateCNPJ = (cnpj: string): boolean => {
     if (pos < 2) pos = 9;
   }
   
-  let checkDigit2 = sum % 11 < 2 ? 0 : 11 - (sum % 11);
+  const checkDigit2 = sum % 11 < 2 ? 0 : 11 - (sum % 11);
   return parseInt(cleanCNPJ.charAt(13)) === checkDigit2;
 };
 
