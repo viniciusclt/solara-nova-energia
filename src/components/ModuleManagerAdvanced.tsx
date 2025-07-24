@@ -80,12 +80,12 @@ export function ModuleManagerAdvanced() {
       } else {
         // Usar dados do Supabase em produção
         const { data, error } = await supabase
-          .from('modules' as 'solar_modules')
+          .from('modules' as never)
           .select('*')
           .order('name');
 
         if (error) throw error;
-        setModules(data || []);
+        setModules(((data as unknown) as SolarModule[]) || []);
       }
     } catch (error) {
       console.error('Error fetching modules:', error);
@@ -118,14 +118,14 @@ export function ModuleManagerAdvanced() {
       if (isEditing && currentModule.id) {
         // Atualizar módulo existente
         result = await supabase
-          .from('solar_modules')
-          .update(moduleToSave)
+          .from('modules' as never)
+          .update(moduleToSave as any)
           .eq('id', currentModule.id);
       } else {
         // Criar novo módulo
         result = await supabase
-          .from('solar_modules')
-          .insert(moduleToSave);
+          .from('modules' as never)
+          .insert(moduleToSave as any);
       }
 
       if (result.error) throw result.error;
@@ -152,7 +152,7 @@ export function ModuleManagerAdvanced() {
 
     try {
       const { error } = await supabase
-        .from('solar_modules')
+        .from('modules' as never)
         .delete()
         .eq('id', id);
 

@@ -1,5 +1,5 @@
 import { EnvironmentDetector } from '@/utils/EnvironmentDetector';
-import { Lead, SolarModule, Inverter } from '@/types';
+import { ILead as Lead, SolarModule, Inverter } from '@/types';
 
 /**
  * Interface para dados de demonstração
@@ -172,7 +172,7 @@ export class DemoDataService {
     return [
       {
         id: 'demo-module-1',
-        modelo: 'ASTRONERGY 600W DEMO',
+        model: 'ASTRONERGY 600W DEMO',
         potencia: 600,
         eficiencia: 22.5,
         area: 2.6,
@@ -183,8 +183,8 @@ export class DemoDataService {
       },
       {
         id: 'demo-module-2',
-        modelo: 'JINKO 550W DEMO',
-        potencia: 550,
+        model: 'JINKO 550W DEMO',
+        power: 550,
         eficiencia: 21.8,
         area: 2.5,
         tensao: 38.9,
@@ -202,7 +202,7 @@ export class DemoDataService {
     return [
       {
         id: 'demo-inverter-1',
-        modelo: 'QI-2500-E DEMO',
+        model: 'QI-2500-E DEMO',
         potencia: 2500,
         eficiencia: 97.5,
         tensaoEntrada: '200-1000V',
@@ -212,7 +212,7 @@ export class DemoDataService {
       },
       {
         id: 'demo-inverter-2',
-        modelo: 'FRONIUS 5000W DEMO',
+        model: 'FRONIUS 5000W DEMO',
         potencia: 5000,
         eficiencia: 98.2,
         tensaoEntrada: '150-1000V',

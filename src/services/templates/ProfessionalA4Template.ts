@@ -2,7 +2,7 @@ import { BaseTemplate, ProposalData } from '../proposalTemplates';
 import autoTable from 'jspdf-autotable';
 import jsPDF from 'jspdf';
 
-export class ProfessionalA4Template extends BaseTemplate {
+export abstract class ProfessionalA4Template extends BaseTemplate {
   id = 'professional-a4';
   name = 'Profissional A4';
   description = 'Template profissional otimizado para formato A4 com design moderno e limpo';
@@ -377,7 +377,7 @@ export class ProfessionalA4Template extends BaseTemplate {
     });
     
     // Benefícios ambientais
-    yPos = (this.doc as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 20;
+    yPos = ((this.doc as unknown) as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 20;
     
     this.doc.setFontSize(14);
     this.doc.setFont('helvetica', 'bold');

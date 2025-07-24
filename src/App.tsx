@@ -8,8 +8,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
-import { FinalValidation } from "@/components/FinalValidation";
-import { TemplateTestPage } from "@/components/TemplateTestPage";
+
 
 const queryClient = new QueryClient();
 
@@ -38,22 +37,7 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
-            <Route 
-              path="/validation" 
-              element={
-                <ProtectedRoute>
-                  <FinalValidation />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/template-test" 
-              element={
-                <ProtectedRoute>
-                  <TemplateTestPage />
-                </ProtectedRoute>
-              } 
-            />
+
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
