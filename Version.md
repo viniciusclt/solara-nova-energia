@@ -1,5 +1,40 @@
 # SolarCalc Pro - Histórico de Versões
 
+## [5.0.0] - 2025-01-27
+### Added
+- ✅ **Fase 1 - Correções Críticas**: Sistema de notificações avançado, backup e recuperação, gerenciamento de kits financeiros
+- ✅ **Fase 2 - Melhorias de UX**: Sistema de botões padronizado (ButtonGroup), configuração de página inicial do sidebar, botão de gerenciamento de equipamentos
+- ✅ **Fase 3 - Funcionalidades Novas**: Sistema de distribuição automática com drag & drop, integração com instituições financeiras
+- ✅ **Fase 4 - Melhorias Incrementais**: Sistema OCR para propostas, sistema de limpeza e organização de arquivos
+- Componente AutoDistribution.tsx para distribuição automática de equipamentos solares
+- Componente SimpleOCR.tsx para processamento de documentos com OCR
+- Hook useFinancialIntegration.ts para integração com instituições financeiras
+- Hook useFileCleanup.ts para limpeza e organização de arquivos
+- Sistema de notificações em tempo real (NotificationCenter.tsx)
+- Sistema de backup automático (BackupManager.tsx)
+- Componente ButtonGroup para padronização de interface
+- Página de gerenciamento de equipamentos (EquipmentManagementPage.tsx)
+
+### Changed
+- Arquitetura modular completamente implementada
+- Sistema de drag & drop avançado integrado
+- Interface de usuário padronizada em todos os componentes
+- Melhorias significativas na experiência do usuário
+- Sistema de hooks personalizados expandido
+- Integração completa com Supabase para todas as funcionalidades
+
+### Fixed
+- Correções em todos os bugs identificados nas fases anteriores
+- Otimização de performance em componentes críticos
+- Melhorias na responsividade mobile
+- Correções de acessibilidade
+
+### Breaking Changes
+- Nova estrutura de componentes modular
+- Sistema de estado global expandido com Zustand
+- Novas dependências para drag & drop e OCR
+- Arquitetura de hooks personalizada implementada
+
 ## [2.2.0] - 2025-01-27
 ### Added
 - Sidebar retrátil com navegação avançada
