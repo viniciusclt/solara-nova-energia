@@ -20,24 +20,45 @@ import {
   Download,
   LogOut,
   User,
-  CheckCircle
+  CheckCircle,
+  Building2,
+  Upload,
+  Bell,
+  Monitor,
+  ArrowLeft
 } from "lucide-react";
 import { LeadDataEntry } from "./LeadDataEntry";
 import { ConsumptionCalculator } from "./ConsumptionCalculator";
 import { TechnicalSimulation } from "./TechnicalSimulation";
 import { FinancialAnalysis } from "./FinancialAnalysis";
+import FinancialCalculator from "./FinancialCalculator";
 import { ProposalGenerator } from "./ProposalGenerator";
 import { SettingsModal } from "./SettingsModal";
 import { SelectedLeadBreadcrumb } from "./SelectedLeadBreadcrumb";
 import { DemoDataIndicator } from "./DemoDataIndicator";
 import VersionDisplay from "./VersionDisplay";
+import PDFImporter from "./PDFImporter";
+import ExcelImporterV2 from "./ExcelImporterV2";
+import FinancialInstitutionManager from "./FinancialInstitutionManager";
+import { AuditLogViewer } from "./AuditLogViewer";
+import { BackupManager } from "./BackupManager";
+import NotificationCenter from "./NotificationCenter";
+import { PerformanceMonitor } from "./PerformanceMonitor";
+import { ReportsManager } from "./ReportsManager";
+import { useNotifications } from "@/hooks/useNotifications";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
-export function SolarDashboard() {
+interface SolarDashboardProps {
+  onBackToMenu?: () => void;
+}
+
+export function SolarDashboard({ onBackToMenu }: SolarDashboardProps = {}) {
   const [currentLead, setCurrentLead] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("lead-data");
+  const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
+  const { stats } = useNotifications();
 
   // Verificar se há um lead selecionado ao carregar o dashboard
   useEffect(() => {
@@ -160,6 +181,13 @@ export function SolarDashboard() {
       icon: FileText, 
       description: "Gerar proposta comercial",
       permission: "generate_proposals"
+    },
+    { 
+      id: "management", 
+      label: "Gerenciamento", 
+      icon: Building2, 
+      description: "Importação e gestão de dados",
+      permission: "admin"
     }
   ].filter(tab => !tab.permission || hasPermission(tab.permission));
 
@@ -170,6 +198,17 @@ export function SolarDashboard() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
+              {onBackToMenu && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onBackToMenu}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  <span className="hidden sm:inline">Voltar</span>
+                </Button>
+              )}
               <div className="flex items-center gap-2">
                 <div className="p-2 bg-gradient-solar rounded-lg shadow-glow">
                   <Sun className="h-6 w-6 text-white" />
@@ -214,6 +253,23 @@ export function SolarDashboard() {
               >
                 <CheckCircle className="h-4 w-4" />
                 <span className="hidden sm:inline">Validação</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsNotificationCenterOpen(true)}
+                className="flex items-center gap-2 relative"
+              >
+                <Bell className="h-4 w-4" />
+                <span className="hidden sm:inline">Notificações</span>
+                {stats.unread > 0 && (
+                  <Badge 
+                    variant="destructive" 
+                    className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs"
+                  >
+                    {stats.unread > 99 ? '99+' : stats.unread}
+                  </Badge>
+                )}
               </Button>
               <SettingsModal />
               <Button variant="outline" size="sm" onClick={signOut}>
@@ -268,7 +324,7 @@ export function SolarDashboard() {
         {/* Main Navigation Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <div className="bg-card rounded-lg p-4 shadow-card">
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 bg-muted/50 h-auto gap-1">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 bg-muted/50 h-auto gap-1">
               {navigationTabs.map((tab) => (
                 <TabsTrigger 
                   key={tab.id} 
@@ -352,7 +408,40 @@ export function SolarDashboard() {
                 </CardContent>
               </Card>
             ) : (
-              <FinancialAnalysis currentLead={currentLead} />
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="h-6 w-6" />
+                      Análise Financeira
+                    </CardTitle>
+                    <CardDescription>
+                      Análise completa de viabilidade e opções de financiamento
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+
+                <Tabs defaultValue="analysis" className="space-y-4">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="analysis" className="flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4" />
+                      Análise de Viabilidade
+                    </TabsTrigger>
+                    <TabsTrigger value="financing" className="flex items-center gap-2">
+                      <Calculator className="h-4 w-4" />
+                      Simulador de Financiamento
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="analysis">
+                    <FinancialAnalysis currentLead={currentLead} />
+                  </TabsContent>
+
+                  <TabsContent value="financing">
+                    <FinancialCalculator currentLead={currentLead} />
+                  </TabsContent>
+                </Tabs>
+              </div>
             )}
           </TabsContent>
 
@@ -376,6 +465,85 @@ export function SolarDashboard() {
               )}
             </TabsContent>
           )}
+
+          {hasPermission('admin') && (
+            <TabsContent value="management">
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Building2 className="h-6 w-6" />
+                      Gerenciamento de Dados
+                    </CardTitle>
+                    <CardDescription>
+                      Ferramentas avançadas para importação e gestão de dados do sistema
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+
+                <Tabs defaultValue="pdf-import" className="space-y-4">
+                  <TabsList className="grid w-full grid-cols-7">
+                    <TabsTrigger value="pdf-import" className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Importação PDF
+                    </TabsTrigger>
+                    <TabsTrigger value="excel-import" className="flex items-center gap-2">
+                      <Upload className="h-4 w-4" />
+                      Importação Excel
+                    </TabsTrigger>
+                    <TabsTrigger value="institutions" className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4" />
+                      Instituições
+                    </TabsTrigger>
+                    <TabsTrigger value="audit-logs" className="flex items-center gap-2">
+                      <Database className="h-4 w-4" />
+                      Logs de Auditoria
+                    </TabsTrigger>
+                    <TabsTrigger value="backup" className="flex items-center gap-2">
+                      <Download className="h-4 w-4" />
+                      Backup
+                    </TabsTrigger>
+                    <TabsTrigger value="performance" className="flex items-center gap-2">
+                      <Monitor className="h-4 w-4" />
+                      Performance
+                    </TabsTrigger>
+                    <TabsTrigger value="reports" className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Relatórios
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="pdf-import">
+                    <PDFImporter />
+                  </TabsContent>
+
+                  <TabsContent value="excel-import">
+                    <ExcelImporterV2 />
+                  </TabsContent>
+
+                  <TabsContent value="institutions">
+                    <FinancialInstitutionManager />
+                  </TabsContent>
+
+                  <TabsContent value="audit-logs">
+                    <AuditLogViewer />
+                  </TabsContent>
+
+                  <TabsContent value="backup">
+                    <BackupManager />
+                  </TabsContent>
+
+                  <TabsContent value="performance">
+                    <PerformanceMonitor />
+                  </TabsContent>
+
+                  <TabsContent value="reports">
+                    <ReportsManager />
+                  </TabsContent>
+                </Tabs>
+              </div>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
       
@@ -386,6 +554,12 @@ export function SolarDashboard() {
       <div className="fixed bottom-4 left-4 z-40">
         <VersionDisplay />
       </div>
+      
+      {/* Notification Center */}
+      <NotificationCenter
+        isOpen={isNotificationCenterOpen}
+        onClose={() => setIsNotificationCenterOpen(false)}
+      />
     </div>
   );
 }

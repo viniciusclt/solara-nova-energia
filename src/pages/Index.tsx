@@ -1,7 +1,7 @@
-import { SolarDashboard } from "@/components/SolarDashboard";
+import { MainMenu } from "@/components/MainMenu";
 
 const Index = () => {
-  return <SolarDashboard />;
+  return <MainMenu />;
 };
 
 export default Index;

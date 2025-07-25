@@ -202,35 +202,72 @@ export const SettingsModal: React.FC = () => {
 
   const saveSettings = async () => {
     setIsLoading(true);
+    
     try {
-      const { data: profile } = await supabase
+      console.log('🔄 Iniciando salvamento das configurações...');
+      
+      // 1. Verificar autenticação
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        console.error('❌ Erro de autenticação:', authError);
+        throw new Error('Usuário não autenticado');
+      }
+      console.log('✅ Usuário autenticado:', user.id);
+      
+      // 2. Buscar perfil do usuário
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('company_id')
-        .eq('id', (await supabase.auth.getUser()).data.user?.id)
+        .eq('id', user.id)
         .single();
-
-      const { error } = await supabase
+        
+      if (profileError) {
+        console.error('❌ Erro ao buscar perfil:', profileError);
+        throw new Error(`Erro ao buscar perfil: ${profileError.message}`);
+      }
+      
+      // 3. Validar dados e salvar com tratamento de erros específicos
+      const settingsToSave = {
+        user_id: user.id,
+        company_id: profile?.company_id || null,
+        integration_type: 'google_sheets',
+        settings: googleSheetsSettings,
+        is_active: true,
+        updated_at: new Date().toISOString()
+      };
+      
+      const { data, error } = await supabase
         .from('integration_settings')
-        .upsert({
-          user_id: (await supabase.auth.getUser()).data.user?.id || '',
-          company_id: profile?.company_id || null, // Use null instead of empty string
-          integration_type: 'google_sheets',
-          settings: googleSheetsSettings as any,
-          is_active: true
-        });
+        .upsert(settingsToSave, { onConflict: 'user_id,integration_type' })
+        .select();
 
-      if (error) throw error;
-
+      if (error) {
+        console.error('❌ Erro do Supabase:', error);
+        
+        // Tratamento de erros específicos
+        if (error.code === '23505') {
+          throw new Error('Configuração já existe para este usuário');
+        } else if (error.code === '42501') {
+          throw new Error('Sem permissão para salvar configurações');
+        } else {
+          throw new Error(`Erro do banco: ${error.message}`);
+        }
+      }
+      
       toast({
         title: "Configurações Salvas",
-        description: "As configurações do Google Sheets foram salvas com sucesso."
+        description: "As configurações foram salvas com sucesso."
       });
-    } catch (error) {
+      
+    } catch (error: any) {
+      console.error('❌ Erro completo:', error);
+      
       toast({
         title: "Erro ao Salvar",
-        description: "Erro ao salvar as configurações. Tente novamente.",
+        description: error.message || "Erro desconhecido ao salvar as configurações.",
         variant: "destructive"
       });
+      
     } finally {
       setIsLoading(false);
     }
@@ -499,15 +536,57 @@ export const SettingsModal: React.FC = () => {
     }));
   };
 
+  // Validação para evitar mapeamento duplicado de meses
+  const validateMonthMapping = (mapping: any) => {
+    const monthColumns = ['consumoJan', 'consumoFev', 'consumoMar', 'consumoAbr',
+                         'consumoMai', 'consumoJun', 'consumoJul', 'consumoAgo',
+                         'consumoSet', 'consumoOut', 'consumoNov', 'consumoDez'];
+    
+    const usedColumns = new Set();
+    const duplicates = [];
+    
+    monthColumns.forEach(month => {
+      const column = mapping[month];
+      if (column && column !== 'none' && column !== '') {
+        if (usedColumns.has(column)) {
+          duplicates.push({ month, column });
+        }
+        usedColumns.add(column);
+      }
+    });
+    
+    return duplicates;
+  };
+
   const updateColumnMapping = (field: string, columnLetter: string) => {
     // Convert "none" to empty string for storage
     const value = columnLetter === "none" ? "" : columnLetter;
+    
+    const newMapping = { 
+      ...googleSheetsSettings.columnMapping, 
+      [field]: value 
+    };
+    
+    // Validar duplicação apenas para campos de mês
+    const monthColumns = ['consumoJan', 'consumoFev', 'consumoMar', 'consumoAbr',
+                         'consumoMai', 'consumoJun', 'consumoJul', 'consumoAgo',
+                         'consumoSet', 'consumoOut', 'consumoNov', 'consumoDez'];
+    
+    if (monthColumns.includes(field) && value !== '' && value !== 'none') {
+      const duplicates = validateMonthMapping(newMapping);
+      if (duplicates.length > 0) {
+        toast({
+          title: "Coluna Duplicada",
+          description: `A coluna ${value} já está sendo usada para outro mês.`,
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+    
     setGoogleSheetsSettings(prev => ({
       ...prev,
-      columnMapping: {
-        ...prev.columnMapping,
-        [field]: value
-      }
+      columnMapping: newMapping
     }));
   };
 
@@ -1434,356 +1513,6 @@ export const SettingsModal: React.FC = () => {
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione a coluna" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">Não mapear</SelectItem>
-                              {availableColumns.map((col) => (
-                                <SelectItem key={col.letter} value={col.letter}>
-                                  {col.letter}: {col.header}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Input
-                            placeholder="V"
-                            value={googleSheetsSettings.columnMapping.consumoDez}
-                            onChange={(e) => updateColumnMapping('consumoDez', e.target.value)}
-                          />
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                      {/* Janeiro */}
-                      <div className="space-y-2">
-                        <Label>Janeiro</Label>
-                        {availableColumns.length > 0 ? (
-                          <Select 
-                            value={googleSheetsSettings.columnMapping.consumoJan || "none"} 
-                            onValueChange={(value) => updateColumnMapping('consumoJan', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Coluna" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">Não mapear</SelectItem>
-                              {availableColumns.map((col) => (
-                                <SelectItem key={col.letter} value={col.letter}>
-                                  {col.letter}: {col.header}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Input
-                            placeholder="K"
-                            value={googleSheetsSettings.columnMapping.consumoJan}
-                            onChange={(e) => updateColumnMapping('consumoJan', e.target.value)}
-                          />
-                        )}
-                      </div>
-
-                      {/* Fevereiro */}
-                      <div className="space-y-2">
-                        <Label>Fevereiro</Label>
-                        {availableColumns.length > 0 ? (
-                          <Select 
-                            value={googleSheetsSettings.columnMapping.consumoFev || "none"} 
-                            onValueChange={(value) => updateColumnMapping('consumoFev', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Coluna" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">Não mapear</SelectItem>
-                              {availableColumns.map((col) => (
-                                <SelectItem key={col.letter} value={col.letter}>
-                                  {col.letter}: {col.header}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Input
-                            placeholder="L"
-                            value={googleSheetsSettings.columnMapping.consumoFev}
-                            onChange={(e) => updateColumnMapping('consumoFev', e.target.value)}
-                          />
-                        )}
-                      </div>
-
-                      {/* Março */}
-                      <div className="space-y-2">
-                        <Label>Março</Label>
-                        {availableColumns.length > 0 ? (
-                          <Select 
-                            value={googleSheetsSettings.columnMapping.consumoMar || "none"} 
-                            onValueChange={(value) => updateColumnMapping('consumoMar', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Coluna" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">Não mapear</SelectItem>
-                              {availableColumns.map((col) => (
-                                <SelectItem key={col.letter} value={col.letter}>
-                                  {col.letter}: {col.header}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Input
-                            placeholder="M"
-                            value={googleSheetsSettings.columnMapping.consumoMar}
-                            onChange={(e) => updateColumnMapping('consumoMar', e.target.value)}
-                          />
-                        )}
-                      </div>
-
-                      {/* Abril */}
-                      <div className="space-y-2">
-                        <Label>Abril</Label>
-                        {availableColumns.length > 0 ? (
-                          <Select 
-                            value={googleSheetsSettings.columnMapping.consumoAbr || "none"} 
-                            onValueChange={(value) => updateColumnMapping('consumoAbr', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Coluna" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">Não mapear</SelectItem>
-                              {availableColumns.map((col) => (
-                                <SelectItem key={col.letter} value={col.letter}>
-                                  {col.letter}: {col.header}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Input
-                            placeholder="N"
-                            value={googleSheetsSettings.columnMapping.consumoAbr}
-                            onChange={(e) => updateColumnMapping('consumoAbr', e.target.value)}
-                          />
-                        )}
-                      </div>
-
-                      {/* Maio */}
-                      <div className="space-y-2">
-                        <Label>Maio</Label>
-                        {availableColumns.length > 0 ? (
-                          <Select 
-                            value={googleSheetsSettings.columnMapping.consumoMai || "none"} 
-                            onValueChange={(value) => updateColumnMapping('consumoMai', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Coluna" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">Não mapear</SelectItem>
-                              {availableColumns.map((col) => (
-                                <SelectItem key={col.letter} value={col.letter}>
-                                  {col.letter}: {col.header}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Input
-                            placeholder="O"
-                            value={googleSheetsSettings.columnMapping.consumoMai}
-                            onChange={(e) => updateColumnMapping('consumoMai', e.target.value)}
-                          />
-                        )}
-                      </div>
-
-                      {/* Junho */}
-                      <div className="space-y-2">
-                        <Label>Junho</Label>
-                        {availableColumns.length > 0 ? (
-                          <Select 
-                            value={googleSheetsSettings.columnMapping.consumoJun || "none"} 
-                            onValueChange={(value) => updateColumnMapping('consumoJun', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Coluna" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">Não mapear</SelectItem>
-                              {availableColumns.map((col) => (
-                                <SelectItem key={col.letter} value={col.letter}>
-                                  {col.letter}: {col.header}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Input
-                            placeholder="P"
-                            value={googleSheetsSettings.columnMapping.consumoJun}
-                            onChange={(e) => updateColumnMapping('consumoJun', e.target.value)}
-                          />
-                        )}
-                      </div>
-
-                      {/* Julho */}
-                      <div className="space-y-2">
-                        <Label>Julho</Label>
-                        {availableColumns.length > 0 ? (
-                          <Select 
-                            value={googleSheetsSettings.columnMapping.consumoJul || "none"} 
-                            onValueChange={(value) => updateColumnMapping('consumoJul', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Coluna" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">Não mapear</SelectItem>
-                              {availableColumns.map((col) => (
-                                <SelectItem key={col.letter} value={col.letter}>
-                                  {col.letter}: {col.header}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Input
-                            placeholder="Q"
-                            value={googleSheetsSettings.columnMapping.consumoJul}
-                            onChange={(e) => updateColumnMapping('consumoJul', e.target.value)}
-                          />
-                        )}
-                      </div>
-
-                      {/* Agosto */}
-                      <div className="space-y-2">
-                        <Label>Agosto</Label>
-                        {availableColumns.length > 0 ? (
-                          <Select 
-                            value={googleSheetsSettings.columnMapping.consumoAgo || "none"} 
-                            onValueChange={(value) => updateColumnMapping('consumoAgo', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Coluna" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">Não mapear</SelectItem>
-                              {availableColumns.map((col) => (
-                                <SelectItem key={col.letter} value={col.letter}>
-                                  {col.letter}: {col.header}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Input
-                            placeholder="R"
-                            value={googleSheetsSettings.columnMapping.consumoAgo}
-                            onChange={(e) => updateColumnMapping('consumoAgo', e.target.value)}
-                          />
-                        )}
-                      </div>
-
-                      {/* Setembro */}
-                      <div className="space-y-2">
-                        <Label>Setembro</Label>
-                        {availableColumns.length > 0 ? (
-                          <Select 
-                            value={googleSheetsSettings.columnMapping.consumoSet || "none"} 
-                            onValueChange={(value) => updateColumnMapping('consumoSet', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Coluna" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">Não mapear</SelectItem>
-                              {availableColumns.map((col) => (
-                                <SelectItem key={col.letter} value={col.letter}>
-                                  {col.letter}: {col.header}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Input
-                            placeholder="S"
-                            value={googleSheetsSettings.columnMapping.consumoSet}
-                            onChange={(e) => updateColumnMapping('consumoSet', e.target.value)}
-                          />
-                        )}
-                      </div>
-
-                      {/* Outubro */}
-                      <div className="space-y-2">
-                        <Label>Outubro</Label>
-                        {availableColumns.length > 0 ? (
-                          <Select 
-                            value={googleSheetsSettings.columnMapping.consumoOut || "none"} 
-                            onValueChange={(value) => updateColumnMapping('consumoOut', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Coluna" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">Não mapear</SelectItem>
-                              {availableColumns.map((col) => (
-                                <SelectItem key={col.letter} value={col.letter}>
-                                  {col.letter}: {col.header}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Input
-                            placeholder="T"
-                            value={googleSheetsSettings.columnMapping.consumoOut}
-                            onChange={(e) => updateColumnMapping('consumoOut', e.target.value)}
-                          />
-                        )}
-                      </div>
-
-                      {/* Novembro */}
-                      <div className="space-y-2">
-                        <Label>Novembro</Label>
-                        {availableColumns.length > 0 ? (
-                          <Select 
-                            value={googleSheetsSettings.columnMapping.consumoNov || "none"} 
-                            onValueChange={(value) => updateColumnMapping('consumoNov', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Coluna" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">Não mapear</SelectItem>
-                              {availableColumns.map((col) => (
-                                <SelectItem key={col.letter} value={col.letter}>
-                                  {col.letter}: {col.header}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Input
-                            placeholder="U"
-                            value={googleSheetsSettings.columnMapping.consumoNov}
-                            onChange={(e) => updateColumnMapping('consumoNov', e.target.value)}
-                          />
-                        )}
-                      </div>
-
-                      {/* Dezembro */}
-                      <div className="space-y-2">
-                        <Label>Dezembro</Label>
-                        {availableColumns.length > 0 ? (
-                          <Select 
-                            value={googleSheetsSettings.columnMapping.consumoDez || "none"} 
-                            onValueChange={(value) => updateColumnMapping('consumoDez', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Coluna" />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="none">Não mapear</SelectItem>

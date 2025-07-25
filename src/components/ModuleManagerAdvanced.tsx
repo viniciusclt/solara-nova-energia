@@ -10,12 +10,13 @@ import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Edit, Trash2, Save, X, FileText, Sun, Zap, Ruler, Scale, Shield, Tag, FileUp } from "lucide-react";
+import { Plus, Edit, Trash2, Save, X, FileText, Sun, Zap, Ruler, Scale, Shield, Tag, FileUp, Upload, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { SolarModule } from "@/types";
 import { FileUpload } from "@/components/ui/file-upload";
 import { DemoDataService } from "@/services/DemoDataService";
+import DatasheetAnalyzer from "@/components/DatasheetAnalyzer";
 
 export function ModuleManagerAdvanced() {
   const { toast } = useToast();
@@ -28,6 +29,7 @@ export function ModuleManagerAdvanced() {
   const [performanceWarranties, setPerformanceWarranties] = useState<{years: number, percentage: number}[]>([
     { years: 25, percentage: 80 }
   ]);
+  const [activeTab, setActiveTab] = useState('modules');
 
   const [currentModule, setCurrentModule] = useState<SolarModule>({
     name: "",
@@ -246,6 +248,99 @@ export function ModuleManagerAdvanced() {
     updated[index][field] = value;
     setPerformanceWarranties(updated);
   };
+
+  const handleProductsExtracted = async (extractedProducts: any[]) => {
+    const moduleProducts = extractedProducts.filter(p => p.equipmentType === 'module');
+    
+    if (moduleProducts.length === 0) {
+      toast({
+        title: "Nenhum módulo encontrado",
+        description: "Os arquivos processados não contêm dados de módulos solares",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Converter produtos extraídos em módulos
+    const convertedModules = moduleProducts.map(product => {
+      const data = product.data;
+      
+      return {
+        name: data.nome || data.modelo || 'Módulo Importado',
+        manufacturer: data.fabricante || 'Fabricante não informado',
+        model: data.modelo || data.nome || '',
+        power: parseFloat(data.potencia?.replace(/[^0-9.]/g, '') || '0'),
+        voc: parseFloat(data.tensaoVoc?.replace(/[^0-9.]/g, '') || '0'),
+        isc: parseFloat(data.correnteIsc?.replace(/[^0-9.]/g, '') || '0'),
+        vmp: parseFloat(data.tensaoVmp?.replace(/[^0-9.]/g, '') || '0'),
+        imp: parseFloat(data.correnteImp?.replace(/[^0-9.]/g, '') || '0'),
+        efficiency: parseFloat(data.eficiencia?.replace(/[^0-9.]/g, '') || '0'),
+        tempCoeffPmax: -0.35, // Valor padrão
+        tempCoeffVoc: -0.27,  // Valor padrão
+        tempCoeffIsc: 0.04,   // Valor padrão
+        length: data.dimensoes?.comprimento ? parseFloat(data.dimensoes.comprimento.replace(/[^0-9.]/g, '') || '0') : 0,
+        width: data.dimensoes?.largura ? parseFloat(data.dimensoes.largura.replace(/[^0-9.]/g, '') || '0') : 0,
+        thickness: data.dimensoes?.espessura ? parseFloat(data.dimensoes.espessura.replace(/[^0-9.]/g, '') || '0') : 0,
+        weight: parseFloat(data.peso?.replace(/[^0-9.]/g, '') || '0'),
+        area: 0, // Será calculado automaticamente
+        cellType: data.tecnologia || 'Mono PERC',
+        cellCount: 144, // Valor padrão
+        technology: data.tecnologia ? [data.tecnologia] : [],
+        productWarranty: parseInt(data.garantiasProduto?.replace(/[^0-9]/g, '') || '12'),
+        performanceWarranty: [{ 
+          years: parseInt(data.garantiasPerformance?.replace(/[^0-9]/g, '') || '25'), 
+          percentage: 80 
+        }],
+        certifications: data.certificacoes || [],
+        active: true,
+        datasheet: product.sourceFile, // Referência ao arquivo original
+        ocrData: {
+          confidence: product.confidence,
+          extractedAt: new Date().toISOString(),
+          rawData: data
+        }
+      };
+    });
+
+    // Salvar módulos no banco de dados
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      const modulesToInsert = convertedModules.map(module => ({
+        ...module,
+        empresa_id: user.id,
+        area: (module.length * module.width) / 1000000, // mm² para m²
+        created_at: new Date().toISOString()
+      }));
+
+      const { error } = await supabase
+        .from('modulos_solares')
+        .insert(modulesToInsert);
+
+      if (error) throw error;
+
+      toast({
+        title: "Módulos importados",
+        description: `${convertedModules.length} módulos foram importados com sucesso`
+      });
+
+      // Atualizar lista de módulos
+      fetchModules();
+      setActiveTab('modules');
+
+    } catch (error: any) {
+      console.error('Erro ao salvar módulos:', error);
+      toast({
+        title: "Erro ao importar",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
   
   const getCertificationDescription = (cert: string): string => {
     const descriptions: Record<string, string> = {
@@ -293,92 +388,117 @@ export function ModuleManagerAdvanced() {
                 Gerencie os módulos fotovoltaicos disponíveis para simulação
               </CardDescription>
             </div>
-            <Button onClick={handleNewModule}>
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Módulo
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => setActiveTab('import')}
+                variant="outline"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Importar PDF
+              </Button>
+              <Button onClick={handleNewModule}>
+                <Plus className="h-4 w-4 mr-2" />
+                Novo Módulo
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Carregando módulos...</p>
-            </div>
-          ) : modules.length === 0 ? (
-            <div className="text-center py-8 border rounded-lg">
-              <Sun className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <p className="text-muted-foreground">Nenhum módulo cadastrado</p>
-              <Button onClick={handleNewModule} variant="outline" className="mt-4">
-                <Plus className="h-4 w-4 mr-2" />
-                Adicionar Módulo
-              </Button>
-            </div>
-          ) : (
-            <div className="border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Fabricante</TableHead>
-                    <TableHead>Potência</TableHead>
-                    <TableHead>Tecnologia</TableHead>
-                    <TableHead>Eficiência</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {modules.map((module) => (
-                    <TableRow key={module.id}>
-                      <TableCell className="font-medium">{module.name}</TableCell>
-                      <TableCell>{module.manufacturer}</TableCell>
-                      <TableCell>{module.power}W</TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {module.technology?.map((tech) => (
-                            <Badge key={tech} variant="outline" className="text-xs">
-                              {tech}
-                            </Badge>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell>{module.efficiency}%</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {module.datasheet && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => window.open(module.datasheet, '_blank')}
-                              title="Ver datasheet"
-                            >
-                              <FileText className="h-4 w-4" />
-                            </Button>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleEditModule(module)}
-                            title="Editar módulo"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDeleteModule(module.id!)}
-                            title="Excluir módulo"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="modules">Módulos Cadastrados</TabsTrigger>
+              <TabsTrigger value="import">Importar Datasheets</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="modules" className="mt-6">
+              {isLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Carregando módulos...</p>
+                </div>
+              ) : modules.length === 0 ? (
+                <div className="text-center py-8 border rounded-lg">
+                  <Sun className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                  <p className="text-muted-foreground">Nenhum módulo cadastrado</p>
+                  <Button onClick={handleNewModule} variant="outline" className="mt-4">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar Módulo
+                  </Button>
+                </div>
+              ) : (
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Fabricante</TableHead>
+                        <TableHead>Potência</TableHead>
+                        <TableHead>Tecnologia</TableHead>
+                        <TableHead>Eficiência</TableHead>
+                        <TableHead>Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {modules.map((module) => (
+                        <TableRow key={module.id}>
+                          <TableCell className="font-medium">{module.name}</TableCell>
+                          <TableCell>{module.manufacturer}</TableCell>
+                          <TableCell>{module.power}W</TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {module.technology?.map((tech) => (
+                                <Badge key={tech} variant="outline" className="text-xs">
+                                  {tech}
+                                </Badge>
+                              ))}
+                            </div>
+                          </TableCell>
+                          <TableCell>{module.efficiency}%</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {module.datasheet && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => window.open(module.datasheet, '_blank')}
+                                  title="Ver datasheet"
+                                >
+                                  <FileText className="h-4 w-4" />
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleEditModule(module)}
+                                title="Editar módulo"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDeleteModule(module.id!)}
+                                title="Excluir módulo"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="import" className="mt-6">
+              <DatasheetAnalyzer 
+                onProductsExtracted={handleProductsExtracted}
+                equipmentTypes={['module']}
+              />
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 
