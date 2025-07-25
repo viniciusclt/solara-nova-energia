@@ -42,7 +42,6 @@ import {
   Settings,
   Wifi,
   WifiOff,
-  Sync,
   Timer,
   Zap,
   Cloud,
@@ -551,7 +550,7 @@ export function BackupManager() {
                       </>
                     ) : stats.sync_status === 'syncing' ? (
                       <>
-                        <Sync className="h-4 w-4 text-blue-500 animate-spin" />
+                        <RefreshCw className="h-4 w-4 text-blue-500 animate-spin" />
                         <span className="text-sm font-medium text-blue-600">Sincronizando</span>
                       </>
                     ) : (
@@ -918,7 +917,7 @@ export function BackupManager() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Sync className="h-5 w-5" />
+                  <RefreshCw className="h-5 w-5" />
                   Sincronização e Segurança
                 </CardTitle>
                 <CardDescription>
@@ -1000,7 +999,7 @@ export function BackupManager() {
                         </>
                       ) : (
                         <>
-                          <Sync className="h-4 w-4 mr-2" />
+                          <RefreshCw className="h-4 w-4 mr-2" />
                           Sincronizar Agora
                         </>
                       )}
