@@ -70,7 +70,7 @@ export function ModuleManagerAdvanced() {
     fetchModules();
   }, []);
 
-  const fetchModules = async () => {
+  const fetchModules = async (retryCount = 0) => {
     setIsLoading(true);
     try {
       const demoDataService = DemoDataService.getInstance();
@@ -80,20 +80,48 @@ export function ModuleManagerAdvanced() {
         const demoModules = demoDataService.getModules();
         setModules(demoModules);
       } else {
+        // Verificar autenticação antes de fazer a consulta
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          throw new Error('Usuário não autenticado');
+        }
+
         // Usar dados do Supabase em produção
         const { data, error } = await supabase
           .from('modules' as never)
           .select('*')
           .order('name');
 
-        if (error) throw error;
+        if (error) {
+          // Tratamento específico para diferentes tipos de erro
+          if (error.code === 'PGRST116') {
+            throw new Error('Tabela de módulos não encontrada. Verifique a configuração do banco de dados.');
+          } else if (error.code === '42501') {
+            throw new Error('Permissão negada para acessar os módulos. Verifique suas credenciais.');
+          } else if (error.message?.includes('connection')) {
+            throw new Error('Erro de conexão com o banco de dados. Verifique sua conexão com a internet.');
+          }
+          throw error;
+        }
         setModules(((data as unknown) as SolarModule[]) || []);
       }
     } catch (error) {
       console.error('Error fetching modules:', error);
+      
+      // Retry automático para erros de conexão (máximo 2 tentativas)
+      if (retryCount < 2 && (error as Error).message?.includes('connection')) {
+        console.log(`Tentando novamente carregar módulos (tentativa ${retryCount + 1})...`);
+        setTimeout(() => fetchModules(retryCount + 1), 2000);
+        return;
+      }
+      
+      // Fallback: usar dados vazios em caso de erro persistente
+      setModules([]);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Não foi possível carregar os módulos';
       toast({
-        title: "Erro",
-        description: "Não foi possível carregar os módulos",
+        title: "Erro ao carregar módulos",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -103,6 +131,17 @@ export function ModuleManagerAdvanced() {
 
   const handleSaveModule = async () => {
     try {
+      // Verificar autenticação
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Usuário não autenticado. Faça login novamente.');
+      }
+
+      // Validar dados obrigatórios
+      if (!currentModule.name || !currentModule.manufacturer || !currentModule.model) {
+        throw new Error('Nome, fabricante e modelo são obrigatórios.');
+      }
+
       // Calcular a área automaticamente
       const area = (currentModule.length * currentModule.width) / 1000000; // mm² para m²
       
@@ -130,7 +169,14 @@ export function ModuleManagerAdvanced() {
           .insert(moduleToSave as any);
       }
 
-      if (result.error) throw result.error;
+      if (result.error) {
+        if (result.error.code === '23505') {
+          throw new Error('Já existe um módulo com este nome e modelo.');
+        } else if (result.error.code === '42501') {
+          throw new Error('Permissão negada para salvar o módulo.');
+        }
+        throw result.error;
+      }
 
       toast({
         title: isEditing ? "Módulo Atualizado" : "Módulo Criado",
@@ -141,9 +187,10 @@ export function ModuleManagerAdvanced() {
       fetchModules();
     } catch (error) {
       console.error('Error saving module:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Não foi possível salvar o módulo';
       toast({
-        title: "Erro",
-        description: "Não foi possível salvar o módulo",
+        title: "Erro ao salvar módulo",
+        description: errorMessage,
         variant: "destructive"
       });
     }
@@ -153,12 +200,25 @@ export function ModuleManagerAdvanced() {
     if (!confirm("Tem certeza que deseja excluir este módulo?")) return;
 
     try {
+      // Verificar autenticação
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Usuário não autenticado. Faça login novamente.');
+      }
+
       const { error } = await supabase
         .from('modules' as never)
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === '42501') {
+          throw new Error('Permissão negada para excluir o módulo.');
+        } else if (error.code === '23503') {
+          throw new Error('Não é possível excluir este módulo pois ele está sendo usado em projetos.');
+        }
+        throw error;
+      }
 
       toast({
         title: "Módulo Excluído",
@@ -168,9 +228,10 @@ export function ModuleManagerAdvanced() {
       fetchModules();
     } catch (error) {
       console.error('Error deleting module:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Não foi possível excluir o módulo';
       toast({
-        title: "Erro",
-        description: "Não foi possível excluir o módulo",
+        title: "Erro ao excluir módulo",
+        description: errorMessage,
         variant: "destructive"
       });
     }

@@ -12,9 +12,9 @@ export const SidebarSection: React.FC<SidebarSectionProps> = ({
   className = ''
 }) => {
   return (
-    <div className={`space-y-1 ${className}`}>
+    <div className={`space-y-2 mb-4 ${className}`}>
       {title && (
-        <h3 className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+        <h3 className="px-4 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
           {title}
         </h3>
       )}

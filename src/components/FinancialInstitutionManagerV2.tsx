@@ -41,7 +41,12 @@ import {
   Upload,
   RefreshCw,
   Eye,
-  Compare
+  Compare,
+  Shuffle,
+  Loader2,
+  TrendingDown,
+  DollarSign,
+  Star
 } from 'lucide-react';
 
 interface FinancialInstitution {
@@ -149,6 +154,13 @@ const FinancialInstitutionManagerV2: React.FC<FinancialInstitutionManagerV2Props
   
   // Estados de comparação
   const [comparisonMetrics, setComparisonMetrics] = useState<ComparisonMetrics | null>(null);
+  
+  // Estados de distribuição automática
+  const [distributionResults, setDistributionResults] = useState<{
+    melhorTaxa: SimulationResult | null;
+    menorParcela: SimulationResult | null;
+    melhorScore: SimulationResult | null;
+  }>({ melhorTaxa: null, menorParcela: null, melhorScore: null });
   
   // Tipos de instituição
   const tiposInstituicao = [
@@ -494,6 +506,47 @@ const FinancialInstitutionManagerV2: React.FC<FinancialInstitutionManagerV2Props
     a.download = `comparacao-instituicoes-${Date.now()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+  
+  const autoDistributeOptions = () => {
+    if (simulationResults.length === 0) return;
+    
+    const approvedResults = simulationResults.filter(result => result.aprovado);
+    
+    if (approvedResults.length === 0) {
+      toast({
+        title: 'Nenhuma opção aprovada',
+        description: 'Não há resultados aprovados para distribuir',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    // Encontrar melhor taxa
+    const melhorTaxa = approvedResults.reduce((prev, current) => 
+      current.taxaJuros < prev.taxaJuros ? current : prev
+    );
+    
+    // Encontrar menor parcela
+    const menorParcela = approvedResults.reduce((prev, current) => 
+      current.valorParcela < prev.valorParcela ? current : prev
+    );
+    
+    // Encontrar melhor score
+    const melhorScore = approvedResults.reduce((prev, current) => 
+      current.score > prev.score ? current : prev
+    );
+    
+    setDistributionResults({
+      melhorTaxa,
+      menorParcela,
+      melhorScore
+    });
+    
+    toast({
+      title: 'Distribuição Automática Concluída',
+      description: 'As melhores opções foram selecionadas automaticamente'
+    });
   };
   
   if (isLoading) {
@@ -923,15 +976,15 @@ const FinancialInstitutionManagerV2: React.FC<FinancialInstitutionManagerV2Props
                     />
                   </div>
                   
-                  <div className="flex items-end">
+                  <div className="flex items-end gap-2">
                     <Button 
                       onClick={runSimulation} 
                       disabled={isSimulating}
-                      className="w-full"
+                      className="flex-1"
                     >
                       {isSimulating ? (
                         <>
-                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                           Simulando...
                         </>
                       ) : (
@@ -941,18 +994,106 @@ const FinancialInstitutionManagerV2: React.FC<FinancialInstitutionManagerV2Props
                         </>
                       )}
                     </Button>
+                    
+                    {simulationResults.length > 0 && (
+                      <Button 
+                        onClick={autoDistributeOptions}
+                        variant="outline"
+                        className="flex-1"
+                      >
+                        <Shuffle className="h-4 w-4 mr-2" />
+                        Distribuir Automaticamente
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardContent>
             </Card>
             
             {simulationResults.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Resultados da Simulação</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
+              <>
+                {/* Distribuição Automática */}
+                {(distributionResults.melhorTaxa || distributionResults.menorParcela || distributionResults.melhorScore) && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Shuffle className="h-5 w-5" />
+                        Distribuição Automática - Melhores Opções
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {distributionResults.melhorTaxa && (
+                          <Card className="border-green-200 bg-green-50">
+                            <CardContent className="p-4">
+                              <div className="flex items-center gap-2 mb-2">
+                                <TrendingDown className="h-4 w-4 text-green-600" />
+                                <span className="font-medium text-green-800">Melhor Taxa</span>
+                              </div>
+                              <div className="text-lg font-bold text-green-900">
+                                {distributionResults.melhorTaxa.institutionName}
+                              </div>
+                              <div className="text-sm text-green-700">
+                                {distributionResults.melhorTaxa.taxaJuros.toFixed(2)}% a.m.
+                              </div>
+                              <div className="text-sm text-green-600">
+                                R$ {distributionResults.melhorTaxa.valorParcela.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+                        
+                        {distributionResults.menorParcela && (
+                          <Card className="border-blue-200 bg-blue-50">
+                            <CardContent className="p-4">
+                              <div className="flex items-center gap-2 mb-2">
+                                <DollarSign className="h-4 w-4 text-blue-600" />
+                                <span className="font-medium text-blue-800">Menor Parcela</span>
+                              </div>
+                              <div className="text-lg font-bold text-blue-900">
+                                {distributionResults.menorParcela.institutionName}
+                              </div>
+                              <div className="text-sm text-blue-700">
+                                R$ {distributionResults.menorParcela.valorParcela.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês
+                              </div>
+                              <div className="text-sm text-blue-600">
+                                {distributionResults.menorParcela.taxaJuros.toFixed(2)}% a.m.
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+                        
+                        {distributionResults.melhorScore && (
+                          <Card className="border-purple-200 bg-purple-50">
+                            <CardContent className="p-4">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Star className="h-4 w-4 text-purple-600" />
+                                <span className="font-medium text-purple-800">Melhor Score</span>
+                              </div>
+                              <div className="text-lg font-bold text-purple-900">
+                                {distributionResults.melhorScore.institutionName}
+                              </div>
+                              <div className="text-sm text-purple-700">
+                                Score: {distributionResults.melhorScore.score}%
+                              </div>
+                              <div className="text-sm text-purple-600">
+                                R$ {distributionResults.melhorScore.valorParcela.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+                  </div>
+                </CardContent>
+              </Card>
+              </>
+            )}
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Resultados da Simulação</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
                     {simulationResults.map(result => (
                       <Card key={result.institutionId} className={`${!result.aprovado ? 'opacity-60' : ''}`}>
                         <CardContent className="p-4">

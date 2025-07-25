@@ -6,7 +6,8 @@ import {
   HelpCircle, 
   Settings, 
   LogOut,
-  X
+  X,
+  Wrench
 } from 'lucide-react';
 import { useSidebar, useClickOutside, useSidebarKeyboard } from '../../hooks/useSidebar';
 import { SidebarItem } from './SidebarItem';
@@ -89,7 +90,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-4">
+        <nav className="flex-1 overflow-y-auto py-4 px-2">
           {/* Módulos Principais */}
           <SidebarSection title="Módulos">
             <SidebarItem
@@ -107,21 +108,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
               label="Treinamentos"
               module="training"
             />
+            <SidebarItem
+              icon={Wrench}
+              label="Gerenciar Equipamentos"
+              module="equipment-management"
+            />
           </SidebarSection>
-
-          {/* Espaçador */}
-          <div className="flex-1" />
         </nav>
 
         {/* Footer - Utilitários */}
-        <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+        <div className="border-t border-gray-200 dark:border-gray-700 p-2 mt-auto">
           <SidebarSection>
             <SidebarItem
               icon={HelpCircle}
               label="Ajuda"
               onClick={onHelpClick}
             />
-            <div className="w-full">
+            <div className="w-full px-2 py-1">
               <SettingsModal />
             </div>
             <SidebarItem

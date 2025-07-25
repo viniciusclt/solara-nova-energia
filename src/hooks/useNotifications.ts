@@ -22,6 +22,24 @@ interface NotificationStats {
   unread: number;
   urgent: number;
   byType: Record<NotificationType, number>;
+  byPriority: Record<NotificationPriority, number>;
+  todayCount: number;
+  weekCount: number;
+}
+
+interface NotificationGroup {
+  type: NotificationType;
+  count: number;
+  latestNotification: Notification;
+  notifications: Notification[];
+}
+
+interface NotificationFilters {
+  type?: NotificationType[];
+  priority?: NotificationPriority[];
+  read?: boolean;
+  dateRange?: { start: Date; end: Date };
+  searchTerm?: string;
 }
 
 export function useNotifications() {
@@ -39,15 +57,27 @@ export function useNotifications() {
       warning: 0,
       error: 0,
       system: 0
-    }
+    },
+    byPriority: {
+      low: 0,
+      medium: 0,
+      high: 0,
+      urgent: 0
+    },
+    todayCount: 0,
+    weekCount: 0
   });
+  const [filters, setFilters] = useState<NotificationFilters>({});
+  const [groupedNotifications, setGroupedNotifications] = useState<NotificationGroup[]>([]);
 
-  // Carregar notificações
+  // Carregar notificações com fallback
   const loadNotifications = useCallback(async () => {
     if (!profile) return;
 
     try {
       setIsLoading(true);
+      console.log('🔄 Carregando notificações...');
+      
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
@@ -55,12 +85,28 @@ export function useNotifications() {
         .order('created_at', { ascending: false })
         .limit(100);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erro na query de notificações:', error);
+        throw error;
+      }
 
       const notificationData = data || [];
+      console.log(`✅ Notificações carregadas: ${notificationData.length}`);
       setNotifications(notificationData);
       
+      // Salvar no cache local para fallback
+      try {
+        localStorage.setItem('notifications_cache', JSON.stringify(notificationData));
+        console.log('💾 Notificações salvas no cache local');
+      } catch (cacheError) {
+        console.warn('⚠️ Erro ao salvar cache:', cacheError);
+      }
+      
       // Calcular estatísticas
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      
       const newStats: NotificationStats = {
         total: notificationData.length,
         unread: notificationData.filter(n => !n.read).length,
@@ -71,15 +117,47 @@ export function useNotifications() {
           warning: notificationData.filter(n => n.type === 'warning').length,
           error: notificationData.filter(n => n.type === 'error').length,
           system: notificationData.filter(n => n.type === 'system').length
-        }
+        },
+        byPriority: {
+          low: notificationData.filter(n => n.priority === 'low').length,
+          medium: notificationData.filter(n => n.priority === 'medium').length,
+          high: notificationData.filter(n => n.priority === 'high').length,
+          urgent: notificationData.filter(n => n.priority === 'urgent').length
+        },
+        todayCount: notificationData.filter(n => new Date(n.created_at) >= today).length,
+        weekCount: notificationData.filter(n => new Date(n.created_at) >= weekAgo).length
       };
       setStats(newStats);
 
     } catch (error) {
-      console.error('Erro ao carregar notificações:', error);
+      console.error('❌ Erro ao carregar notificações:', error);
+      
+      // Fallback: tentar carregar do cache local
+      try {
+        const cachedNotifications = localStorage.getItem('notifications_cache');
+        if (cachedNotifications) {
+          const parsed = JSON.parse(cachedNotifications);
+          console.log('📦 Carregando notificações do cache local');
+          setNotifications(parsed);
+          
+          toast({
+            title: 'Modo Offline',
+            description: 'Exibindo notificações em cache. Algumas podem estar desatualizadas.',
+            variant: 'default'
+          });
+        } else {
+          // Se não há cache, mostrar notificações vazias
+          console.log('📭 Nenhuma notificação em cache, exibindo lista vazia');
+          setNotifications([]);
+        }
+      } catch (cacheError) {
+        console.error('❌ Erro ao carregar cache:', cacheError);
+        setNotifications([]);
+      }
+      
       toast({
-        title: 'Erro',
-        description: 'Não foi possível carregar as notificações',
+        title: 'Erro de Conexão',
+        description: 'Não foi possível carregar as notificações. Verifique sua conexão.',
         variant: 'destructive'
       });
     } finally {
@@ -125,8 +203,17 @@ export function useNotifications() {
         byType: {
           ...prev.byType,
           [data.type]: prev.byType[data.type as NotificationType] + 1
+        },
+        byPriority: {
+          ...prev.byPriority,
+          [data.priority]: prev.byPriority[data.priority as NotificationPriority] + 1
         }
       }));
+
+      // Enviar notificação push para notificações urgentes ou de erro
+      if (data.priority === 'urgent' || data.priority === 'high' || data.type === 'error') {
+        await sendPushNotification(data);
+      }
 
       return data;
     } catch (error) {
@@ -310,6 +397,150 @@ export function useNotifications() {
     };
   }, [profile, loadNotifications]);
 
+  // Filtrar notificações
+  const filterNotifications = useCallback((notifications: Notification[], filters: NotificationFilters): Notification[] => {
+    return notifications.filter(notification => {
+      // Filtro por tipo
+      if (filters.type && filters.type.length > 0 && !filters.type.includes(notification.type)) {
+        return false;
+      }
+      
+      // Filtro por prioridade
+      if (filters.priority && filters.priority.length > 0 && !filters.priority.includes(notification.priority)) {
+        return false;
+      }
+      
+      // Filtro por status de leitura
+      if (filters.read !== undefined && notification.read !== filters.read) {
+        return false;
+      }
+      
+      // Filtro por data
+      if (filters.dateRange) {
+        const notificationDate = new Date(notification.created_at);
+        if (notificationDate < filters.dateRange.start || notificationDate > filters.dateRange.end) {
+          return false;
+        }
+      }
+      
+      // Filtro por termo de busca
+      if (filters.searchTerm) {
+        const searchTerm = filters.searchTerm.toLowerCase();
+        const searchableText = `${notification.title} ${notification.message}`.toLowerCase();
+        if (!searchableText.includes(searchTerm)) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+  }, []);
+
+  // Agrupar notificações por tipo
+  const groupNotificationsByType = useCallback((notifications: Notification[]): NotificationGroup[] => {
+    const groups: Record<NotificationType, NotificationGroup> = {} as Record<NotificationType, NotificationGroup>;
+    
+    notifications.forEach(notification => {
+      if (!groups[notification.type]) {
+        groups[notification.type] = {
+          type: notification.type,
+          count: 0,
+          latestNotification: notification,
+          notifications: []
+        };
+      }
+      
+      groups[notification.type].count++;
+      groups[notification.type].notifications.push(notification);
+      
+      // Manter a notificação mais recente como latest
+      if (new Date(notification.created_at) > new Date(groups[notification.type].latestNotification.created_at)) {
+        groups[notification.type].latestNotification = notification;
+      }
+    });
+    
+    return Object.values(groups).sort((a, b) => 
+      new Date(b.latestNotification.created_at).getTime() - new Date(a.latestNotification.created_at).getTime()
+    );
+  }, []);
+
+  // Aplicar filtros e atualizar notificações agrupadas
+  const applyFilters = useCallback((newFilters: NotificationFilters) => {
+    setFilters(newFilters);
+    const filtered = filterNotifications(notifications, newFilters);
+    const grouped = groupNotificationsByType(filtered);
+    setGroupedNotifications(grouped);
+  }, [notifications, filterNotifications, groupNotificationsByType]);
+
+  // Limpar filtros
+  const clearFilters = useCallback(() => {
+    setFilters({});
+    const grouped = groupNotificationsByType(notifications);
+    setGroupedNotifications(grouped);
+  }, [notifications, groupNotificationsByType]);
+
+  // Solicitar permissão para notificações push
+  const requestNotificationPermission = useCallback(async (): Promise<boolean> => {
+    if (!('Notification' in window)) {
+      console.warn('Este navegador não suporta notificações push');
+      return false;
+    }
+    
+    if (Notification.permission === 'granted') {
+      return true;
+    }
+    
+    if (Notification.permission === 'denied') {
+      return false;
+    }
+    
+    const permission = await Notification.requestPermission();
+    return permission === 'granted';
+  }, []);
+
+  // Enviar notificação push
+  const sendPushNotification = useCallback(async (notification: Notification) => {
+    const hasPermission = await requestNotificationPermission();
+    
+    if (!hasPermission) {
+      return;
+    }
+    
+    try {
+      const pushNotification = new Notification(notification.title, {
+        body: notification.message,
+        icon: '/favicon.ico',
+        badge: '/favicon.ico',
+        tag: notification.id,
+        requireInteraction: notification.priority === 'urgent',
+        silent: notification.priority === 'low'
+      });
+      
+      pushNotification.onclick = () => {
+        window.focus();
+        markAsRead(notification.id);
+        pushNotification.close();
+      };
+      
+      // Auto-fechar após 5 segundos para notificações não urgentes
+      if (notification.priority !== 'urgent') {
+        setTimeout(() => {
+          pushNotification.close();
+        }, 5000);
+      }
+      
+    } catch (error) {
+      console.error('Erro ao enviar notificação push:', error);
+    }
+  }, [requestNotificationPermission, markAsRead]);
+
+  // Atualizar agrupamentos quando as notificações mudarem
+  useEffect(() => {
+    const filtered = filterNotifications(notifications, filters);
+    const grouped = groupNotificationsByType(filtered);
+    setGroupedNotifications(grouped);
+  }, [notifications, filters, filterNotifications, groupNotificationsByType]);
+
   // Carregar notificações na inicialização
   useEffect(() => {
     if (profile) {
@@ -373,6 +604,8 @@ export function useNotifications() {
     notifications,
     stats,
     isLoading,
+    filters,
+    groupedNotifications,
     loadNotifications,
     createNotification,
     markAsRead,
@@ -380,6 +613,14 @@ export function useNotifications() {
     deleteNotification,
     markAllAsRead,
     clearExpiredNotifications,
+    // Filtros e agrupamento
+    filterNotifications,
+    groupNotificationsByType,
+    applyFilters,
+    clearFilters,
+    // Notificações push
+    requestNotificationPermission,
+    sendPushNotification,
     // Métodos de conveniência
     notifySuccess,
     notifyError,

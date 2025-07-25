@@ -2,22 +2,22 @@ import React from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type ModuleType = 'solar' | 'heating' | 'training' | null;
+export type ModuleType = 'solar' | 'heating' | 'training' | 'equipment-management' | null;
 
 interface SidebarState {
   isOpen: boolean;
-  activeModule: ModuleType;
+  activeModule: string;
   toggle: () => void;
   open: () => void;
   close: () => void;
-  setActiveModule: (module: ModuleType) => void;
+  setActiveModule: (module: string) => void;
 }
 
 export const useSidebar = create<SidebarState>()(
   persist(
     (set, get) => ({
       isOpen: false,
-      activeModule: null,
+      activeModule: 'lead-data', // Configuração da rota padrão para "Dados do Lead"
       
       toggle: () => set((state) => ({ isOpen: !state.isOpen })),
       
@@ -25,7 +25,7 @@ export const useSidebar = create<SidebarState>()(
       
       close: () => set({ isOpen: false }),
       
-      setActiveModule: (module: ModuleType) => {
+      setActiveModule: (module: string) => {
         set({ activeModule: module });
         // Fecha o sidebar automaticamente após selecionar um módulo
         if (module) {

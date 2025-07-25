@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Bell, 
   BellRing, 
@@ -16,11 +18,14 @@ import {
   XCircle,
   Clock,
   Trash2,
-  Mail
+  Mail,
+  Search,
+  Filter,
+  Group,
+  Settings
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import useNotifications from '@/hooks/useNotifications';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -50,124 +55,177 @@ interface NotificationCenterProps {
 
 export function NotificationCenter({ isOpen, onClose }: NotificationCenterProps) {
   const { toast } = useToast();
-  const { profile } = useAuth();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const {
+    notifications,
+    stats,
+    isLoading,
+    filters,
+    groupedNotifications,
+    markAsRead,
+    markAsUnread,
+    deleteNotification,
+    markAllAsRead,
+    applyFilters,
+    clearFilters,
+    requestNotificationPermission
+  } = useNotifications();
+  
   const [activeTab, setActiveTab] = useState('all');
+  const [viewMode, setViewMode] = useState<'list' | 'grouped'>('list');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedType, setSelectedType] = useState<string>('all');
+  const [selectedPriority, setSelectedPriority] = useState<string>('all');
+  const [showFilters, setShowFilters] = useState(false);
 
+  // Aplicar filtros quando os valores mudarem
   useEffect(() => {
-    if (isOpen && profile) {
-      loadNotifications();
+    const newFilters: any = {};
+    
+    if (searchTerm) {
+      newFilters.searchTerm = searchTerm;
     }
-  }, [isOpen, profile]);
-
-  const loadNotifications = async () => {
-    if (!profile) return;
-
-    try {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .or(`user_id.eq.${profile.id},company_id.eq.${profile.company_id}`)
-        .order('created_at', { ascending: false })
-        .limit(100);
-
-      if (error) throw error;
-
-      setNotifications(data || []);
-    } catch (error) {
-      console.error('Erro ao carregar notificações:', error);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível carregar as notificações',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsLoading(false);
+    
+    if (selectedType !== 'all') {
+      newFilters.type = [selectedType as NotificationType];
     }
+    
+    if (selectedPriority !== 'all') {
+      newFilters.priority = [selectedPriority as NotificationPriority];
+    }
+    
+    if (activeTab === 'unread') {
+      newFilters.read = false;
+    } else if (activeTab === 'read') {
+      newFilters.read = true;
+    } else if (activeTab === 'urgent') {
+      newFilters.priority = ['urgent', 'high'];
+    }
+    
+    applyFilters(newFilters);
+  }, [searchTerm, selectedType, selectedPriority, activeTab, applyFilters]);
+
+  // Solicitar permissão para notificações push na primeira abertura
+  useEffect(() => {
+    if (isOpen) {
+      requestNotificationPermission();
+    }
+  }, [isOpen, requestNotificationPermission]);
+
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setSelectedType('all');
+    setSelectedPriority('all');
+    setActiveTab('all');
+    clearFilters();
   };
 
-  const markAsRead = async (notificationId: string) => {
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('id', notificationId);
-
-      if (error) throw error;
-
-      setNotifications(prev => 
-        prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
-      );
-    } catch (error) {
-      console.error('Erro ao marcar como lida:', error);
-    }
+  const renderNotificationGroup = (group: any) => {
+    return (
+      <div key={group.type} className="mb-6">
+        <div className="flex items-center gap-2 mb-3">
+          {getNotificationIcon(group.type)}
+          <h3 className="font-medium capitalize">{group.type}</h3>
+          <Badge variant="secondary">{group.count}</Badge>
+        </div>
+        <div className="space-y-2 ml-6">
+          {group.notifications.slice(0, 3).map((notification: Notification) => (
+            renderNotificationItem(notification, true)
+          ))}
+          {group.count > 3 && (
+            <Button variant="ghost" size="sm" className="w-full">
+              Ver mais {group.count - 3} notificações
+            </Button>
+          )}
+        </div>
+      </div>
+    );
   };
 
-  const markAsUnread = async (notificationId: string) => {
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: false })
-        .eq('id', notificationId);
-
-      if (error) throw error;
-
-      setNotifications(prev => 
-        prev.map(n => n.id === notificationId ? { ...n, read: false } : n)
-      );
-    } catch (error) {
-      console.error('Erro ao marcar como não lida:', error);
-    }
-  };
-
-  const deleteNotification = async (notificationId: string) => {
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('id', notificationId);
-
-      if (error) throw error;
-
-      setNotifications(prev => prev.filter(n => n.id !== notificationId));
-      
-      toast({
-        title: 'Sucesso',
-        description: 'Notificação removida'
-      });
-    } catch (error) {
-      console.error('Erro ao deletar notificação:', error);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível remover a notificação',
-        variant: 'destructive'
-      });
-    }
-  };
-
-  const markAllAsRead = async () => {
-    if (!profile) return;
-
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .or(`user_id.eq.${profile.id},company_id.eq.${profile.company_id}`)
-        .eq('read', false);
-
-      if (error) throw error;
-
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-      
-      toast({
-        title: 'Sucesso',
-        description: 'Todas as notificações foram marcadas como lidas'
-      });
-    } catch (error) {
-      console.error('Erro ao marcar todas como lidas:', error);
-    }
+  const renderNotificationItem = (notification: Notification, isGrouped = false) => {
+    return (
+      <div key={notification.id} className={`p-4 rounded-lg border transition-colors ${
+        notification.read ? 'bg-muted/30' : 'bg-background border-primary/20'
+      } ${isGrouped ? 'ml-0' : ''}`}>
+        <div className="flex items-start gap-3">
+          {!isGrouped && (
+            <div className="flex-shrink-0 mt-1">
+              {getNotificationIcon(notification.type)}
+            </div>
+          )}
+          
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <h4 className={`text-sm font-medium ${
+                    notification.read ? 'text-muted-foreground' : 'text-foreground'
+                  }`}>
+                    {notification.title}
+                  </h4>
+                  <div className={`w-2 h-2 rounded-full ${getPriorityColor(notification.priority)}`} />
+                </div>
+                <p className={`text-sm ${
+                  notification.read ? 'text-muted-foreground' : 'text-muted-foreground'
+                }`}>
+                  {notification.message}
+                </p>
+                <div className="flex items-center gap-4 mt-2">
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {formatDistanceToNow(new Date(notification.created_at), {
+                      addSuffix: true,
+                      locale: ptBR
+                    })}
+                  </span>
+                  {notification.action_url && notification.action_label && (
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0 text-xs"
+                      onClick={() => {
+                        markAsRead(notification.id);
+                      }}
+                    >
+                      {notification.action_label}
+                    </Button>
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-1">
+                {notification.read ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => markAsUnread(notification.id)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Mail className="h-3 w-3" />
+                  </Button>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => markAsRead(notification.id)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Check className="h-3 w-3" />
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => deleteNotification(notification.id)}
+                  className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const getNotificationIcon = (type: NotificationType) => {
@@ -198,50 +256,123 @@ export function NotificationCenter({ isOpen, onClose }: NotificationCenterProps)
     }
   };
 
-  const filteredNotifications = notifications.filter(notification => {
-    switch (activeTab) {
-      case 'unread':
-        return !notification.read;
-      case 'read':
-        return notification.read;
-      case 'urgent':
-        return notification.priority === 'urgent' || notification.priority === 'high';
-      default:
-        return true;
-    }
-  });
-
-  const unreadCount = notifications.filter(n => !n.read).length;
+  // Usar notificações filtradas do hook ou notificações agrupadas
+  const displayNotifications = viewMode === 'grouped' ? groupedNotifications : notifications;
+  const unreadCount = stats.unread;
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-2xl max-h-[80vh] flex flex-col">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          <div className="flex items-center gap-2">
-            <BellRing className="h-5 w-5" />
-            <CardTitle>Central de Notificações</CardTitle>
-            {unreadCount > 0 && (
-              <Badge variant="destructive" className="ml-2">
-                {unreadCount}
-              </Badge>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {unreadCount > 0 && (
+        <CardHeader className="space-y-4 pb-4">
+          <div className="flex flex-row items-center justify-between space-y-0">
+            <div className="flex items-center gap-2">
+              <BellRing className="h-5 w-5" />
+              <CardTitle>Central de Notificações</CardTitle>
+              {unreadCount > 0 && (
+                <Badge variant="destructive" className="ml-2">
+                  {unreadCount}
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                onClick={markAllAsRead}
+                onClick={() => setShowFilters(!showFilters)}
               >
-                <Check className="h-4 w-4 mr-1" />
-                Marcar todas como lidas
+                <Filter className="h-4 w-4" />
               </Button>
-            )}
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setViewMode(viewMode === 'list' ? 'grouped' : 'list')}
+              >
+                <Group className="h-4 w-4" />
+              </Button>
+              {unreadCount > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={markAllAsRead}
+                >
+                  <Check className="h-4 w-4 mr-1" />
+                  Marcar todas como lidas
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" onClick={onClose}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          
+          {/* Filtros */}
+          {showFilters && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar notificações..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              
+              <Select value={selectedType} onValueChange={setSelectedType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os tipos</SelectItem>
+                  <SelectItem value="info">Informação</SelectItem>
+                  <SelectItem value="success">Sucesso</SelectItem>
+                  <SelectItem value="warning">Aviso</SelectItem>
+                  <SelectItem value="error">Erro</SelectItem>
+                  <SelectItem value="system">Sistema</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Select value={selectedPriority} onValueChange={setSelectedPriority}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Prioridade" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as prioridades</SelectItem>
+                  <SelectItem value="low">Baixa</SelectItem>
+                  <SelectItem value="medium">Média</SelectItem>
+                  <SelectItem value="high">Alta</SelectItem>
+                  <SelectItem value="urgent">Urgente</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <div className="md:col-span-3 flex justify-end">
+                <Button variant="outline" size="sm" onClick={handleClearFilters}>
+                  Limpar filtros
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          {/* Estatísticas */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div className="text-center">
+              <div className="font-semibold">{stats.total}</div>
+              <div className="text-muted-foreground">Total</div>
+            </div>
+            <div className="text-center">
+              <div className="font-semibold text-red-500">{stats.unread}</div>
+              <div className="text-muted-foreground">Não lidas</div>
+            </div>
+            <div className="text-center">
+              <div className="font-semibold text-orange-500">{stats.urgent}</div>
+              <div className="text-muted-foreground">Urgentes</div>
+            </div>
+            <div className="text-center">
+              <div className="font-semibold text-blue-500">{stats.todayCount}</div>
+              <div className="text-muted-foreground">Hoje</div>
+            </div>
           </div>
         </CardHeader>
 
@@ -267,99 +398,25 @@ export function NotificationCenter({ isOpen, onClose }: NotificationCenterProps)
                   <div className="flex items-center justify-center h-32">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                   </div>
-                ) : filteredNotifications.length === 0 ? (
+                ) : displayNotifications.length === 0 ? (
                   <div className="text-center text-muted-foreground py-8">
                     <Bell className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>Nenhuma notificação encontrada</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {filteredNotifications.map((notification, index) => (
-                      <div key={notification.id}>
-                        <div className={`p-4 rounded-lg border transition-colors ${
-                          notification.read ? 'bg-muted/30' : 'bg-background border-primary/20'
-                        }`}>
-                          <div className="flex items-start gap-3">
-                            <div className="flex-shrink-0 mt-1">
-                              {getNotificationIcon(notification.type)}
-                            </div>
-                            
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <h4 className={`text-sm font-medium ${
-                                      notification.read ? 'text-muted-foreground' : 'text-foreground'
-                                    }`}>
-                                      {notification.title}
-                                    </h4>
-                                    <div className={`w-2 h-2 rounded-full ${getPriorityColor(notification.priority)}`} />
-                                  </div>
-                                  <p className={`text-sm ${
-                                    notification.read ? 'text-muted-foreground' : 'text-muted-foreground'
-                                  }`}>
-                                    {notification.message}
-                                  </p>
-                                  <div className="flex items-center gap-4 mt-2">
-                                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                      <Clock className="h-3 w-3" />
-                                      {formatDistanceToNow(new Date(notification.created_at), {
-                                        addSuffix: true,
-                                        locale: ptBR
-                                      })}
-                                    </span>
-                                    {notification.action_url && notification.action_label && (
-                                      <Button
-                                        variant="link"
-                                        size="sm"
-                                        className="h-auto p-0 text-xs"
-                                        onClick={() => {
-                                          // Implementar navegação para action_url
-                                          markAsRead(notification.id);
-                                        }}
-                                      >
-                                        {notification.action_label}
-                                      </Button>
-                                    )}
-                                  </div>
-                                </div>
-                                
-                                <div className="flex items-center gap-1">
-                                  {notification.read ? (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => markAsUnread(notification.id)}
-                                      className="h-8 w-8 p-0"
-                                    >
-                                      <Mail className="h-3 w-3" />
-                                    </Button>
-                                  ) : (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => markAsRead(notification.id)}
-                                      className="h-8 w-8 p-0"
-                                    >
-                                      <Check className="h-3 w-3" />
-                                    </Button>
-                                  )}
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => deleteNotification(notification.id)}
-                                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
+                    {viewMode === 'grouped' ? (
+                      // Visualização agrupada
+                      groupedNotifications.map((group) => renderNotificationGroup(group))
+                    ) : (
+                      // Visualização em lista
+                      notifications.map((notification, index) => (
+                        <div key={notification.id}>
+                          {renderNotificationItem(notification)}
+                          {index < notifications.length - 1 && <Separator className="my-2" />}
                         </div>
-                        {index < filteredNotifications.length - 1 && <Separator className="my-2" />}
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 )}
               </ScrollArea>

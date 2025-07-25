@@ -1,11 +1,13 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, FileText, AlertCircle, CheckCircle } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Upload, FileText, AlertCircle, CheckCircle, Eye, X, RotateCcw, Download } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 interface PDFFile {
@@ -15,6 +17,9 @@ interface PDFFile {
   progress: number;
   extractedData?: any;
   error?: string;
+  preview?: string;
+  uploadedAt: Date;
+  processedAt?: Date;
 }
 
 interface PDFDropzoneProps {
@@ -24,6 +29,9 @@ interface PDFDropzoneProps {
   maxFiles?: number;
   maxSize?: number; // em MB
   className?: string;
+  showStats?: boolean;
+  allowPreview?: boolean;
+  autoProcess?: boolean;
 }
 
 export const PDFDropzone: React.FC<PDFDropzoneProps> = ({
@@ -32,10 +40,15 @@ export const PDFDropzone: React.FC<PDFDropzoneProps> = ({
   onFileError,
   maxFiles = 5,
   maxSize = 10,
-  className
+  className,
+  showStats = true,
+  allowPreview = true,
+  autoProcess = false
 }) => {
   const [uploadedFiles, setUploadedFiles] = useState<PDFFile[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedPreview, setSelectedPreview] = useState<string | null>(null);
+  const [dragCounter, setDragCounter] = useState(0);
 
   const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: any[]) => {
     // Validar arquivos rejeitados
@@ -53,11 +66,29 @@ export const PDFDropzone: React.FC<PDFDropzoneProps> = ({
       file,
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       status: 'pending',
-      progress: 0
+      progress: 0,
+      uploadedAt: new Date()
     }));
 
     setUploadedFiles(prev => [...prev, ...newFiles]);
     onFilesSelected(acceptedFiles);
+    
+    // Gerar preview se habilitado
+    if (allowPreview) {
+      newFiles.forEach(pdfFile => {
+        generatePreview(pdfFile.file, pdfFile.id);
+      });
+    }
+    
+    // Auto processar se habilitado
+    if (autoProcess) {
+      setIsProcessing(true);
+    }
+    
+    toast({
+      title: 'Arquivos adicionados',
+      description: `${acceptedFiles.length} arquivo(s) PDF adicionado(s) com sucesso.`
+    });
   }, [onFilesSelected, onFileError]);
 
   const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
@@ -70,22 +101,95 @@ export const PDFDropzone: React.FC<PDFDropzoneProps> = ({
     multiple: true
   });
 
+  const generatePreview = async (file: File, fileId: string) => {
+    try {
+      const fileURL = URL.createObjectURL(file);
+      setUploadedFiles(prev => prev.map(f => 
+        f.id === fileId ? { ...f, preview: fileURL } : f
+      ));
+    } catch (error) {
+      console.error('Erro ao gerar preview:', error);
+    }
+  };
+
   const removeFile = (fileId: string) => {
+    const file = uploadedFiles.find(f => f.id === fileId);
+    if (file?.preview) {
+      URL.revokeObjectURL(file.preview);
+    }
     setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
+    
+    toast({
+      title: 'Arquivo removido',
+      description: 'O arquivo foi removido da lista.'
+    });
+  };
+
+  const clearAllFiles = () => {
+    uploadedFiles.forEach(file => {
+      if (file.preview) {
+        URL.revokeObjectURL(file.preview);
+      }
+    });
+    setUploadedFiles([]);
+    
+    toast({
+      title: 'Lista limpa',
+      description: 'Todos os arquivos foram removidos.'
+    });
   };
 
   const retryFile = (fileId: string) => {
     setUploadedFiles(prev => prev.map(f => 
       f.id === fileId 
-        ? { ...f, status: 'pending', progress: 0, error: undefined }
+        ? { ...f, status: 'pending', progress: 0, error: undefined, processedAt: undefined }
         : f
     ));
     
     const file = uploadedFiles.find(f => f.id === fileId);
     if (file) {
       onFilesSelected([file.file]);
+      toast({
+        title: 'Reprocessando arquivo',
+        description: `Tentando processar ${file.file.name} novamente.`
+      });
     }
   };
+
+  const getFileStats = () => {
+    const total = uploadedFiles.length;
+    const completed = uploadedFiles.filter(f => f.status === 'completed').length;
+    const processing = uploadedFiles.filter(f => f.status === 'processing').length;
+    const errors = uploadedFiles.filter(f => f.status === 'error').length;
+    const pending = uploadedFiles.filter(f => f.status === 'pending').length;
+    const totalSize = uploadedFiles.reduce((acc, f) => acc + f.file.size, 0);
+    
+    return { total, completed, processing, errors, pending, totalSize };
+  };
+
+  const downloadFile = (pdfFile: PDFFile) => {
+    const url = URL.createObjectURL(pdfFile.file);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = pdfFile.file.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Cleanup URLs on unmount
+  useEffect(() => {
+    return () => {
+      uploadedFiles.forEach(file => {
+        if (file.preview) {
+          URL.revokeObjectURL(file.preview);
+        }
+      });
+    };
+  }, []);
+
+  const stats = getFileStats();
 
   const getStatusIcon = (status: PDFFile['status']) => {
     switch (status) {
@@ -127,12 +231,61 @@ export const PDFDropzone: React.FC<PDFDropzoneProps> = ({
 
   return (
     <div className={cn('space-y-4', className)}>
+      {/* Estatísticas */}
+      {showStats && uploadedFiles.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Estatísticas de Upload
+              </span>
+              {uploadedFiles.length > 1 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearAllFiles}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Limpar Tudo
+                </Button>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{stats.total}</div>
+                <div className="text-xs text-gray-500">Total</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
+                <div className="text-xs text-gray-500">Concluídos</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-yellow-600">{stats.processing}</div>
+                <div className="text-xs text-gray-500">Processando</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-red-600">{stats.errors}</div>
+                <div className="text-xs text-gray-500">Erros</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-gray-600">{formatFileSize(stats.totalSize)}</div>
+                <div className="text-xs text-gray-500">Tamanho Total</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Área de Drop */}
       <Card className={cn(
-        'border-2 border-dashed transition-colors cursor-pointer',
-        isDragActive && !isDragReject && 'border-blue-500 bg-blue-50',
+        'border-2 border-dashed transition-all duration-200 cursor-pointer',
+        isDragActive && !isDragReject && 'border-blue-500 bg-blue-50 scale-105',
         isDragReject && 'border-red-500 bg-red-50',
-        !isDragActive && 'border-gray-300 hover:border-gray-400'
+        !isDragActive && 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
       )}>
         <CardContent className="p-8">
           <div {...getRootProps()} className="text-center">
@@ -173,76 +326,126 @@ export const PDFDropzone: React.FC<PDFDropzoneProps> = ({
 
       {/* Lista de Arquivos */}
       {uploadedFiles.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-sm font-medium text-gray-900">
-            Arquivos Selecionados ({uploadedFiles.length})
-          </h3>
-          
-          {uploadedFiles.map((pdfFile) => (
-            <Card key={pdfFile.id} className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3 flex-1">
-                  {getStatusIcon(pdfFile.status)}
-                  
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {pdfFile.file.name}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {formatFileSize(pdfFile.file.size)}
-                    </p>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>Arquivos Selecionados ({uploadedFiles.length})</span>
+              {stats.completed > 0 && (
+                <Badge variant="outline" className="bg-green-50 text-green-700">
+                  {stats.completed}/{stats.total} processados
+                </Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {uploadedFiles.map((pdfFile) => (
+              <Card key={pdfFile.id} className="p-4 hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start space-x-3 flex-1">
+                    {getStatusIcon(pdfFile.status)}
                     
-                    {pdfFile.status === 'processing' && (
-                      <div className="mt-2">
-                        <Progress value={pdfFile.progress} className="h-2" />
-                        <p className="text-xs text-gray-500 mt-1">
-                          Processando... {pdfFile.progress}%
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {pdfFile.file.name}
                         </p>
+                        <Badge className={getStatusColor(pdfFile.status)}>
+                          {pdfFile.status === 'pending' && 'Pendente'}
+                          {pdfFile.status === 'processing' && 'Processando'}
+                          {pdfFile.status === 'completed' && 'Concluído'}
+                          {pdfFile.status === 'error' && 'Erro'}
+                        </Badge>
                       </div>
+                      
+                      <div className="flex items-center gap-4 text-xs text-gray-500 mb-2">
+                        <span>{formatFileSize(pdfFile.file.size)}</span>
+                        <span>Adicionado: {pdfFile.uploadedAt.toLocaleTimeString()}</span>
+                        {pdfFile.processedAt && (
+                          <span>Processado: {pdfFile.processedAt.toLocaleTimeString()}</span>
+                        )}
+                      </div>
+                      
+                      {pdfFile.status === 'processing' && (
+                        <div className="mb-2">
+                          <Progress value={pdfFile.progress} className="h-2" />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Processando... {pdfFile.progress}%
+                          </p>
+                        </div>
+                      )}
+                      
+                      {pdfFile.error && (
+                        <Alert className="mt-2">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription className="text-xs">
+                            {pdfFile.error}
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    {/* Preview Button */}
+                    {allowPreview && pdfFile.preview && (
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button size="sm" variant="outline">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-4xl h-[80vh]">
+                          <DialogHeader>
+                            <DialogTitle>{pdfFile.file.name}</DialogTitle>
+                          </DialogHeader>
+                          <div className="flex-1 overflow-hidden">
+                            <iframe
+                              src={pdfFile.preview}
+                              className="w-full h-full border rounded"
+                              title={`Preview de ${pdfFile.file.name}`}
+                            />
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                     )}
                     
-                    {pdfFile.error && (
-                      <Alert className="mt-2">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription className="text-xs">
-                          {pdfFile.error}
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Badge className={getStatusColor(pdfFile.status)}>
-                    {pdfFile.status === 'pending' && 'Pendente'}
-                    {pdfFile.status === 'processing' && 'Processando'}
-                    {pdfFile.status === 'completed' && 'Concluído'}
-                    {pdfFile.status === 'error' && 'Erro'}
-                  </Badge>
-                  
-                  {pdfFile.status === 'error' && (
+                    {/* Download Button */}
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => retryFile(pdfFile.id)}
+                      onClick={() => downloadFile(pdfFile)}
                     >
-                      Tentar Novamente
+                      <Download className="h-4 w-4" />
                     </Button>
-                  )}
-                  
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => removeFile(pdfFile.id)}
-                    disabled={pdfFile.status === 'processing'}
-                  >
-                    Remover
-                  </Button>
+                    
+                    {/* Retry Button */}
+                    {pdfFile.status === 'error' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => retryFile(pdfFile.id)}
+                        className="text-yellow-600 hover:text-yellow-700"
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                      </Button>
+                    )}
+                    
+                    {/* Remove Button */}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => removeFile(pdfFile.id)}
+                      disabled={pdfFile.status === 'processing'}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </Card>
-          ))}
-        </div>
+              </Card>
+            ))}
+          </CardContent>
+        </Card>
       )}
     </div>
   );

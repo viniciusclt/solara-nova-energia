@@ -94,7 +94,7 @@ export function InverterManagerAdvanced() {
     fetchInverters();
   }, []);
 
-  const fetchInverters = async () => {
+  const fetchInverters = async (retryCount = 0) => {
     setIsLoading(true);
     try {
       const demoDataService = DemoDataService.getInstance();
@@ -104,20 +104,48 @@ export function InverterManagerAdvanced() {
         const demoInverters = demoDataService.getInverters();
         setInverters(demoInverters);
       } else {
+        // Verificar autenticação antes de fazer a consulta
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          throw new Error('Usuário não autenticado');
+        }
+
         // Usar dados do Supabase em produção
         const { data, error } = await supabase
           .from('inverters' as never)
           .select('*')
           .order('name');
 
-        if (error) throw error;
+        if (error) {
+          // Tratamento específico para diferentes tipos de erro
+          if (error.code === 'PGRST116') {
+            throw new Error('Tabela de inversores não encontrada. Verifique a configuração do banco de dados.');
+          } else if (error.code === '42501') {
+            throw new Error('Permissão negada para acessar os inversores. Verifique suas credenciais.');
+          } else if (error.message?.includes('connection')) {
+            throw new Error('Erro de conexão com o banco de dados. Verifique sua conexão com a internet.');
+          }
+          throw error;
+        }
         setInverters(data || []);
       }
     } catch (error) {
       console.error('Error fetching inverters:', error);
+      
+      // Retry automático para erros de conexão (máximo 2 tentativas)
+      if (retryCount < 2 && (error as Error).message?.includes('connection')) {
+        console.log(`Tentando novamente carregar inversores (tentativa ${retryCount + 1})...`);
+        setTimeout(() => fetchInverters(retryCount + 1), 2000);
+        return;
+      }
+      
+      // Fallback: usar dados vazios em caso de erro persistente
+      setInverters([]);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Não foi possível carregar os inversores';
       toast({
-        title: "Erro",
-        description: "Não foi possível carregar os inversores",
+        title: "Erro ao carregar inversores",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -127,6 +155,17 @@ export function InverterManagerAdvanced() {
 
   const handleSaveInverter = async () => {
     try {
+      // Verificar autenticação
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Usuário não autenticado. Faça login novamente.');
+      }
+
+      // Validar dados obrigatórios
+      if (!currentInverter.name || !currentInverter.manufacturer || !currentInverter.model) {
+        throw new Error('Nome, fabricante e modelo são obrigatórios.');
+      }
+
       // Preparar o inversor com os dados atualizados
       const inverterToSave: Inverter = {
         ...currentInverter,
@@ -140,20 +179,24 @@ export function InverterManagerAdvanced() {
       if (isEditing && currentInverter.id) {
         // Atualizar inversor existente
         result = await supabase
-          .from('inverters' as 'audit_logs')
-          .update(inverterToSave)
+          .from('inverters' as never)
+          .update(inverterToSave as any)
           .eq('id', currentInverter.id);
       } else {
         // Criar novo inversor
         result = await supabase
-          .from('inverters' as 'audit_logs')
-          .insert({
-            ...inverterToSave,
-            action: 'create_inverter'
-          });
+          .from('inverters' as never)
+          .insert(inverterToSave as any);
       }
 
-      if (result.error) throw result.error;
+      if (result.error) {
+        if (result.error.code === '23505') {
+          throw new Error('Já existe um inversor com este nome e modelo.');
+        } else if (result.error.code === '42501') {
+          throw new Error('Permissão negada para salvar o inversor.');
+        }
+        throw result.error;
+      }
 
       toast({
         title: isEditing ? "Inversor Atualizado" : "Inversor Criado",
@@ -164,9 +207,10 @@ export function InverterManagerAdvanced() {
       fetchInverters();
     } catch (error) {
       console.error('Error saving inverter:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Não foi possível salvar o inversor';
       toast({
-        title: "Erro",
-        description: "Não foi possível salvar o inversor",
+        title: "Erro ao salvar inversor",
+        description: errorMessage,
         variant: "destructive"
       });
     }
@@ -176,12 +220,25 @@ export function InverterManagerAdvanced() {
     if (!confirm("Tem certeza que deseja excluir este inversor?")) return;
 
     try {
+      // Verificar autenticação
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Usuário não autenticado. Faça login novamente.');
+      }
+
       const { error } = await supabase
         .from('inverters' as never)
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === '42501') {
+          throw new Error('Permissão negada para excluir o inversor.');
+        } else if (error.code === '23503') {
+          throw new Error('Não é possível excluir este inversor pois ele está sendo usado em projetos.');
+        }
+        throw error;
+      }
 
       toast({
         title: "Inversor Excluído",
@@ -191,9 +248,10 @@ export function InverterManagerAdvanced() {
       fetchInverters();
     } catch (error) {
       console.error('Error deleting inverter:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Não foi possível excluir o inversor';
       toast({
-        title: "Erro",
-        description: "Não foi possível excluir o inversor",
+        title: "Erro ao excluir inversor",
+        description: errorMessage,
         variant: "destructive"
       });
     }

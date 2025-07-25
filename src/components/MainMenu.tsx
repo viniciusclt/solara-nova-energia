@@ -24,6 +24,7 @@ import {
 import { SolarDashboard } from "./SolarDashboard";
 import { HeatingDashboard } from "./HeatingDashboard";
 import { TrainingDashboard } from "./TrainingDashboard";
+import { EquipmentManagementPage } from "./EquipmentManagementPage";
 import { SettingsModal } from "./SettingsModal";
 import NotificationCenter from "./NotificationCenter";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -151,6 +152,19 @@ export function MainMenu() {
     );
   }
 
+  if (activeModule === 'equipment-management') {
+    return (
+      <div className="flex">
+        <Sidebar 
+          onHelpClick={() => console.log('Ajuda clicada')}
+        />
+        <div className="flex-1">
+          <EquipmentManagementPage onBackToMenu={() => setActiveModule(null)} />
+        </div>
+      </div>
+    );
+  }
+
   // Menu principal
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/30">
@@ -247,22 +261,22 @@ export function MainMenu() {
         </div>
 
         {/* Modules Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8 mb-12">
           {modules.map((module) => (
             <Card 
               key={module.id} 
-              className="group hover:shadow-2xl transition-all duration-300 cursor-pointer border-2 hover:border-primary/50 relative overflow-hidden"
+              className="group hover:shadow-2xl transition-all duration-300 cursor-pointer border-2 hover:border-primary/50 relative overflow-hidden h-full flex flex-col"
               onClick={() => setActiveModule(module.id)}
             >
               {/* Background gradient */}
               <div className={`absolute inset-0 bg-gradient-to-br ${module.color} opacity-5 group-hover:opacity-10 transition-opacity`} />
               
-              <CardHeader className="relative">
+              <CardHeader className="relative flex-shrink-0">
                 <div className="flex items-center justify-between mb-4">
-                  <div className={`p-3 rounded-lg bg-gradient-to-br ${module.color} shadow-lg`}>
+                  <div className={`p-3 rounded-lg bg-gradient-to-br ${module.color} shadow-lg flex-shrink-0`}>
                     <module.icon className="h-8 w-8 text-white" />
                   </div>
-                  <Badge className={module.statusColor}>
+                  <Badge className={`${module.statusColor} flex-shrink-0`}>
                     {module.status}
                   </Badge>
                 </div>
@@ -274,23 +288,23 @@ export function MainMenu() {
                 </CardDescription>
               </CardHeader>
               
-              <CardContent className="relative">
-                <div className="space-y-3 mb-6">
+              <CardContent className="relative flex-1 flex flex-col">
+                <div className="space-y-3 mb-6 flex-1">
                   <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
                     Principais Funcionalidades
                   </h4>
                   <ul className="space-y-2">
                     {module.features.map((feature, index) => (
-                      <li key={index} className="flex items-center gap-2 text-sm">
-                        <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                        {feature}
+                      <li key={index} className="flex items-start gap-2 text-sm">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
+                        <span className="flex-1">{feature}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
                 
                 <Button 
-                  className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                  className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors mt-auto"
                   variant="outline"
                 >
                   Acessar Módulo

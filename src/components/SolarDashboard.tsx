@@ -56,7 +56,10 @@ interface SolarDashboardProps {
 
 export function SolarDashboard({ onBackToMenu }: SolarDashboardProps = {}) {
   const [currentLead, setCurrentLead] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState("lead-data");
+  const [activeTab, setActiveTab] = useState(() => {
+    // Configuração da aba padrão com persistência
+    return localStorage.getItem('activeTab') || 'lead-data';
+  });
   const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
   const { stats } = useNotifications();
 
@@ -67,6 +70,11 @@ export function SolarDashboard({ onBackToMenu }: SolarDashboardProps = {}) {
       loadSelectedLead(savedLeadId);
     }
   }, []);
+
+  // Persistir a aba ativa no localStorage
+  useEffect(() => {
+    localStorage.setItem('activeTab', activeTab);
+  }, [activeTab]);
 
   const loadSelectedLead = async (leadId: string) => {
     try {

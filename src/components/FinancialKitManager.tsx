@@ -64,21 +64,51 @@ export function FinancialKitManager({ onKitsUpdated }: FinancialKitManagerProps 
     fetchKits();
   }, []);
 
-  const fetchKits = async () => {
+  const fetchKits = async (retryCount = 0) => {
     try {
       setIsLoading(true);
+      
+      // Verificar autenticação antes de fazer a consulta
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
+
       const { data, error } = await supabase
         .from('financial_kits')
         .select('*')
         .eq('ativo', true)
         .order('potencia', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        // Tratamento específico para diferentes tipos de erro
+        if (error.code === 'PGRST116') {
+          throw new Error('Tabela de kits financeiros não encontrada. Verifique a configuração do banco de dados.');
+        } else if (error.code === '42501') {
+          throw new Error('Permissão negada para acessar os kits financeiros. Verifique suas credenciais.');
+        } else if (error.message?.includes('connection')) {
+          throw new Error('Erro de conexão com o banco de dados. Verifique sua conexão com a internet.');
+        }
+        throw error;
+      }
       setKits(data || []);
     } catch (error: any) {
+      console.error('Error fetching financial kits:', error);
+      
+      // Retry automático para erros de conexão (máximo 2 tentativas)
+      if (retryCount < 2 && error.message?.includes('connection')) {
+        console.log(`Tentando novamente carregar kits financeiros (tentativa ${retryCount + 1})...`);
+        setTimeout(() => fetchKits(retryCount + 1), 2000);
+        return;
+      }
+      
+      // Fallback: usar dados vazios em caso de erro persistente
+      setKits([]);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Não foi possível carregar os kits financeiros';
       toast({
-        title: "Erro ao carregar kits",
-        description: error.message,
+        title: "Erro ao carregar kits financeiros",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -136,6 +166,12 @@ export function FinancialKitManager({ onKitsUpdated }: FinancialKitManagerProps 
     const precoWp = preco / (potencia * 1000);
     
     try {
+      // Verificar autenticação
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Usuário não autenticado. Faça login novamente.');
+      }
+
       if (isEditing && editingKit) {
         const { error } = await supabase
           .from('financial_kits')
@@ -150,7 +186,14 @@ export function FinancialKitManager({ onKitsUpdated }: FinancialKitManagerProps 
           })
           .eq('id', editingKit.id);
 
-        if (error) throw error;
+        if (error) {
+          if (error.code === '23505') {
+            throw new Error('Já existe um kit com este nome.');
+          } else if (error.code === '42501') {
+            throw new Error('Permissão negada para atualizar o kit.');
+          }
+          throw error;
+        }
         
         toast({
           title: "Kit atualizado",
@@ -169,7 +212,14 @@ export function FinancialKitManager({ onKitsUpdated }: FinancialKitManagerProps 
             descricao: formData.descricao || null
           });
 
-        if (error) throw error;
+        if (error) {
+          if (error.code === '23505') {
+            throw new Error('Já existe um kit com este nome.');
+          } else if (error.code === '42501') {
+            throw new Error('Permissão negada para criar o kit.');
+          }
+          throw error;
+        }
         
         toast({
           title: "Kit criado",
@@ -182,9 +232,11 @@ export function FinancialKitManager({ onKitsUpdated }: FinancialKitManagerProps 
       fetchKits();
       onKitsUpdated?.();
     } catch (error: any) {
+      console.error('Error saving financial kit:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Não foi possível salvar o kit';
       toast({
-        title: "Erro ao salvar kit",
-        description: error.message,
+        title: "Erro ao salvar kit financeiro",
+        description: errorMessage,
         variant: "destructive"
       });
     }
@@ -192,12 +244,25 @@ export function FinancialKitManager({ onKitsUpdated }: FinancialKitManagerProps 
 
   const handleDeleteKit = async (kit: FinancialKit) => {
     try {
+      // Verificar autenticação
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Usuário não autenticado. Faça login novamente.');
+      }
+
       const { error } = await supabase
         .from('financial_kits')
         .update({ ativo: false })
         .eq('id', kit.id);
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === '42501') {
+          throw new Error('Permissão negada para remover o kit.');
+        } else if (error.code === '23503') {
+          throw new Error('Não é possível remover este kit pois ele está sendo usado em projetos.');
+        }
+        throw error;
+      }
       
       toast({
         title: "Kit removido",
@@ -207,9 +272,11 @@ export function FinancialKitManager({ onKitsUpdated }: FinancialKitManagerProps 
       fetchKits();
       onKitsUpdated?.();
     } catch (error: any) {
+      console.error('Error deleting financial kit:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Não foi possível remover o kit';
       toast({
-        title: "Erro ao remover kit",
-        description: error.message,
+        title: "Erro ao remover kit financeiro",
+        description: errorMessage,
         variant: "destructive"
       });
     }
@@ -217,6 +284,17 @@ export function FinancialKitManager({ onKitsUpdated }: FinancialKitManagerProps 
 
   const handleImportData = async (importedData: KitData[]) => {
     try {
+      // Verificar autenticação
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Usuário não autenticado. Faça login novamente.');
+      }
+
+      // Validar dados importados
+      if (!importedData || importedData.length === 0) {
+        throw new Error('Nenhum dado válido encontrado para importação.');
+      }
+
       const kitsToInsert = importedData.map(kit => ({
         nome: kit.nome,
         potencia: kit.potencia,
@@ -231,7 +309,14 @@ export function FinancialKitManager({ onKitsUpdated }: FinancialKitManagerProps 
         .from('financial_kits')
         .insert(kitsToInsert);
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === '23505') {
+          throw new Error('Alguns kits já existem no sistema. Verifique os nomes duplicados.');
+        } else if (error.code === '42501') {
+          throw new Error('Permissão negada para importar kits.');
+        }
+        throw error;
+      }
       
       setIsImporterOpen(false);
       fetchKits();
@@ -242,9 +327,11 @@ export function FinancialKitManager({ onKitsUpdated }: FinancialKitManagerProps 
         description: `${importedData.length} kits importados com sucesso`
       });
     } catch (error: any) {
+      console.error('Error importing financial kits:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Não foi possível importar os kits';
       toast({
-        title: "Erro ao importar kits",
-        description: error.message,
+        title: "Erro ao importar kits financeiros",
+        description: errorMessage,
         variant: "destructive"
       });
     }
