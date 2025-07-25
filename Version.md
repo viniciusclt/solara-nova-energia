@@ -1,5 +1,24 @@
 # SolarCalc Pro - Histórico de Versões
 
+## [2.1.0] - 2025-01-27
+### Added
+- Menu modular principal (MainMenu.tsx) como ponto de entrada da aplicação
+- Módulo de Aquecimento Solar (HeatingDashboard.tsx) com estrutura completa
+- Centro de Treinamentos (TrainingDashboard.tsx) com gestão de cursos e certificações
+- Navegação entre módulos com botão "Voltar" no SolarDashboard
+- Design responsivo e consistente entre todos os módulos
+- Estatísticas dinâmicas para cada dashboard
+- Estrutura de abas de navegação para novos módulos
+
+### Changed
+- SolarDashboard.tsx atualizado para aceitar propriedade onBackToMenu
+- Index.tsx modificado para renderizar MainMenu em vez de SolarDashboard diretamente
+- Arquitetura modular expandida para suportar múltiplas áreas de negócio
+
+### Fixed
+- Navegação entre módulos implementada corretamente
+- Consistência visual mantida entre todos os dashboards
+
 ## [2.0.0] - 2024-01-27
 ### Added
 - Sistema de dados de demonstração para desenvolvimento local
