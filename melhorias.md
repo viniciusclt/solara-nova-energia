@@ -793,6 +793,149 @@ src/components/
 
 ---
 
+## 🎛️ 6. SIDEBAR RETRÁTIL E NAVEGAÇÃO AVANÇADA ⌛
+
+### 6.1 Objetivo ⌛
+Implementar um sistema de sidebar retrátil moderno que centralize a navegação entre módulos e funcionalidades do sistema, melhorando a experiência do usuário e organizando melhor o acesso às diferentes áreas da plataforma.
+
+### 6.2 Especificações Técnicas ⌛
+
+#### 6.2.1 Design e Posicionamento ⌛
+- **Tipo**: Sidebar retrátil posicionado à esquerda ⌛
+- **Trigger**: Ícone hamburger (3 traços) para abrir/fechar ⌛
+- **Comportamento**: Fecha automaticamente ao clicar fora ⌛
+- **Animações**: Transições suaves de entrada e saída ⌛
+- **Responsividade**: Overlay em mobile, push content em desktop ⌛
+
+#### 6.2.2 Estrutura do Menu ⌛
+```
+┌─────────────────┐
+│ [≡] LOGO       │ ← Header com toggle
+├─────────────────┤
+│ 🏠 Fotovoltaico │ ← Módulos principais
+│ 🔥 Aquecimento  │   (seção superior)
+│ 🎓 Treinamentos │
+├─────────────────┤
+│     ...         │ ← Espaço flexível
+├─────────────────┤
+│ ❓ Ajuda        │ ← Utilitários
+│ ⚙️ Configurações│   (seção inferior)
+│ 🚪 Sair         │
+└─────────────────┘
+```
+
+#### 6.2.3 Itens do Menu ⌛
+**Seção Superior - Módulos:**
+- 🏠 Fotovoltaico (atual)
+- 🔥 Aquecimento Solar
+- 🎓 Centro de Treinamentos
+
+**Seção Inferior - Utilitários:**
+- ❓ Ajuda/Suporte
+- ⚙️ Configurações
+- 🚪 Sair
+
+### 6.3 Arquitetura de Componentes ⌛
+
+#### 6.3.1 Componentes a Criar ⌛
+```
+src/components/sidebar/
+├── Sidebar.tsx              # Componente principal do sidebar ⌛
+├── SidebarItem.tsx          # Item individual do menu ⌛
+├── SidebarToggle.tsx        # Botão hamburger ⌛
+└── SidebarSection.tsx       # Seção do sidebar (módulos/utilitários) ⌛
+
+src/hooks/
+└── useSidebar.ts            # Hook para gerenciar estado global ⌛
+```
+
+#### 6.3.2 Estado Global (Zustand) ⌛
+```typescript
+interface SidebarState {
+  isOpen: boolean;
+  activeModule: string | null;
+  toggle: () => void;
+  close: () => void;
+  setActiveModule: (module: string) => void;
+}
+```
+
+### 6.4 Funcionalidades Técnicas ⌛
+
+#### 6.4.1 Navegação ⌛
+- **Integração Universal**: Disponível em todos os módulos ⌛
+- **Estado Persistente**: Lembra do módulo ativo ⌛
+- **Navegação por Teclado**: Suporte a acessibilidade ⌛
+- **ARIA Labels**: Conformidade com padrões de acessibilidade ⌛
+
+#### 6.4.2 Performance ⌛
+- **Lazy Loading**: Carregamento sob demanda dos módulos ⌛
+- **Memoização**: Otimização de re-renders ⌛
+- **CSS Transitions**: Animações performáticas ⌛
+
+#### 6.4.3 Responsividade ⌛
+- **Mobile**: Overlay com backdrop escuro ⌛
+- **Tablet**: Sidebar compacto com ícones ⌛
+- **Desktop**: Sidebar completo com labels ⌛
+
+### 6.5 Tecnologias Utilizadas ⌛
+- **React 18+**: Componentes funcionais com hooks ⌛
+- **TypeScript**: Tipagem forte para melhor manutenibilidade ⌛
+- **Tailwind CSS**: Styling responsivo e moderno ⌛
+- **Lucide React**: Ícones consistentes e escaláveis ⌛
+- **Zustand**: Gerenciamento de estado global leve ⌛
+- **Framer Motion**: Animações suaves (opcional) ⌛
+
+### 6.6 Benefícios Esperados ⌛
+
+#### 6.6.1 Experiência do Usuário ⌛
+- **Navegação Intuitiva**: Acesso rápido a todas as funcionalidades ⌛
+- **Economia de Espaço**: Mais área útil para conteúdo ⌛
+- **Consistência**: Padrão de navegação em toda a aplicação ⌛
+- **Acessibilidade**: Suporte completo a usuários com necessidades especiais ⌛
+
+#### 6.6.2 Desenvolvimento ⌛
+- **Modularidade**: Fácil adição de novos módulos ⌛
+- **Manutenibilidade**: Código organizado e reutilizável ⌛
+- **Escalabilidade**: Preparado para crescimento da plataforma ⌛
+- **Testabilidade**: Componentes isolados e testáveis ⌛
+
+### 6.7 Fases de Implementação ⌛
+
+#### Fase 1: Estrutura Base (2-3 dias) ⌛
+- [ ] Criar hook `useSidebar` com Zustand ⌛
+- [ ] Implementar componente `Sidebar` básico ⌛
+- [ ] Desenvolver `SidebarToggle` responsivo ⌛
+- [ ] Configurar animações CSS ⌛
+
+#### Fase 2: Integração (1-2 dias) ⌛
+- [ ] Integrar sidebar em todos os módulos existentes ⌛
+- [ ] Implementar navegação entre módulos ⌛
+- [ ] Adicionar funcionalidades de Ajuda/Configurações ⌛
+- [ ] Testes de responsividade ⌛
+
+#### Fase 3: Refinamentos (1 dia) ⌛
+- [ ] Otimizações de performance ⌛
+- [ ] Melhorias de acessibilidade ⌛
+- [ ] Testes finais e ajustes de UX ⌛
+- [ ] Documentação técnica ⌛
+
+### 6.8 Critérios de Aceitação ⌛
+- [ ] Sidebar funciona em todos os dispositivos ⌛
+- [ ] Navegação entre módulos é fluida ⌛
+- [ ] Animações são suaves e performáticas ⌛
+- [ ] Acessibilidade está em conformidade com WCAG ⌛
+- [ ] Estado é persistido corretamente ⌛
+- [ ] Integração não quebra funcionalidades existentes ⌛
+
+### 6.9 Métricas de Sucesso ⌛
+- **Tempo de Navegação**: Redução de 50% no tempo para trocar módulos ⌛
+- **Satisfação do Usuário**: Feedback positivo sobre usabilidade ⌛
+- **Performance**: Sem impacto negativo no carregamento ⌛
+- **Acessibilidade**: 100% de conformidade com padrões ⌛
+
+---
+
 ## 📋 RESUMO EXECUTIVO
 
 Este plano de implementação aborda as principais necessidades identificadas no sistema Solara Nova Energia:

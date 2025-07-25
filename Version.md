@@ -1,5 +1,30 @@
 # SolarCalc Pro - Histórico de Versões
 
+## [2.2.0] - 2025-01-27
+### Added
+- Sidebar retrátil com navegação avançada
+- Componente SidebarToggle com ícone de hambúrguer
+- Hook useSidebar para gerenciamento de estado global com Zustand
+- Componentes modulares: Sidebar, SidebarItem, SidebarSection
+- Integração do SettingsModal diretamente no sidebar
+- Funcionalidades de acessibilidade (atalhos de teclado, click outside)
+- Animações suaves de abertura/fechamento
+- Design responsivo para dispositivos móveis
+- Navegação entre módulos (Fotovoltaico, Aquecimento Solar, Treinamentos)
+- Seção de utilitários (Ajuda, Configurações, Sair)
+
+### Changed
+- MainMenu.tsx atualizado para integrar o sidebar
+- Arquitetura de navegação modernizada
+- Interface de usuário mais limpa e organizada
+- Remoção de botões redundantes do header
+- Melhor aproveitamento do espaço da tela
+
+### Dependencies
+- Adicionado Zustand para gerenciamento de estado
+- Adicionado Framer Motion para animações
+- Integração com Lucide React para ícones
+
 ## [2.1.0] - 2025-01-27
 ### Added
 - Menu modular principal (MainMenu.tsx) como ponto de entrada da aplicação

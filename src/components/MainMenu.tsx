@@ -29,13 +29,16 @@ import NotificationCenter from "./NotificationCenter";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useNavigate } from "react-router-dom";
 
-type ModuleType = 'menu' | 'solar' | 'heating' | 'training';
+// Import dos componentes do sidebar
+import { Sidebar, SidebarToggle } from "./sidebar";
+import { useSidebar } from "@/hooks/useSidebar";
+import { ModuleType } from "@/hooks/useSidebar";
 
 export function MainMenu() {
-  const [activeModule, setActiveModule] = useState<ModuleType>('menu');
   const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
   const { profile, company, signOut } = useAuth();
   const { stats } = useNotifications();
+  const { activeModule, setActiveModule } = useSidebar();
   const navigate = useNavigate();
 
   const getAccessTypeLabel = (type: string) => {
@@ -108,25 +111,62 @@ export function MainMenu() {
 
   // Renderizar o módulo ativo
   if (activeModule === 'solar') {
-    return <SolarDashboard onBackToMenu={() => setActiveModule('menu')} />;
+    return (
+      <div className="flex">
+        <Sidebar 
+          onHelpClick={() => console.log('Ajuda clicada')}
+        />
+        <div className="flex-1">
+          <SolarDashboard onBackToMenu={() => setActiveModule(null)} />
+        </div>
+      </div>
+    );
   }
 
   if (activeModule === 'heating') {
-    return <HeatingDashboard onBackToMenu={() => setActiveModule('menu')} />;
+    return (
+      <div className="flex">
+        <Sidebar 
+          onSettingsClick={() => setIsSettingsOpen(true)}
+          onHelpClick={() => console.log('Ajuda clicada')}
+        />
+        <div className="flex-1">
+          <HeatingDashboard onBackToMenu={() => setActiveModule(null)} />
+        </div>
+      </div>
+    );
   }
 
   if (activeModule === 'training') {
-    return <TrainingDashboard onBackToMenu={() => setActiveModule('menu')} />;
+    return (
+      <div className="flex">
+        <Sidebar 
+          onSettingsClick={() => setIsSettingsOpen(true)}
+          onHelpClick={() => console.log('Ajuda clicada')}
+        />
+        <div className="flex-1">
+          <TrainingDashboard onBackToMenu={() => setActiveModule(null)} />
+        </div>
+      </div>
+    );
   }
 
   // Menu principal
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/30">
+      {/* Sidebar */}
+      <Sidebar 
+        onHelpClick={() => console.log('Ajuda clicada')}
+      />
+      
       {/* Header */}
-      <header className="border-b border-border/50 bg-card/90 backdrop-blur-md sticky top-0 z-50">
+      <header className="border-b border-border/50 bg-card/90 backdrop-blur-md sticky top-0 z-30">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
+              {/* Sidebar Toggle */}
+              <SidebarToggle />
+              
               <div className="flex items-center gap-2">
                 <div className="p-2 bg-gradient-to-r from-green-500 to-blue-500 rounded-lg shadow-lg">
                   <Zap className="h-6 w-6 text-white" />
@@ -188,11 +228,6 @@ export function MainMenu() {
                     {stats.unread > 99 ? '99+' : stats.unread}
                   </Badge>
                 )}
-              </Button>
-              <SettingsModal />
-              <Button variant="outline" size="sm" onClick={signOut}>
-                <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline">Sair</span>
               </Button>
             </div>
           </div>
@@ -301,10 +336,12 @@ export function MainMenu() {
       </div>
       
       {/* Notification Center */}
-      <NotificationCenter
+      <NotificationCenter 
         isOpen={isNotificationCenterOpen}
         onClose={() => setIsNotificationCenterOpen(false)}
       />
+      
+
     </div>
   );
 }
