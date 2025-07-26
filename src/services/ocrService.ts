@@ -198,7 +198,7 @@ export class OCRService {
           
           if (key === 'dimensoes') {
             // Processar dimensões especialmente
-            const dimensionMatch = text.match(/([0-9,.]+)\s*(?:x|×|*)\s*([0-9,.]+)\s*(?:x|×|*)\s*([0-9,.]+)/gi);
+            const dimensionMatch = text.match(/([0-9,.]+)\s*(?:x|×|\*)\s*([0-9,.]+)\s*(?:x|×|\*)\s*([0-9,.]+)/gi);
             if (dimensionMatch) {
               const parts = dimensionMatch[0].split(/(?:x|×|\*)/);
               extractedData.dimensoes = {
@@ -292,8 +292,8 @@ export class OCRService {
         /([0-9,.]+)\s*(?:kg|kilogram|kilograms)\s*(?:weight|peso|poids)/gi
       ],
       dimensoes: [
-        /(?:dimensions|dimensões|taille|size)\s*:?\s*([0-9,.]+)\s*(?:x|×|*)\s*([0-9,.]+)\s*(?:x|×|*)\s*([0-9,.]+)\s*(?:mm|cm|m)/gi,
-        /([0-9,.]+)\s*(?:mm|cm|m)\s*(?:x|×|*)\s*([0-9,.]+)\s*(?:mm|cm|m)\s*(?:x|×|*)\s*([0-9,.]+)\s*(?:mm|cm|m)/gi
+        /(?:dimensions|dimensões|taille|size)\s*:?\s*([0-9,.]+)\s*(?:x|×|\*)\s*([0-9,.]+)\s*(?:x|×|\*)\s*([0-9,.]+)\s*(?:mm|cm|m)/gi,
+        /([0-9,.]+)\s*(?:mm|cm|m)\s*(?:x|×|\*)\s*([0-9,.]+)\s*(?:mm|cm|m)\s*(?:x|×|\*)\s*([0-9,.]+)\s*(?:mm|cm|m)/gi
       ],
       garantiasProduto: [
         /(?:product warranty|garantia produto|garantie produit)\s*:?\s*([0-9]+)\s*(?:years|anos|ans)/gi,
