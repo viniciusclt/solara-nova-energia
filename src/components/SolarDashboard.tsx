@@ -332,24 +332,21 @@ export function SolarDashboard({ onBackToMenu }: SolarDashboardProps = {}) {
         {/* Main Navigation Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <div className="bg-card rounded-lg p-4 shadow-card">
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 bg-muted/50 h-auto gap-1">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 bg-muted/50 h-auto gap-2">
               {navigationTabs.map((tab) => (
                 <TabsTrigger 
-                  key={tab.id} 
-                  value={tab.id}
-                  className="flex flex-col items-center gap-2 py-3 px-2 h-auto data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-solar"
-                >
-                  <tab.icon className="h-5 w-5" />
-                  <div className="text-center">
-                    <div className="font-medium text-sm">{tab.label}</div>
-                    <ResponsiveText
-                      text={tab.description}
-                      maxWidth={100}
-                      hideOnSmall={true}
-                      breakLines={true}
-                    />
-                  </div>
-                </TabsTrigger>
+                    key={tab.id} 
+                    value={tab.id}
+                    className="flex flex-col items-center gap-2 py-4 px-3 h-auto min-h-[80px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-solar transition-all duration-200 hover:bg-muted/80 relative group"
+                  >
+                    <tab.icon className="h-5 w-5 flex-shrink-0" />
+                    <div className="text-center w-full">
+                      <div className="font-medium text-sm leading-tight mb-1">{tab.label}</div>
+                      <div className="text-xs leading-tight text-muted-foreground group-data-[state=active]:text-primary-foreground/90 group-data-[state=active]:font-medium hidden sm:block">
+                        {tab.description}
+                      </div>
+                    </div>
+                  </TabsTrigger>
               ))}
             </TabsList>
           </div>

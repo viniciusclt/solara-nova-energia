@@ -101,6 +101,28 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
   const [showLeadList, setShowLeadList] = useState(!currentLead);
   const [showTableView, setShowTableView] = useState(false);
 
+  const loadLeadById = useCallback(async (leadId: string) => {
+    try {
+      const { data: lead, error } = await supabase
+        .from('leads')
+        .select('*')
+        .eq('id', leadId)
+        .single();
+
+      if (error) throw error;
+
+      if (lead) {
+        const formattedLead = formatLeadFromDB(lead);
+        setLeadData(formattedLead);
+        onLeadUpdate(formattedLead);
+        setShowLeadList(false);
+      }
+    } catch (error) {
+      console.error('Error loading lead:', error);
+      localStorage.removeItem('selectedLeadId');
+    }
+  }, [onLeadUpdate]);
+
   useEffect(() => {
     if (currentLead) {
       setLeadData(currentLead);
@@ -127,28 +149,6 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
       }
     }
   }, [currentLead, loadLeadById, onLeadUpdate]);
-
-  const loadLeadById = useCallback(async (leadId: string) => {
-    try {
-      const { data: lead, error } = await supabase
-        .from('leads')
-        .select('*')
-        .eq('id', leadId)
-        .single();
-
-      if (error) throw error;
-
-      if (lead) {
-        const formattedLead = formatLeadFromDB(lead);
-        setLeadData(formattedLead);
-        onLeadUpdate(formattedLead);
-        setShowLeadList(false);
-      }
-    } catch (error) {
-      console.error('Error loading lead:', error);
-      localStorage.removeItem('selectedLeadId');
-    }
-  }, [onLeadUpdate]);
 
   const formatLeadFromDB = (dbLead: Record<string, unknown>): LeadData => {
     return {
