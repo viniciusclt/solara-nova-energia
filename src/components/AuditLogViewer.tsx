@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,12 +38,12 @@ export interface AuditLog {
   action: string;
   table_name?: string;
   record_id?: string;
-  old_values?: Record<string, any>;
-  new_values?: Record<string, any>;
+  old_values?: Record<string, unknown>;
+  new_values?: Record<string, unknown>;
   ip_address?: string;
   user_agent?: string;
   session_id?: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   severity: 'low' | 'medium' | 'high' | 'critical';
   created_at: string;
   user_profile?: {
@@ -85,9 +85,9 @@ export function AuditLogViewer({ companyId, userId, maxHeight = '600px' }: Audit
       loadAuditLogs();
       loadStats();
     }
-  }, [currentPage, selectedAction, selectedSeverity, selectedUser, dateRange, searchTerm]);
+  }, [currentPage, selectedAction, selectedSeverity, selectedUser, dateRange, searchTerm, hasPermission, loadAuditLogs, loadStats]);
 
-  const loadAuditLogs = async () => {
+  const loadAuditLogs = useCallback(async () => {
     try {
       setIsLoading(true);
       
@@ -177,9 +177,9 @@ export function AuditLogViewer({ companyId, userId, maxHeight = '600px' }: Audit
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [companyId, profile?.company_id, userId, selectedAction, selectedSeverity, selectedUser, dateRange, searchTerm, currentPage, toast]);
 
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     try {
       let query = supabase
         .from('audit_logs')
@@ -211,7 +211,7 @@ export function AuditLogViewer({ companyId, userId, maxHeight = '600px' }: Audit
     } catch (error) {
       console.error('Erro ao carregar estatísticas:', error);
     }
-  };
+  }, [companyId, profile?.company_id]);
 
   const exportLogs = async () => {
     try {

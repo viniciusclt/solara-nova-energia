@@ -111,10 +111,11 @@ const InstitutionManager: React.FC = () => {
 
       setInstitutions(data || []);
       setFilteredInstitutions(data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: 'Erro ao carregar instituições',
-        description: error.message,
+        description: errorMessage,
         variant: 'destructive'
       });
     } finally {
@@ -210,10 +211,11 @@ const InstitutionManager: React.FC = () => {
       resetForm();
       setIsDialogOpen(false);
       loadInstitutions();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: 'Erro ao salvar instituição',
-        description: error.message,
+        description: errorMessage,
         variant: 'destructive'
       });
     } finally {
@@ -240,10 +242,11 @@ const InstitutionManager: React.FC = () => {
       });
 
       loadInstitutions();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: 'Erro ao excluir instituição',
-        description: error.message,
+        description: errorMessage,
         variant: 'destructive'
       });
     } finally {
@@ -263,10 +266,11 @@ const InstitutionManager: React.FC = () => {
       if (error) throw error;
 
       loadInstitutions();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: 'Erro ao atualizar favorito',
-        description: error.message,
+        description: errorMessage,
         variant: 'destructive'
       });
     } finally {
@@ -410,7 +414,7 @@ const InstitutionManager: React.FC = () => {
                     <Label htmlFor="tipo">Tipo</Label>
                     <Select
                       value={formData.tipo}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, tipo: value as any }))}
+                      onValueChange={(value: string) => setFormData(prev => ({ ...prev, tipo: value }))}
                     >
                       <SelectTrigger>
                         <SelectValue />

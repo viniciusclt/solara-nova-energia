@@ -31,7 +31,7 @@ interface ExcelFile {
   file: File;
   sheets: string[];
   selectedSheet: string;
-  data: any[][];
+  data: unknown[][];
   headers: string[];
   status: 'pending' | 'loaded' | 'mapped' | 'validated' | 'error';
   error?: string;
@@ -135,11 +135,11 @@ const ExcelImporterV2: React.FC<ExcelImporterV2Props> = ({
 
       try {
         await loadExcelFile(file);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('[ExcelImporterV2] Erro ao carregar arquivo:', error);
         toast({
           title: "Erro no Arquivo",
-          description: `Erro ao carregar ${file.name}: ${error.message}`,
+          description: `Erro ao carregar ${file.name}: ${(error as Error).message}`,
           variant: "destructive"
         });
       }
@@ -149,9 +149,9 @@ const ExcelImporterV2: React.FC<ExcelImporterV2Props> = ({
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  }, [files.length, maxFiles, maxFileSize]);
+  }, [files.length, maxFiles, maxFileSize, loadExcelFile]);
 
-  const loadExcelFile = async (file: File): Promise<void> => {
+  const loadExcelFile = useCallback(async (file: File): Promise<void> => {
     console.log('[ExcelImporterV2] Carregando arquivo:', file.name);
 
     return new Promise((resolve, reject) => {
@@ -178,7 +178,7 @@ const ExcelImporterV2: React.FC<ExcelImporterV2Props> = ({
           if (autoDetectHeaders && jsonData.length > 0) {
             // Procurar pela primeira linha que parece conter cabeçalhos
             for (let i = skipRows; i < Math.min(jsonData.length, skipRows + 5); i++) {
-              const row = jsonData[i] as any[];
+              const row = jsonData[i] as unknown[];
               if (row && row.some(cell => 
                 typeof cell === 'string' && 
                 cell.length > 0 && 
@@ -193,7 +193,7 @@ const ExcelImporterV2: React.FC<ExcelImporterV2Props> = ({
 
           if (headers.length === 0) {
             // Fallback: usar primeira linha como cabeçalho
-            const firstRow = jsonData[skipRows] as any[];
+            const firstRow = jsonData[skipRows] as unknown[];
             headers = firstRow ? firstRow.map((_, index) => `Coluna ${index + 1}`) : [];
             dataStartRow = skipRows;
           }
@@ -219,9 +219,9 @@ const ExcelImporterV2: React.FC<ExcelImporterV2Props> = ({
           console.log('[ExcelImporterV2] Arquivo carregado:', excelFile);
           resolve();
 
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('[ExcelImporterV2] Erro ao processar Excel:', error);
-          reject(new Error(`Erro ao processar arquivo: ${error.message}`));
+          reject(new Error(`Erro ao processar arquivo: ${(error as Error).message}`));
         }
       };
 
@@ -231,7 +231,7 @@ const ExcelImporterV2: React.FC<ExcelImporterV2Props> = ({
 
       reader.readAsArrayBuffer(file);
     });
-  };
+  }, [skipRows, autoDetectHeaders, setFiles, selectedFile, setSelectedFile]);
 
   const changeSheet = async (fileId: string, sheetName: string) => {
     const file = files.find(f => f.id === fileId);
@@ -251,7 +251,7 @@ const ExcelImporterV2: React.FC<ExcelImporterV2Props> = ({
         
         if (autoDetectHeaders && jsonData.length > 0) {
           for (let i = skipRows; i < Math.min(jsonData.length, skipRows + 5); i++) {
-            const row = jsonData[i] as any[];
+            const row = jsonData[i] as unknown[];
             if (row && row.some(cell => 
               typeof cell === 'string' && 
               cell.length > 0 && 
@@ -265,7 +265,7 @@ const ExcelImporterV2: React.FC<ExcelImporterV2Props> = ({
         }
 
         if (headers.length === 0) {
-          const firstRow = jsonData[skipRows] as any[];
+          const firstRow = jsonData[skipRows] as unknown[];
           headers = firstRow ? firstRow.map((_, index) => `Coluna ${index + 1}`) : [];
           dataStartRow = skipRows;
         }
@@ -279,11 +279,11 @@ const ExcelImporterV2: React.FC<ExcelImporterV2Props> = ({
         ));
       };
       reader.readAsArrayBuffer(file.file);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[ExcelImporterV2] Erro ao trocar planilha:', error);
       toast({
         title: "Erro",
-        description: `Erro ao carregar planilha: ${error.message}`,
+        description: `Erro ao carregar planilha: ${(error as Error).message}`,
         variant: "destructive"
       });
     }
@@ -493,11 +493,11 @@ const ExcelImporterV2: React.FC<ExcelImporterV2Props> = ({
         description: `${products.filter(p => p.isValid).length} de ${products.length} produtos válidos.`
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[ExcelImporterV2] Erro no processamento:', error);
       toast({
         title: "Erro no Processamento",
-        description: error.message || 'Erro desconhecido',
+        description: (error as Error).message || 'Erro desconhecido',
         variant: "destructive"
       });
     } finally {
@@ -583,11 +583,11 @@ const ExcelImporterV2: React.FC<ExcelImporterV2Props> = ({
       setCurrentTab('upload');
       setSelectedFile(null);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[ExcelImporterV2] Erro ao salvar:', error);
       toast({
         title: "Erro ao Salvar",
-        description: error.message || 'Erro desconhecido',
+        description: (error as Error).message || 'Erro desconhecido',
         variant: "destructive"
       });
     }

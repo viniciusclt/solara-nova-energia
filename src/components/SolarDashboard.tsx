@@ -55,7 +55,7 @@ interface SolarDashboardProps {
 }
 
 export function SolarDashboard({ onBackToMenu }: SolarDashboardProps = {}) {
-  const [currentLead, setCurrentLead] = useState<any>(null);
+  const [currentLead, setCurrentLead] = useState<Record<string, unknown> | null>(null);
   const [activeTab, setActiveTab] = useState(() => {
     // Configuração da aba padrão com persistência
     return localStorage.getItem('activeTab') || 'lead-data';
@@ -120,7 +120,7 @@ export function SolarDashboard({ onBackToMenu }: SolarDashboardProps = {}) {
       admin: 'outline',
       super_admin: 'destructive'
     };
-    return variants[type as keyof typeof variants] as any || 'default';
+    return (variants[type as keyof typeof variants] as 'default' | 'secondary' | 'outline' | 'destructive') || 'default';
   };
 
   const dashboardStats = [

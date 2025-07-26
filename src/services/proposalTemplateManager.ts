@@ -210,7 +210,7 @@ export class ProposalTemplateManager {
   /**
    * Get template statistics
    */
-  public getTemplateStats(): { [key: string]: any } {
+  public getTemplateStats(): { [key: string]: unknown } {
     const templates = this.getAvailableTemplates();
     const categories = templates.reduce((acc, template) => {
       acc[template.category] = (acc[template.category] || 0) + 1;

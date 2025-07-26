@@ -36,7 +36,7 @@ interface OCRData {
   fileName: string;
   rawText: string;
   confidence: number;
-  extractedFields: Record<string, any>;
+  extractedFields: Record<string, unknown>;
   processedAt: Date;
 }
 
@@ -145,11 +145,11 @@ const OCRProcessor: React.FC<OCRProcessorProps> = ({
         description: `${products.length} produto(s) extraído(s) com sucesso.`
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[OCRProcessor] Erro no processamento:', error);
       toast({
         title: "Erro no Processamento",
-        description: error.message || 'Erro desconhecido',
+        description: (error as Error).message || 'Erro desconhecido',
         variant: "destructive"
       });
     } finally {
@@ -162,7 +162,7 @@ const OCRProcessor: React.FC<OCRProcessorProps> = ({
     const text = data.rawText.toLowerCase();
     
     // Extrair nome/modelo
-    let nome = data.extractedFields.modelo || 
+    const nome = data.extractedFields.modelo || 
                data.extractedFields.model || 
                data.fileName.replace('.pdf', '').replace(/[^a-zA-Z0-9\s]/g, '');
     
@@ -266,11 +266,11 @@ const OCRProcessor: React.FC<OCRProcessorProps> = ({
         description: `${processedProducts.length} produto(s) salvo(s) com sucesso.`
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[OCRProcessor] Erro ao salvar produtos:', error);
       toast({
         title: "Erro ao Salvar",
-        description: error.message || 'Erro desconhecido',
+        description: error instanceof Error ? error.message : 'Erro desconhecido',
         variant: "destructive"
       });
     } finally {

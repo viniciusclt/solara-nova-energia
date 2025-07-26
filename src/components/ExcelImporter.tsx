@@ -146,8 +146,8 @@ Kit 20.4kWp - JA Solar	20.4	48200	JA Solar	Industrial	Kit para indústria pequen
 
       setParsedData(parsed);
       setIsValid(true);
-    } catch (error: any) {
-      setError(error.message || 'Erro ao processar os dados');
+    } catch (error: unknown) {
+      setError((error as Error).message || 'Erro ao processar os dados');
     }
   };
 

@@ -11,7 +11,7 @@ export interface TemplateComponent {
   id: string;
   type: ComponentType;
   position: { x: number; y: number };
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
   zIndex?: number;
   locked?: boolean;
 }
@@ -28,8 +28,8 @@ interface TemplateEditorProps {
     name: string;
     components: TemplateComponent[];
   };
-  onSave?: (template: any) => void;
-  onExport?: (template: any) => void;
+  onSave?: (template: unknown) => void;
+  onExport?: (template: unknown) => void;
 }
 
 export function TemplateEditor({ initialTemplate, onSave, onExport }: TemplateEditorProps) {

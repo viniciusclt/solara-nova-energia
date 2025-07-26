@@ -80,7 +80,7 @@ interface ReportTemplate {
   frequency: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' | 'custom';
   format: 'pdf' | 'excel' | 'csv' | 'json';
   fields: string[];
-  filters: Record<string, any>;
+  filters: Record<string, string | number | boolean>;
   charts: ChartConfig[];
   created_by: string;
   created_at: string;
@@ -160,23 +160,6 @@ export function ReportsManager() {
   });
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<ReportTemplate | null>(null);
-
-  // Verificar permissões
-  if (!hasPermission('admin') && !hasPermission('view_reports')) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="text-center">
-            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Acesso Restrito</h3>
-            <p className="text-muted-foreground">
-              Você não tem permissão para acessar os relatórios.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
 
   // Gerar dados mock
   const generateMockData = useCallback((): ReportData => {
@@ -460,6 +443,23 @@ export function ReportsManager() {
       default: return <FileText className="h-4 w-4" />;
     }
   };
+
+  // Verificar permissões
+  if (!hasPermission('admin') && !hasPermission('view_reports')) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center">
+            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Acesso Restrito</h3>
+            <p className="text-muted-foreground">
+              Você não tem permissão para acessar os relatórios.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">

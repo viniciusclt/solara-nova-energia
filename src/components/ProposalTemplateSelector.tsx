@@ -158,7 +158,7 @@ export function ProposalTemplateSelector({
     setCustomizationDialogOpen(true);
   };
 
-  const handleCustomizationSave = (customization: any) => {
+  const handleCustomizationSave = (customization: Record<string, string | number | boolean>) => {
     // Here you would save the customization to localStorage or backend
     const customizationKey = `template_customization_${selectedTemplateForCustomization?.id}`;
     localStorage.setItem(customizationKey, JSON.stringify(customization));

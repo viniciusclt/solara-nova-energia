@@ -149,7 +149,7 @@ export class PrototypeReplicaTemplate extends BaseTemplate {
       margin: { left: this.margin, right: this.margin }
     });
     
-    return (this.doc as any).lastAutoTable.finalY + 15;
+    return (this.doc as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15;
   }
 
   private addTechnicalSpecifications(kit: ProposalData['kit'], simulation: ProposalData['simulation'], yPos: number): number {
@@ -206,7 +206,7 @@ export class PrototypeReplicaTemplate extends BaseTemplate {
       margin: { left: this.margin, right: this.margin }
     });
     
-    return (this.doc as any).lastAutoTable.finalY + 15;
+    return (this.doc as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15;
   }
 
   private addFinancialAnalysis(financial: ProposalData['financial'], simulation: ProposalData['simulation'], yPos: number): number {
@@ -259,7 +259,7 @@ export class PrototypeReplicaTemplate extends BaseTemplate {
       margin: { left: this.margin, right: this.margin }
     });
     
-    return (this.doc as any).lastAutoTable.finalY + 15;
+    return (this.doc as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15;
   }
 
   private addInvestmentJustification(simulation: ProposalData['simulation'], financial: ProposalData['financial'], yPos: number): number {

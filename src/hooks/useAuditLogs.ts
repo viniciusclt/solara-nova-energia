@@ -3,6 +3,18 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from '../hooks/use-toast';
 
+// Tipos específicos para valores de auditoria
+export type AuditValue = string | number | boolean | null | undefined | Date | AuditValue[] | { [key: string]: AuditValue };
+
+export interface AuditDetails {
+  description?: string;
+  ip_address?: string;
+  user_agent?: string;
+  changes?: string[];
+  metadata?: Record<string, AuditValue>;
+  [key: string]: AuditValue;
+}
+
 export interface AuditLog {
   id: string;
   user_id: string | null;
@@ -10,12 +22,12 @@ export interface AuditLog {
   action: string;
   table_name: string | null;
   record_id: string | null;
-  old_values: Record<string, any> | null;
-  new_values: Record<string, any> | null;
+  old_values: Record<string, AuditValue> | null;
+  new_values: Record<string, AuditValue> | null;
   ip_address: string | null;
   user_agent: string | null;
   session_id: string | null;
-  details: Record<string, any>;
+  details: AuditDetails;
   severity: 'low' | 'medium' | 'high' | 'critical';
   created_at: string;
   profiles?: {
@@ -62,12 +74,12 @@ export interface UseAuditLogsReturn {
     action: string;
     table_name?: string;
     record_id?: string;
-    old_values?: Record<string, any>;
-    new_values?: Record<string, any>;
-    details?: Record<string, any>;
+    old_values?: Record<string, AuditValue>;
+    new_values?: Record<string, AuditValue>;
+    details?: AuditDetails;
     severity?: 'low' | 'medium' | 'high' | 'critical';
   }) => Promise<void>;
-  logSecurityEvent: (eventType: string, details?: Record<string, any>, targetUserId?: string) => Promise<void>;
+  logSecurityEvent: (eventType: string, details?: AuditDetails, targetUserId?: string) => Promise<void>;
 }
 
 const ITEMS_PER_PAGE = 50;
@@ -297,9 +309,9 @@ export function useAuditLogs(): UseAuditLogsReturn {
     action: string;
     table_name?: string;
     record_id?: string;
-    old_values?: Record<string, any>;
-    new_values?: Record<string, any>;
-    details?: Record<string, any>;
+    old_values?: Record<string, AuditValue>;
+    new_values?: Record<string, AuditValue>;
+    details?: AuditDetails;
     severity?: 'low' | 'medium' | 'high' | 'critical';
   }) => {
     if (!user || !profile?.company_id) return;
@@ -333,7 +345,7 @@ export function useAuditLogs(): UseAuditLogsReturn {
   // Log de evento de segurança
   const logSecurityEvent = useCallback(async (
     eventType: string,
-    details?: Record<string, any>,
+    details?: AuditDetails,
     targetUserId?: string
   ) => {
     try {
@@ -370,9 +382,7 @@ export function useAuditLogs(): UseAuditLogsReturn {
 
   // Recarregar quando filtros ou página mudarem
   useEffect(() => {
-    if (user && profile) {
-      loadLogs();
-    }
+    loadLogs();
   }, [loadLogs]);
 
   return {

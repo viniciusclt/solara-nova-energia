@@ -133,7 +133,7 @@ export const SettingsModal: React.FC = () => {
 
   const [availableColumns, setAvailableColumns] = useState<SheetColumn[]>([]);
   const [isDetectingHeaders, setIsDetectingHeaders] = useState(false);
-  const [previewData, setPreviewData] = useState<any[]>([]);
+  const [previewData, setPreviewData] = useState<Record<string, unknown>[]>([]);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
 
@@ -192,7 +192,7 @@ export const SettingsModal: React.FC = () => {
         throw error;
       }
 
-      if (data && (data.settings as any).api_key) {
+      if (data && (data.settings as Record<string, unknown>).api_key) {
         setGoogleApiKey("••••••••••••••••"); // Mostrar placeholder por segurança
       }
     } catch (error) {
@@ -259,12 +259,12 @@ export const SettingsModal: React.FC = () => {
         description: "As configurações foram salvas com sucesso."
       });
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Erro completo:', error);
       
       toast({
         title: "Erro ao Salvar",
-        description: error.message || "Erro desconhecido ao salvar as configurações.",
+        description: error instanceof Error ? error.message : "Erro desconhecido ao salvar as configurações.",
         variant: "destructive"
       });
       
@@ -428,7 +428,7 @@ export const SettingsModal: React.FC = () => {
         .eq('integration_type', 'google_api')
         .single();
 
-      if (!apiKeyData?.settings || !(apiKeyData.settings as any).api_key) {
+      if (!apiKeyData?.settings || !(apiKeyData.settings as Record<string, unknown>).api_key) {
         toast({
           title: "API Key Necessária",
           description: "Configure sua Google API Key antes de detectar headers.",
@@ -437,7 +437,7 @@ export const SettingsModal: React.FC = () => {
         return;
       }
 
-      const apiKey = (apiKeyData.settings as any).api_key;
+      const apiKey = (apiKeyData.settings as Record<string, unknown>).api_key as string;
       const range = `${googleSheetsSettings.sheetName}!1:1`;
       const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${apiKey}`;
 
@@ -465,10 +465,10 @@ export const SettingsModal: React.FC = () => {
           description: `${headers.length} colunas encontradas e mapeamento automático aplicado.`
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro ao Detectar Headers",
-        description: error.message || "Verifique a URL, API Key e permissões da planilha.",
+        description: error instanceof Error ? error.message : "Verifique a URL, API Key e permissões da planilha.",
         variant: "destructive"
       });
     } finally {
@@ -537,7 +537,7 @@ export const SettingsModal: React.FC = () => {
   };
 
   // Validação para evitar mapeamento duplicado de meses
-  const validateMonthMapping = (mapping: any) => {
+  const validateMonthMapping = (mapping: Record<string, string>) => {
     const monthColumns = ['consumoJan', 'consumoFev', 'consumoMar', 'consumoAbr',
                          'consumoMai', 'consumoJun', 'consumoJul', 'consumoAgo',
                          'consumoSet', 'consumoOut', 'consumoNov', 'consumoDez'];
@@ -619,7 +619,7 @@ export const SettingsModal: React.FC = () => {
         .eq('integration_type', 'google_api')
         .single();
 
-      if (!apiKeyData?.settings || !(apiKeyData.settings as any).api_key) {
+      if (!apiKeyData?.settings || !(apiKeyData.settings as Record<string, unknown>).api_key) {
         toast({
           title: "API Key Necessária",
           description: "Configure sua Google API Key antes de carregar preview.",
@@ -628,7 +628,7 @@ export const SettingsModal: React.FC = () => {
         return;
       }
 
-      const apiKey = (apiKeyData.settings as any).api_key;
+      const apiKey = (apiKeyData.settings as Record<string, unknown>).api_key as string;
       const range = `${googleSheetsSettings.sheetName}!1:6`; // Header + 5 rows for preview
       const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${apiKey}`;
 
@@ -643,7 +643,7 @@ export const SettingsModal: React.FC = () => {
         const [headers, ...rows] = data.values;
         
         // Process preview data using current mapping
-        const processedData = rows.map((row: any[], index: number) => {
+        const processedData = rows.map((row: unknown[], index: number) => {
           const getValue = (column: string) => {
             if (!column) return '';
             const colIndex = columnLetterToIndex(column);
@@ -708,10 +708,10 @@ export const SettingsModal: React.FC = () => {
           description: `${processedData.length} registros carregados para preview.`
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro ao Carregar Preview",
-        description: error.message || "Verifique a URL, API Key e permissões da planilha.",
+        description: error instanceof Error ? error.message : "Verifique a URL, API Key e permissões da planilha.",
         variant: "destructive"
       });
     } finally {

@@ -156,8 +156,8 @@ Dezembro	840.7`;
 
       setParsedData(parsed);
       setIsValid(true);
-    } catch (error: any) {
-      setError(error.message || 'Erro ao processar os dados');
+    } catch (error: unknown) {
+      setError((error as Error).message || 'Erro ao processar os dados');
     }
   };
 

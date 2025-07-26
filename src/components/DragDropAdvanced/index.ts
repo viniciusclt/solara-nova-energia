@@ -22,7 +22,7 @@ export type {
 // Utility functions
 export const createDragDropItem = (
   type: string,
-  content?: any,
+  content?: Record<string, unknown>,
   position?: { x: number; y: number }
 ): Partial<DragDropItemData> => ({
   id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,

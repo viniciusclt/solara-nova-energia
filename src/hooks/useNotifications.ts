@@ -14,7 +14,7 @@ interface CreateNotificationParams {
   actionUrl?: string;
   actionLabel?: string;
   expiresAt?: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 interface NotificationStats {
@@ -225,7 +225,7 @@ export function useNotifications() {
       });
       return null;
     }
-  }, [profile, toast]);
+  }, [profile, toast, sendPushNotification]);
 
   // Marcar como lida
   const markAsRead = useCallback(async (notificationId: string) => {

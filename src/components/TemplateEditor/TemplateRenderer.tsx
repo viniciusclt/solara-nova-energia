@@ -43,7 +43,7 @@ export function TemplateRenderer({
     color: component.properties.color,
     fontSize: (component.properties.fontSize || 14) * scale,
     fontWeight: component.properties.fontWeight,
-    textAlign: component.properties.textAlign as any,
+    textAlign: component.properties.textAlign as React.CSSProperties['textAlign'],
     padding: component.properties.padding ? (
       `${(component.properties.padding.top || 0) * scale}px ` +
       `${(component.properties.padding.right || 0) * scale}px ` +
@@ -80,13 +80,14 @@ export function TemplateRenderer({
           </div>
         );
 
-      case 'heading':
+      case 'heading': {
         const HeadingTag = `h${component.properties.headingLevel || 1}` as keyof JSX.IntrinsicElements;
         return (
           <HeadingTag {...commonProps}>
             {component.properties.text || 'Título'}
           </HeadingTag>
         );
+      }
 
       case 'placeholder':
         return (
@@ -125,7 +126,7 @@ export function TemplateRenderer({
                 style={{
                   width: '100%',
                   height: '100%',
-                  objectFit: component.properties.objectFit as any || 'cover',
+                  objectFit: (component.properties.objectFit as React.CSSProperties['objectFit']) || 'cover',
                   display: 'block'
                 }}
               />
@@ -183,7 +184,7 @@ export function TemplateRenderer({
           </div>
         );
 
-      case 'button':
+      case 'button': {
         const buttonStyles: React.CSSProperties = {
           ...commonProps.style,
           display: 'flex',
@@ -221,6 +222,7 @@ export function TemplateRenderer({
             {component.properties.buttonText || 'Botão'}
           </button>
         );
+      }
 
       case 'container':
         return (
@@ -280,7 +282,7 @@ export function TemplateRenderer({
           />
         );
 
-      case 'table':
+      case 'table': {
         const tableData = component.properties.tableData || {
           headers: ['Coluna 1', 'Coluna 2'],
           rows: [['Linha 1, Col 1', 'Linha 1, Col 2']]
@@ -334,6 +336,7 @@ export function TemplateRenderer({
             </table>
           </div>
         );
+      }
 
       case 'chart':
         return (

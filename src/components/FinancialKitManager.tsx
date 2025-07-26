@@ -62,7 +62,7 @@ export function FinancialKitManager({ onKitsUpdated }: FinancialKitManagerProps 
 
   useEffect(() => {
     fetchKits();
-  }, []);
+  }, [fetchKits]);
 
   const fetchKits = async (retryCount = 0) => {
     try {
@@ -92,11 +92,11 @@ export function FinancialKitManager({ onKitsUpdated }: FinancialKitManagerProps 
         throw error;
       }
       setKits(data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching financial kits:', error);
       
       // Retry automático para erros de conexão (máximo 2 tentativas)
-      if (retryCount < 2 && error.message?.includes('connection')) {
+      if (retryCount < 2 && (error instanceof Error && error.message?.includes('connection'))) {
         console.log(`Tentando novamente carregar kits financeiros (tentativa ${retryCount + 1})...`);
         setTimeout(() => fetchKits(retryCount + 1), 2000);
         return;
@@ -231,7 +231,7 @@ export function FinancialKitManager({ onKitsUpdated }: FinancialKitManagerProps 
       resetForm();
       fetchKits();
       onKitsUpdated?.();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving financial kit:', error);
       const errorMessage = error instanceof Error ? error.message : 'Não foi possível salvar o kit';
       toast({
@@ -271,7 +271,7 @@ export function FinancialKitManager({ onKitsUpdated }: FinancialKitManagerProps 
       
       fetchKits();
       onKitsUpdated?.();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting financial kit:', error);
       const errorMessage = error instanceof Error ? error.message : 'Não foi possível remover o kit';
       toast({
@@ -326,7 +326,7 @@ export function FinancialKitManager({ onKitsUpdated }: FinancialKitManagerProps 
         title: "Kits importados",
         description: `${importedData.length} kits importados com sucesso`
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error importing financial kits:', error);
       const errorMessage = error instanceof Error ? error.message : 'Não foi possível importar os kits';
       toast({

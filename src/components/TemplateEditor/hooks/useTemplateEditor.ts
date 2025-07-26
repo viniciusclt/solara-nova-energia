@@ -281,7 +281,7 @@ export function useTemplateEditor(templateId?: string) {
     const template = saveTemplate();
     
     switch (format) {
-      case 'json':
+      case 'json': {
         const blob = new Blob([JSON.stringify(template, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -290,6 +290,7 @@ export function useTemplateEditor(templateId?: string) {
         a.click();
         URL.revokeObjectURL(url);
         break;
+      }
       case 'pdf':
         // Implementation for PDF export
         console.log('PDF export not implemented yet');

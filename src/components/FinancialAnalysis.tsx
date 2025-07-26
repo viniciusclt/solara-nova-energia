@@ -43,7 +43,7 @@ interface FinancingOption {
 }
 
 interface FinancialAnalysisProps {
-  currentLead: any;
+  currentLead: unknown;
 }
 
 export function FinancialAnalysis({ currentLead }: FinancialAnalysisProps) {
@@ -75,14 +75,10 @@ export function FinancialAnalysis({ currentLead }: FinancialAnalysisProps) {
     { banco: "CrediSIS", taxa: 0.99, parcelas: 120, carencia: 12, valorParcela: 0 }
   ]);
 
-  const [kitsDisponiveis, setKitsDisponiveis] = useState<any[]>([]);
+  const [kitsDisponiveis, setKitsDisponiveis] = useState<unknown[]>([]);
   const [isKitManagerOpen, setIsKitManagerOpen] = useState(false);
 
-  useEffect(() => {
-    fetchKits();
-  }, []);
-
-  const fetchKits = async () => {
+  const fetchKits = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('financial_kits')
@@ -105,14 +101,18 @@ export function FinancialAnalysis({ currentLead }: FinancialAnalysisProps) {
       }));
       
       setKitsDisponiveis(transformedKits);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro ao carregar kits",
-        description: error.message,
+        description: (error as Error).message,
         variant: "destructive"
       });
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchKits();
+  }, [fetchKits]);
 
   const calcularEconomia = () => {
     const consumoAnual = (currentLead?.consumoMedio || 780) * 12;
@@ -176,7 +176,7 @@ export function FinancialAnalysis({ currentLead }: FinancialAnalysisProps) {
     setFinancialData(prev => ({ ...prev, [field]: value }));
   };
 
-  const selecionarKit = (kit: any) => {
+  const selecionarKit = (kit: Record<string, unknown>) => {
     setFinancialData(prev => ({
       ...prev,
       valorSistema: kit.preco,

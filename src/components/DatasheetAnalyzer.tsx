@@ -79,7 +79,7 @@ interface ExtractedProduct {
     
     // Metadados
     rawText?: string;
-    extractedFields?: any[];
+    extractedFields?: Record<string, unknown>[];
   };
   editedData?: Partial<typeof data>;
   isEditing: boolean;
@@ -131,7 +131,7 @@ const DatasheetAnalyzer: React.FC<DatasheetAnalyzerProps> = ({
     onProductsExtracted?.(products);
   }, [onProductsExtracted]);
 
-  const validateProduct = (data: any, type: string) => {
+  const validateProduct = (data: Record<string, unknown>, type: string) => {
     const errors: string[] = [];
     
     // Validações básicas
@@ -201,7 +201,7 @@ const DatasheetAnalyzer: React.FC<DatasheetAnalyzerProps> = ({
     setSelectedProduct(null);
   };
 
-  const updateEditedData = (productId: string, field: string, value: any) => {
+  const updateEditedData = (productId: string, field: string, value: unknown) => {
     setExtractedProducts(prev => prev.map(product => 
       product.id === productId 
         ? { 
@@ -315,11 +315,11 @@ const DatasheetAnalyzer: React.FC<DatasheetAnalyzerProps> = ({
       setProcessedFiles([]);
       setActiveTab('upload');
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao salvar produtos:', error);
       toast({
         title: "Erro ao salvar",
-        description: error.message,
+        description: error instanceof Error ? error.message : "Erro desconhecido",
         variant: "destructive"
       });
     } finally {

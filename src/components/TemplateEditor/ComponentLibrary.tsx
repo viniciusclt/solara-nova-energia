@@ -213,7 +213,7 @@ const COMPONENT_LIBRARY: ComponentLibraryItem[] = [
   }
 ];
 
-const CATEGORY_ICONS: Record<ComponentCategory, React.ComponentType<any>> = {
+const CATEGORY_ICONS: Record<ComponentCategory, React.ComponentType<{ className?: string }>> = {
   layout: Layout,
   content: FileText,
   media: Camera,
@@ -221,7 +221,7 @@ const CATEGORY_ICONS: Record<ComponentCategory, React.ComponentType<any>> = {
   interactive: Zap
 };
 
-const COMPONENT_ICONS: Record<string, React.ComponentType<any>> = {
+const COMPONENT_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   Type,
   Heading1,
   Image,

@@ -5,14 +5,14 @@ import { useToast } from '@/hooks/use-toast';
 type EquipmentType = 'modules' | 'inverters';
 
 interface UseEquipmentWithRetryReturn {
-  data: any[];
+  data: Record<string, unknown>[];
   isLoading: boolean;
   error: Error | null;
   reload: () => void;
 }
 
 export function useEquipmentWithRetry(type: EquipmentType): UseEquipmentWithRetryReturn {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<Record<string, unknown>[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();

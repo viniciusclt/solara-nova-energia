@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -160,7 +160,7 @@ const FinancialInstitutionManager: React.FC<FinancialInstitutionManagerProps> = 
 
   useEffect(() => {
     filterInstitutions();
-  }, [institutions, searchTerm, filterType, filterStatus]);
+  }, [institutions, searchTerm, filterType, filterStatus, filterInstitutions]);
 
   const loadInstitutions = async () => {
     try {
@@ -199,11 +199,12 @@ const FinancialInstitutionManager: React.FC<FinancialInstitutionManagerProps> = 
       console.log('[FinancialInstitutionManager] Instituições carregadas:', data);
       setInstitutions(data || []);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[FinancialInstitutionManager] Erro ao carregar instituições:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: "Erro ao Carregar",
-        description: error.message || 'Erro desconhecido',
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -211,7 +212,7 @@ const FinancialInstitutionManager: React.FC<FinancialInstitutionManagerProps> = 
     }
   };
 
-  const filterInstitutions = () => {
+  const filterInstitutions = useCallback(() => {
     let filtered = [...institutions];
 
     // Filtro por termo de busca
@@ -240,7 +241,7 @@ const FinancialInstitutionManager: React.FC<FinancialInstitutionManagerProps> = 
     }
 
     setFilteredInstitutions(filtered);
-  };
+  }, [institutions, searchTerm, filterType, filterStatus]);
 
   const resetForm = () => {
     setFormData({
@@ -407,11 +408,12 @@ const FinancialInstitutionManager: React.FC<FinancialInstitutionManagerProps> = 
       resetForm();
       await loadInstitutions();
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[FinancialInstitutionManager] Erro ao salvar:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: "Erro ao Salvar",
-        description: error.message || 'Erro desconhecido',
+        description: errorMessage,
         variant: "destructive"
       });
     }
@@ -441,11 +443,12 @@ const FinancialInstitutionManager: React.FC<FinancialInstitutionManagerProps> = 
 
       await loadInstitutions();
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[FinancialInstitutionManager] Erro ao excluir:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: "Erro ao Excluir",
-        description: error.message || 'Erro desconhecido',
+        description: errorMessage,
         variant: "destructive"
       });
     }
@@ -464,11 +467,12 @@ const FinancialInstitutionManager: React.FC<FinancialInstitutionManagerProps> = 
 
       await loadInstitutions();
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[FinancialInstitutionManager] Erro ao atualizar favorito:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: "Erro",
-        description: error.message || 'Erro desconhecido',
+        description: errorMessage,
         variant: "destructive"
       });
     }
@@ -487,11 +491,12 @@ const FinancialInstitutionManager: React.FC<FinancialInstitutionManagerProps> = 
 
       await loadInstitutions();
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[FinancialInstitutionManager] Erro ao atualizar status:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: "Erro",
-        description: error.message || 'Erro desconhecido',
+        description: errorMessage,
         variant: "destructive"
       });
     }
@@ -837,7 +842,7 @@ const FinancialInstitutionManager: React.FC<FinancialInstitutionManagerProps> = 
                   <Label htmlFor="tipo">Tipo *</Label>
                   <Select
                     value={formData.tipo}
-                    onValueChange={(value: any) => setFormData(prev => ({ ...prev, tipo: value }))}
+                    onValueChange={(value: string) => setFormData(prev => ({ ...prev, tipo: value }))}
                   >
                     <SelectTrigger>
                       <SelectValue />

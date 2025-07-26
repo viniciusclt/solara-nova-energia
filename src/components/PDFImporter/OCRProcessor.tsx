@@ -32,7 +32,7 @@ interface ExtractedData {
   fabricante?: string;
   modelo?: string;
   tecnologia?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface OCRProcessorProps {
@@ -61,37 +61,37 @@ export const OCRProcessor: React.FC<OCRProcessorProps> = ({
   const getPatterns = (type: 'module' | 'inverter' | 'battery') => {
     const basePatterns = {
       potencia: [
-        /(?:potência|power|puissance)\s*:?\s*([0-9,\.]+)\s*(?:w|wp|watt|watts)/gi,
-        /([0-9,\.]+)\s*(?:w|wp|watt|watts)\s*(?:potência|power|puissance)/gi,
-        /(?:pmax|p-max|maximum power)\s*:?\s*([0-9,\.]+)\s*(?:w|wp)/gi
+        /(?:potência|power|puissance)\s*:?\s*([0-9,.]+)\s*(?:w|wp|watt|watts)/gi,
+        /([0-9,.]+)\s*(?:w|wp|watt|watts)\s*(?:potência|power|puissance)/gi,
+        /(?:pmax|p-max|maximum power)\s*:?\s*([0-9,.]+)\s*(?:w|wp)/gi
       ],
       tensaoVoc: [
-        /(?:voc|v-oc|open circuit voltage|tensão circuito aberto)\s*:?\s*([0-9,\.]+)\s*(?:v|volt|volts)/gi,
-        /([0-9,\.]+)\s*(?:v|volt|volts)\s*(?:voc|v-oc)/gi
+        /(?:voc|v-oc|open circuit voltage|tensão circuito aberto)\s*:?\s*([0-9,.]+)\s*(?:v|volt|volts)/gi,
+        /([0-9,.]+)\s*(?:v|volt|volts)\s*(?:voc|v-oc)/gi
       ],
       tensaoVmp: [
-        /(?:vmp|v-mp|vmpp|voltage at maximum power|tensão potência máxima)\s*:?\s*([0-9,\.]+)\s*(?:v|volt|volts)/gi,
-        /([0-9,\.]+)\s*(?:v|volt|volts)\s*(?:vmp|v-mp|vmpp)/gi
+        /(?:vmp|v-mp|vmpp|voltage at maximum power|tensão potência máxima)\s*:?\s*([0-9,.]+)\s*(?:v|volt|volts)/gi,
+        /([0-9,.]+)\s*(?:v|volt|volts)\s*(?:vmp|v-mp|vmpp)/gi
       ],
       correnteIsc: [
-        /(?:isc|i-sc|short circuit current|corrente curto circuito)\s*:?\s*([0-9,\.]+)\s*(?:a|amp|ampere|amperes)/gi,
-        /([0-9,\.]+)\s*(?:a|amp|ampere|amperes)\s*(?:isc|i-sc)/gi
+        /(?:isc|i-sc|short circuit current|corrente curto circuito)\s*:?\s*([0-9,.]+)\s*(?:a|amp|ampere|amperes)/gi,
+        /([0-9,.]+)\s*(?:a|amp|ampere|amperes)\s*(?:isc|i-sc)/gi
       ],
       correnteImp: [
-        /(?:imp|i-mp|impp|current at maximum power|corrente potência máxima)\s*:?\s*([0-9,\.]+)\s*(?:a|amp|ampere|amperes)/gi,
-        /([0-9,\.]+)\s*(?:a|amp|ampere|amperes)\s*(?:imp|i-mp|impp)/gi
+        /(?:imp|i-mp|impp|current at maximum power|corrente potência máxima)\s*:?\s*([0-9,.]+)\s*(?:a|amp|ampere|amperes)/gi,
+        /([0-9,.]+)\s*(?:a|amp|ampere|amperes)\s*(?:imp|i-mp|impp)/gi
       ],
       eficiencia: [
-        /(?:eficiência|efficiency|rendement)\s*:?\s*([0-9,\.]+)\s*%/gi,
-        /([0-9,\.]+)\s*%\s*(?:eficiência|efficiency|rendement)/gi
+        /(?:eficiência|efficiency|rendement)\s*:?\s*([0-9,.]+)\s*%/gi,
+        /([0-9,.]+)\s*%\s*(?:eficiência|efficiency|rendement)/gi
       ],
       peso: [
-        /(?:peso|weight|poids)\s*:?\s*([0-9,\.]+)\s*(?:kg|kilogram|kilograms)/gi,
-        /([0-9,\.]+)\s*(?:kg|kilogram|kilograms)\s*(?:peso|weight|poids)/gi
+        /(?:peso|weight|poids)\s*:?\s*([0-9,.]+)\s*(?:kg|kilogram|kilograms)/gi,
+        /([0-9,.]+)\s*(?:kg|kilogram|kilograms)\s*(?:peso|weight|poids)/gi
       ],
       dimensoes: [
-        /(?:dimensões|dimensions|taille)\s*:?\s*([0-9,\.]+)\s*(?:x|×)\s*([0-9,\.]+)\s*(?:x|×)\s*([0-9,\.]+)\s*(?:mm|cm|m)/gi,
-        /([0-9,\.]+)\s*(?:mm|cm|m)\s*(?:x|×)\s*([0-9,\.]+)\s*(?:mm|cm|m)\s*(?:x|×)\s*([0-9,\.]+)\s*(?:mm|cm|m)/gi
+        /(?:dimensões|dimensions|taille)\s*:?\s*([0-9,.]+)\s*(?:x|×)\s*([0-9,.]+)\s*(?:x|×)\s*([0-9,.]+)\s*(?:mm|cm|m)/gi,
+        /([0-9,.]+)\s*(?:mm|cm|m)\s*(?:x|×)\s*([0-9,.]+)\s*(?:mm|cm|m)\s*(?:x|×)\s*([0-9,.]+)\s*(?:mm|cm|m)/gi
       ],
       garantiasProduto: [
         /(?:garantia produto|product warranty|garantie produit)\s*:?\s*([0-9]+)\s*(?:anos|years|ans)/gi,
@@ -123,19 +123,19 @@ export const OCRProcessor: React.FC<OCRProcessorProps> = ({
       return {
         ...basePatterns,
         potenciaDC: [
-          /(?:potência dc|dc power|puissance dc)\s*:?\s*([0-9,\.]+)\s*(?:w|wp|kw|kwp)/gi
+          /(?:potência dc|dc power|puissance dc)\s*:?\s*([0-9,.]+)\s*(?:w|wp|kw|kwp)/gi
         ],
         potenciaAC: [
-          /(?:potência ac|ac power|puissance ac)\s*:?\s*([0-9,\.]+)\s*(?:w|wp|kw|kwp)/gi
+          /(?:potência ac|ac power|puissance ac)\s*:?\s*([0-9,.]+)\s*(?:w|wp|kw|kwp)/gi
         ],
         tensaoDC: [
-          /(?:tensão dc|dc voltage|tension dc)\s*:?\s*([0-9,\.\-]+)\s*(?:v|volt|volts)/gi
+          /(?:tensão dc|dc voltage|tension dc)\s*:?\s*([0-9,.-]+)\s*(?:v|volt|volts)/gi
         ],
         tensaoAC: [
-          /(?:tensão ac|ac voltage|tension ac)\s*:?\s*([0-9,\.]+)\s*(?:v|volt|volts)/gi
+          /(?:tensão ac|ac voltage|tension ac)\s*:?\s*([0-9,.]+)\s*(?:v|volt|volts)/gi
         ],
         frequencia: [
-          /(?:frequência|frequency|fréquence)\s*:?\s*([0-9,\.]+)\s*(?:hz|hertz)/gi
+          /(?:frequência|frequency|fréquence)\s*:?\s*([0-9,.]+)\s*(?:hz|hertz)/gi
         ],
         fases: [
           /(?:fases|phases|phase)\s*:?\s*([0-9]+)/gi,
@@ -149,16 +149,16 @@ export const OCRProcessor: React.FC<OCRProcessorProps> = ({
       return {
         ...basePatterns,
         capacidade: [
-          /(?:capacidade|capacity|capacité)\s*:?\s*([0-9,\.]+)\s*(?:ah|kwh|wh)/gi
+          /(?:capacidade|capacity|capacité)\s*:?\s*([0-9,.]+)\s*(?:ah|kwh|wh)/gi
         ],
         tensaoNominal: [
-          /(?:tensão nominal|nominal voltage|tension nominale)\s*:?\s*([0-9,\.]+)\s*(?:v|volt|volts)/gi
+          /(?:tensão nominal|nominal voltage|tension nominale)\s*:?\s*([0-9,.]+)\s*(?:v|volt|volts)/gi
         ],
         ciclosVida: [
-          /(?:ciclos vida|life cycles|cycles de vie)\s*:?\s*([0-9,\.]+)/gi
+          /(?:ciclos vida|life cycles|cycles de vie)\s*:?\s*([0-9,.]+)/gi
         ],
         profundidadeDescarga: [
-          /(?:dod|depth of discharge|profondeur décharge)\s*:?\s*([0-9,\.]+)\s*%/gi
+          /(?:dod|depth of discharge|profondeur décharge)\s*:?\s*([0-9,.]+)\s*%/gi
         ]
       };
     }
@@ -181,7 +181,7 @@ export const OCRProcessor: React.FC<OCRProcessorProps> = ({
           
           if (key === 'dimensoes') {
             // Processar dimensões especialmente
-            const dimensionMatch = text.match(/([0-9,\.]+)\s*(?:x|×)\s*([0-9,\.]+)\s*(?:x|×)\s*([0-9,\.]+)/gi);
+            const dimensionMatch = text.match(/([0-9,.]+)\s*(?:x|×)\s*([0-9,.]+)\s*(?:x|×)\s*([0-9,.]+)/gi);
             if (dimensionMatch) {
               const parts = dimensionMatch[0].split(/(?:x|×)/);
               data.dimensoes = {
@@ -195,7 +195,7 @@ export const OCRProcessor: React.FC<OCRProcessorProps> = ({
           } else {
             // Extrair o primeiro grupo de captura ou o match completo
             const match = matches[0];
-            const numberMatch = match.match(/([0-9,\.]+)/);
+            const numberMatch = match.match(/([0-9,.]+)/);
             data[key] = numberMatch ? numberMatch[1] : match.trim();
           }
           break; // Parar no primeiro match bem-sucedido
@@ -290,13 +290,14 @@ export const OCRProcessor: React.FC<OCRProcessorProps> = ({
         description: `Dados extraídos com ${confidence}% de confiança.`
       });
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro no processamento OCR:', error);
-      onError(`Erro no processamento: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      onError(`Erro no processamento: ${errorMessage}`);
       
       toast({
         title: "Erro no OCR",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {

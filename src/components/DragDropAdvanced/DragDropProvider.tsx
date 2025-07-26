@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
+import { generateId, snapToGridPosition, validateItemMove, findContainer, findItem } from './dragDropUtils';
 import {
   DndContext,
   DragEndEvent,
@@ -27,7 +28,7 @@ import { toast } from 'sonner';
 interface DragDropItem {
   id: string;
   type: string;
-  data: any;
+  data: unknown;
   position?: { x: number; y: number };
   size?: { width: number; height: number };
   locked?: boolean;
@@ -84,8 +85,8 @@ interface DragDropContextType {
   toggleGrid: () => void;
   toggleMultiSelect: () => void;
   
-  exportData: () => any;
-  importData: (data: any) => void;
+  exportData: () => { containers: DragDropContainer[]; settings: { snapToGrid: boolean; gridSize: number; showGrid: boolean }; timestamp: string };
+  importData: (data: { containers?: DragDropContainer[]; settings?: { snapToGrid?: boolean; gridSize?: number; showGrid?: boolean } }) => void;
   resetAll: () => void;
 }
 
@@ -134,28 +135,16 @@ export const DragDropProvider: React.FC<DragDropProviderProps> = ({
   );
 
   // Utility functions
-  const snapToGridPosition = useCallback((position: { x: number; y: number }) => {
-    if (!snapToGrid) return position;
-    return {
-      x: Math.round(position.x / gridSize) * gridSize,
-      y: Math.round(position.y / gridSize) * gridSize
-    };
+  const snapPosition = useCallback((position: { x: number; y: number }) => {
+    return snapToGridPosition(position, snapToGrid, gridSize);
   }, [snapToGrid, gridSize]);
 
-  const generateId = () => `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-  const findContainer = useCallback((itemId: string) => {
-    return containers.find(container => 
-      container.items.some(item => item.id === itemId)
-    );
+  const findContainerById = useCallback((itemId: string) => {
+    return findContainer(containers, itemId);
   }, [containers]);
 
-  const findItem = useCallback((itemId: string) => {
-    for (const container of containers) {
-      const item = container.items.find(item => item.id === itemId);
-      if (item) return item;
-    }
-    return null;
+  const findItemById = useCallback((itemId: string) => {
+    return findItem(containers, itemId);
   }, [containers]);
 
   // Container management
@@ -197,10 +186,17 @@ export const DragDropProvider: React.FC<DragDropProviderProps> = ({
       return;
     }
 
+    const validation = validateItemMove(container, itemData.type);
+    if (!validation.isValid) {
+      onError?.(validation.error || 'Invalid move');
+      toast.error(validation.error || 'Movimento inválido');
+      return;
+    }
+
     const newItem: DragDropItem = {
       ...itemData,
       id: generateId(),
-      position: itemData.position ? snapToGridPosition(itemData.position) : undefined
+      position: itemData.position ? snapPosition(itemData.position) : undefined
     };
 
     setContainers(prev => prev.map(container => 
@@ -208,7 +204,7 @@ export const DragDropProvider: React.FC<DragDropProviderProps> = ({
         ? { ...container, items: [...container.items, newItem] }
         : container
     ));
-  }, [containers, snapToGridPosition, onError]);
+  }, [containers, snapPosition, onError]);
 
   const removeItem = useCallback((itemId: string) => {
     setContainers(prev => prev.map(container => ({
@@ -226,28 +222,24 @@ export const DragDropProvider: React.FC<DragDropProviderProps> = ({
           ? { 
               ...item, 
               ...updates,
-              position: updates.position ? snapToGridPosition(updates.position) : item.position
+              position: updates.position ? snapPosition(updates.position) : item.position
             }
           : item
       )
     })));
-  }, [snapToGridPosition]);
+  }, [snapPosition]);
 
   const moveItem = useCallback((itemId: string, fromContainer: string, toContainer: string, index?: number) => {
-    const item = findItem(itemId);
+    const item = findItemById(itemId);
     if (!item) return;
 
     const targetContainer = containers.find(c => c.id === toContainer);
     if (!targetContainer) return;
 
     // Check constraints
-    if (targetContainer.maxItems && targetContainer.items.length >= targetContainer.maxItems) {
-      toast.error('Container de destino está cheio');
-      return;
-    }
-
-    if (targetContainer.acceptedTypes && !targetContainer.acceptedTypes.includes(item.type)) {
-      toast.error('Tipo de item não aceito no container de destino');
+    const validation = validateItemMove(targetContainer, item.type);
+    if (!validation.isValid) {
+      toast.error(validation.error || 'Movimento inválido');
       return;
     }
 
@@ -277,7 +269,7 @@ export const DragDropProvider: React.FC<DragDropProviderProps> = ({
       onItemMove?.(item, fromContainer, toContainer);
       return newContainers;
     });
-  }, [containers, findItem, onItemMove]);
+  }, [containers, findItemById, onItemMove]);
 
   // Selection management
   const selectItem = useCallback((itemId: string, multiSelect = false) => {
@@ -309,8 +301,8 @@ export const DragDropProvider: React.FC<DragDropProviderProps> = ({
   // Advanced operations
   const duplicateItems = useCallback((itemIds: string[]) => {
     itemIds.forEach(itemId => {
-      const item = findItem(itemId);
-      const container = findContainer(itemId);
+      const item = findItemById(itemId);
+      const container = findContainerById(itemId);
       if (item && container) {
         const duplicatedItem = {
           ...item,
@@ -323,7 +315,7 @@ export const DragDropProvider: React.FC<DragDropProviderProps> = ({
       }
     });
     toast.success(`${itemIds.length} item(s) duplicado(s)`);
-  }, [findItem, findContainer, addItem]);
+  }, [findItemById, findContainerById, addItem]);
 
   const deleteItems = useCallback((itemIds: string[]) => {
     itemIds.forEach(removeItem);
@@ -363,7 +355,7 @@ export const DragDropProvider: React.FC<DragDropProviderProps> = ({
         const spacing = containerBounds.width / (items.length + 1);
         items.forEach((item, index) => {
           updateItem(item.id, {
-            position: snapToGridPosition({
+            position: snapPosition({
               x: spacing * (index + 1),
               y: item.position?.y || 100
             })
@@ -515,7 +507,7 @@ export const DragDropProvider: React.FC<DragDropProviderProps> = ({
     };
   }, [containers, snapToGrid, gridSize, showGrid]);
 
-  const importData = useCallback((data: any) => {
+  const importData = useCallback((data: { containers?: DragDropContainer[]; settings?: { snapToGrid?: boolean; gridSize?: number; showGrid?: boolean } }) => {
     try {
       if (data.containers) {
         setContainers(data.containers);

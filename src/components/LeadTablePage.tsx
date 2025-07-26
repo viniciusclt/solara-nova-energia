@@ -103,7 +103,8 @@ export function LeadTablePage({
     filterDateStart,
     filterDateEnd,
     filterConsumoMin,
-    filterConsumoMax
+    filterConsumoMax,
+    fetchLeads
   ]);
 
   // Resetar página quando filtros mudarem
@@ -119,7 +120,8 @@ export function LeadTablePage({
     filterDateStart,
     filterDateEnd,
     filterConsumoMin,
-    filterConsumoMax
+    filterConsumoMax,
+    currentPage
   ]);
 
   const fetchFilterOptions = async () => {

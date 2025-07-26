@@ -193,7 +193,7 @@ export class AidaTemplate extends BaseTemplate {
 
   // ACTION - Clear call to action
   private addActionSection(data: ProposalData) {
-    let yPos = (this.doc as any).lastAutoTable.finalY + 40;
+    let yPos = (this.doc as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 40;
     
     yPos = this.checkPageBreak(yPos, 150);
     

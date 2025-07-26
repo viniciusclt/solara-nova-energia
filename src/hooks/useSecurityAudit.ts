@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface SecurityEvent {
   event_type: string;
-  event_details?: Record<string, any>;
+  event_details?: Record<string, unknown>;
   target_user_id?: string;
 }
 
@@ -59,7 +59,7 @@ export const useSecurityAudit = () => {
     });
   }, [logSecurityEvent]);
 
-  const logSuspiciousActivity = useCallback((activityType: string, details: Record<string, any>) => {
+  const logSuspiciousActivity = useCallback((activityType: string, details: Record<string, unknown>) => {
     logSecurityEvent({
       event_type: 'suspicious_activity',
       event_details: { 

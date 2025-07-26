@@ -59,7 +59,7 @@ export function MainMenu() {
       admin: 'outline',
       super_admin: 'destructive'
     };
-    return variants[type as keyof typeof variants] as any || 'default';
+    return (variants[type as keyof typeof variants] as 'default' | 'secondary' | 'outline' | 'destructive') || 'default';
   };
 
   const modules = [

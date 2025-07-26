@@ -126,9 +126,9 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
         }
       }
     }
-  }, []);
+  }, [currentLead, loadLeadById, onLeadUpdate]);
 
-  const loadLeadById = async (leadId: string) => {
+  const loadLeadById = useCallback(async (leadId: string) => {
     try {
       const { data: lead, error } = await supabase
         .from('leads')
@@ -148,9 +148,9 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
       console.error('Error loading lead:', error);
       localStorage.removeItem('selectedLeadId');
     }
-  };
+  }, [onLeadUpdate]);
 
-  const formatLeadFromDB = (dbLead: any): LeadData => {
+  const formatLeadFromDB = (dbLead: Record<string, unknown>): LeadData => {
     return {
       id: dbLead.id,
       name: dbLead.name || "",
@@ -182,7 +182,7 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
     };
   };
 
-  const handleLeadSelect = (lead: any) => {
+  const handleLeadSelect = (lead: Record<string, unknown>) => {
     const formattedLead = formatLeadFromDB(lead);
     setLeadData(formattedLead);
     onLeadUpdate(formattedLead);
@@ -229,7 +229,7 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
     setShowLeadList(true);
   };
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = (field: string, value: unknown) => {
     // Sanitize string inputs
     const sanitizedValue = typeof value === 'string' ? sanitizeInput(value) : value;
     
@@ -238,30 +238,34 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
     let errorMessage = '';
     
     switch (field) {
-      case 'name':
+      case 'name': {
         const nameValidation = validateName(sanitizedValue);
         isValid = nameValidation.isValid;
         errorMessage = nameValidation.message || '';
         break;
+      }
       case 'email':
         isValid = validateEmail(sanitizedValue);
         errorMessage = 'Email inválido';
         break;
-      case 'phone':
+      case 'phone': {
         const phoneValidation = validatePhone(sanitizedValue);
         isValid = phoneValidation.isValid;
         errorMessage = phoneValidation.message || '';
         break;
-      case 'birthDate':
+      }
+      case 'birthDate': {
         const dateValidation = validateDate(sanitizedValue);
         isValid = dateValidation.isValid;
         errorMessage = dateValidation.message || '';
         break;
-      case 'consumoMedio':
+      }
+      case 'consumoMedio': {
         const consumoValidation = validateNumericRange(Number(sanitizedValue), 0, 10000, 'Consumo médio');
         isValid = consumoValidation.isValid;
         errorMessage = consumoValidation.message || '';
         break;
+      }
     }
     
     if (!isValid) {
@@ -288,16 +292,18 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
     let errorMessage = '';
     
     switch (field) {
-      case 'cep':
+      case 'cep': {
         const cepValidation = validateCEP(sanitizedValue);
         isValid = cepValidation.isValid;
         errorMessage = cepValidation.message || '';
         break;
-      case 'street':
+      }
+      case 'street': {
         const addressValidation = validateAddress(sanitizedValue);
         isValid = addressValidation.isValid;
         errorMessage = addressValidation.message || '';
         break;
+      }
     }
     
     if (!isValid) {
@@ -403,12 +409,12 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
             email: lead.email || "",
             phone: lead.phone || "",
             address: (typeof lead.address === 'object' && lead.address !== null) ? {
-              state: (lead.address as any).state || "RJ",
-              city: (lead.address as any).city || "",
-              neighborhood: (lead.address as any).neighborhood || "",
-              cep: (lead.address as any).cep || "",
-              street: (lead.address as any).street || "",
-              number: (lead.address as any).number || ""
+              state: (lead.address as Record<string, unknown>).state as string || "RJ",
+              city: (lead.address as Record<string, unknown>).city as string || "",
+              neighborhood: (lead.address as Record<string, unknown>).neighborhood as string || "",
+              cep: (lead.address as Record<string, unknown>).cep as string || "",
+              street: (lead.address as Record<string, unknown>).street as string || "",
+              number: (lead.address as Record<string, unknown>).number as string || ""
             } : {
               state: "RJ",
               city: "",

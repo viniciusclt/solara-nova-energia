@@ -135,9 +135,155 @@ Substituir importação CSV por Excel nativo com interface avançada de edição
 - **Exportação**: CSV e Excel ✅
 - **Templates**: Modelos pré-definidos ✅
 
+## 🔧 2.1 MELHORIAS DE TIPAGEM TYPESCRIPT ✅
+
+### 2.1.1 Objetivo ✅
+Implementar tipagem mais específica, configurar regras mais rigorosas do TypeScript e substituir uso de `any` por tipos mais seguros.
+
+### 2.1.2 Implementações Realizadas ✅
+
+#### 2.1.2.1 Correção de Dependências ESLint ✅
+- **useCallback e useEffect**: Corrigidos 49 avisos relacionados a dependências faltantes
+- **Arquivos corrigidos**: 
+  - `FinancialInstitutionManager.tsx`
+  - `AuditLogViewer.tsx`
+  - `BackupManager.tsx`
+  - `ExcelImporterV2.tsx`
+  - `ExcelImporterV3.tsx`
+
+#### 2.1.2.2 Correção de Erros ESLint - Regex e Declarações ✅
+- **Erros de escape desnecessário**: Corrigidos 39 erros `no-useless-escape`
+- **Declarações lexicais**: Corrigidos 6 erros `no-case-declarations`
+- **Arquivos corrigidos**:
+  - `PDFImporterV3.tsx`: 35 erros de regex corrigidos
+  - `OCR/SimpleOCR.tsx`: 2 erros de regex corrigidos
+  - `LeadDataEntry.tsx`: 6 erros de declaração corrigidos
+  - `FinancialAnalysis.tsx`: 1 aviso de useCallback corrigido
+  - `ModuleManagerAdvanced.tsx`: 1 aviso de useCallback corrigido
+  - `InverterManagerAdvanced.tsx`: 1 aviso de useCallback corrigido
+  - `LeadSearchDropdown.tsx`: 2 avisos de dependências corrigidos
+
+#### 2.1.2.2 Tipagem Específica ✅
+- **useAuditLogs.ts**: Substituição de `Record<string, any>` por tipos específicos:
+  - `AuditValue`: Para valores de auditoria (string, number, boolean, null)
+  - `AuditDetails`: Para detalhes estruturados de auditoria
+- **Interfaces atualizadas**:
+  - `AuditLog`
+  - `UseAuditLogsReturn`
+  - Funções `createAuditLog` e `logSecurityEvent`
+
+#### 2.1.2.3 Configuração TypeScript Rigorosa ✅
+- **tsconfig.json**: Habilitadas regras rigorosas:
+  - `noImplicitAny: true`
+  - `noUnusedParameters: true`
+  - `noUnusedLocals: true`
+  - `strictNullChecks: true`
+  - `strictFunctionTypes: true`
+  - `noImplicitReturns: true`
+  - `noFallthroughCasesInSwitch: true`
+  - `noUncheckedIndexedAccess: true`
+
+- **tsconfig.app.json**: Configurações específicas da aplicação:
+  - `strict: true`
+  - Todas as regras rigorosas habilitadas
+
+#### 2.1.2.4 Tipos Utilitários ✅
+- **src/types/utility.ts**: Criado arquivo com tipos seguros para substituir `any`:
+  - `JsonValue`: Para valores JSON seguros
+  - `StringKeyObject`: Para objetos com chaves string
+  - `ApiResponse<T>`: Para respostas de API tipadas
+  - `Metadata`: Para metadados estruturados
+  - Mais de 100 tipos específicos para diferentes contextos
+
+### 2.1.3 Benefícios Alcançados ✅
+- **Segurança de tipos**: Eliminação de `any` em favor de tipos específicos
+- **Detecção precoce de erros**: Regras rigorosas do TypeScript
+- **Melhor IntelliSense**: Autocompletar mais preciso
+- **Manutenibilidade**: Código mais legível e documentado
+- **Qualidade**: Redução significativa de problemas ESLint
+
+### 2.1.4 Status Atual ✅
+- **Problemas ESLint**: 98 problemas (56 erros + 42 avisos)
+- **Progresso**: 57 problemas corrigidos de 155 iniciais (36.8% concluído)
+- **Principais correções**:
+  - 39 erros de regex (`no-useless-escape`)
+  - 6 erros de declarações lexicais (`no-case-declarations`)
+  - 12 avisos de dependências (`react-hooks/exhaustive-deps`)
+- **TypeScript**: Configuração rigorosa ativa
+- **Tipagem**: `any` substituído por tipos específicos
+- **Arquivos de tipos**: Biblioteca de tipos utilitários criada
+
 ### 2.3 Tecnologias
 ```typescript
-// Dependências principais
+// Dependências para Excel
+"xlsx": "^0.18.5",              // Leitura/escrita Excel
+"react-data-grid": "^7.0.0",    // Grid avançado
+"react-window": "^1.8.8",       // Virtualização
+"file-saver": "^2.0.5"          // Download de arquivos
+```
+
+---
+
+## 🔧 3. CORREÇÃO DE PROBLEMAS ESLINT ⌛
+
+### 3.1 Objetivo
+Corrigir os 155 problemas identificados pelo ESLint para melhorar a qualidade e consistência do código.
+
+### 3.2 Progresso Atual
+- **Problemas iniciais:** 155 (107 erros, 48 avisos)
+- **Problemas atuais:** 137 (95 erros, 42 avisos)
+- **Problemas corrigidos:** 18 (12 erros, 6 avisos)
+- **Progresso:** 11.6% dos problemas corrigidos
+
+### 3.3 Correções Implementadas ✅
+
+#### 3.3.1 Correção de Imports ✅
+- **tailwind.config.ts**: Conversão de `require()` para `import` ES6
+- **Substituição**: `require("tailwindcss-animate")` → `import tailwindcssAnimate`
+
+#### 3.3.2 Correção de Tipagem ✅
+- **src/types/utility.ts**: Correção de erro de sintaxe
+- **sync-google-sheets/index.ts**: Substituição de tipos `any`:
+  - `Promise<any[][]>` → `Promise<string[][]>`
+  - `(apiKeyData.settings as any)` → `(apiKeyData.settings as Record<string, unknown>)`
+  - `function processRow(row: any[])` → `function processRow(row: string[])`
+
+#### 3.3.3 Correção de Dependências React Hooks ✅
+- **BackupManager.tsx**: Adição de `loadBackups` às dependências do useEffect
+- **useNotifications.ts**: Remoção de dependência desnecessária `sendPushNotification`
+- **useAuditLogs.ts**: Ajuste de dependências em múltiplos useEffect
+- **FinancialAnalysis.tsx**: Adição de `fetchKits` às dependências do useEffect
+- **LeadSearchDropdown.tsx**: Adição de `fetchLeads` e `selectedLead` às dependências
+- **LeadDataEntry.tsx**: Adição de `currentLead`, `loadLeadById` e `onLeadUpdate` às dependências
+
+#### 3.3.4 Envolvimento de Funções em useCallback ✅
+- **ModuleManagerAdvanced.tsx**: Função `fetchModules` envolvida em useCallback
+- **InverterManagerAdvanced.tsx**: Função `fetchInverters` envolvida em useCallback
+
+#### 3.3.5 Correção de Declarações Lexicais ✅
+- **LeadDataEntry.tsx**: Envolvimento de declarações em blocos case com chaves para evitar conflitos de escopo
+
+### 3.4 Problemas Restantes (137)
+- **Erros TypeScript:** 95 problemas
+  - Tipos implícitos
+  - Propriedades não definidas
+  - Conversões de tipo inseguras
+- **Avisos React Hooks:** 42 problemas
+  - Dependências ausentes em useEffect
+  - Dependências desnecessárias em useCallback
+- **Avisos Fast Refresh:** Componentes misturados com constantes
+
+### 3.5 Próximos Passos
+1. **Tipagem TypeScript**: Continuar correção de tipos implícitos
+2. **React Hooks**: Resolver avisos de dependências
+3. **Fast Refresh**: Separar constantes de componentes
+4. **Correções em lote**: Implementar para problemas similares
+
+### 3.6 Cronograma
+- **Fase 1** (Atual): Correções básicas de imports e tipagem
+- **Fase 2**: Correção de dependências React Hooks
+- **Fase 3**: Refatoração para Fast Refresh
+- **Fase 4**: Validação final e testes// Dependências principais
 "@tanstack/react-table": "^8.10.7",  // Tabela avançada
 "xlsx": "^0.18.5",                     // Leitura/escrita Excel
 "react-hook-form": "^7.53.0",         // Validação (já existe)

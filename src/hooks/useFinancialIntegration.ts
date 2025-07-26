@@ -151,9 +151,9 @@ export const useFinancialIntegration = (): UseFinancialIntegrationReturn => {
       
       console.log(`✅ ${transformedInstitutions.length} instituições carregadas`);
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('❌ Erro ao carregar instituições:', err);
-      setError(err.message);
+      setError((err as Error).message);
       
       // Try to load from cache
       try {
@@ -212,7 +212,7 @@ export const useFinancialIntegration = (): UseFinancialIntegrationReturn => {
         variant: "default"
       });
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('❌ Erro ao adicionar instituição:', err);
       toast({
         title: "Erro",
@@ -258,7 +258,7 @@ export const useFinancialIntegration = (): UseFinancialIntegrationReturn => {
         variant: "default"
       });
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('❌ Erro ao atualizar instituição:', err);
       toast({
         title: "Erro",
@@ -290,7 +290,7 @@ export const useFinancialIntegration = (): UseFinancialIntegrationReturn => {
         variant: "default"
       });
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('❌ Erro ao remover instituição:', err);
       toast({
         title: "Erro",
@@ -414,7 +414,7 @@ export const useFinancialIntegration = (): UseFinancialIntegrationReturn => {
       
       return data.id;
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('❌ Erro ao criar aplicação:', err);
       toast({
         title: "Erro",
@@ -446,7 +446,7 @@ export const useFinancialIntegration = (): UseFinancialIntegrationReturn => {
         variant: "default"
       });
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('❌ Erro ao enviar aplicação:', err);
       toast({
         title: "Erro",
@@ -481,7 +481,7 @@ export const useFinancialIntegration = (): UseFinancialIntegrationReturn => {
         variant: "default"
       });
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('❌ Erro ao atualizar aplicação:', err);
       toast({
         title: "Erro",
@@ -506,7 +506,7 @@ export const useFinancialIntegration = (): UseFinancialIntegrationReturn => {
       
       return data.status;
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('❌ Erro ao verificar status:', err);
       return 'draft';
     }
@@ -566,7 +566,7 @@ export const useFinancialIntegration = (): UseFinancialIntegrationReturn => {
       
       return urlData.publicUrl;
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('❌ Erro ao enviar documento:', err);
       toast({
         title: "Erro",
@@ -609,7 +609,7 @@ export const useFinancialIntegration = (): UseFinancialIntegrationReturn => {
         variant: "default"
       });
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('❌ Erro na sincronização:', err);
       toast({
         title: "Erro",

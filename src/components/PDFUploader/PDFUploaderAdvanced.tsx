@@ -36,7 +36,7 @@ export interface ProcessedFile {
   ocrResult?: {
     text: string;
     confidence: number;
-    extractedData: Record<string, any>;
+    extractedData: Record<string, string | number>;
     processingTime: number;
     pages: number;
   };
@@ -214,16 +214,17 @@ const PDFUploaderAdvanced: React.FC<PDFUploaderAdvancedProps> = ({
         description: `${fileToProcess.file.name} processado com ${result.confidence.toFixed(1)}% de confiança`
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       updateFile({
         status: 'error',
         progress: 0,
-        error: error.message
+        error: errorMessage
       });
 
       toast({
         title: "Erro no processamento",
-        description: `${fileToProcess.file.name}: ${error.message}`,
+        description: `${fileToProcess.file.name}: ${errorMessage}`,
         variant: "destructive"
       });
     }

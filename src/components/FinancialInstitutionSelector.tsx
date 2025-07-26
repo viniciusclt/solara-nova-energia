@@ -268,7 +268,7 @@ export function FinancialInstitutionSelector({
                   <Label htmlFor="type">Tipo</Label>
                   <Select
                     value={newInstitution.type}
-                    onValueChange={(value) => setNewInstitution(prev => ({ ...prev, type: value as any }))}
+                    onValueChange={(value: string) => setNewInstitution(prev => ({ ...prev, type: value }))}
                   >
                     <SelectTrigger>
                       <SelectValue />

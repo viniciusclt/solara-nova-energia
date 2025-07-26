@@ -66,11 +66,7 @@ export function ModuleManagerAdvanced() {
     "IEC 61215", "IEC 61730", "UL 1703", "MCS", "CEC", "INMETRO", "PID Free", "Salt Mist", "Ammonia", "Fire Class 1"
   ];
 
-  useEffect(() => {
-    fetchModules();
-  }, []);
-
-  const fetchModules = async (retryCount = 0) => {
+  const fetchModules = useCallback(async (retryCount = 0) => {
     setIsLoading(true);
     try {
       const demoDataService = DemoDataService.getInstance();
@@ -127,7 +123,11 @@ export function ModuleManagerAdvanced() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchModules();
+  }, [fetchModules]);
 
   const handleSaveModule = async () => {
     try {
@@ -160,13 +160,13 @@ export function ModuleManagerAdvanced() {
         // Atualizar módulo existente
         result = await supabase
           .from('modules' as never)
-          .update(moduleToSave as any)
+          .update(moduleToSave as never)
           .eq('id', currentModule.id);
       } else {
         // Criar novo módulo
         result = await supabase
           .from('modules' as never)
-          .insert(moduleToSave as any);
+          .insert(moduleToSave as never);
       }
 
       if (result.error) {
@@ -310,7 +310,7 @@ export function ModuleManagerAdvanced() {
     setPerformanceWarranties(updated);
   };
 
-  const handleProductsExtracted = async (extractedProducts: any[]) => {
+  const handleProductsExtracted = async (extractedProducts: Array<Record<string, unknown>>) => {
     const moduleProducts = extractedProducts.filter(p => p.equipmentType === 'module');
     
     if (moduleProducts.length === 0) {
@@ -393,11 +393,11 @@ export function ModuleManagerAdvanced() {
       fetchModules();
       setActiveTab('modules');
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao salvar módulos:', error);
       toast({
         title: "Erro ao importar",
-        description: error.message,
+        description: error instanceof Error ? error.message : "Erro desconhecido",
         variant: "destructive"
       });
     }

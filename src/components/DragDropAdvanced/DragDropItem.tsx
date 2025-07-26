@@ -195,7 +195,7 @@ export const DragDropItem: React.FC<DragDropItemProps> = ({
         return (
           <div className="p-3">
             <Button 
-              variant={item.content?.variant as any || 'default'}
+              variant={(item.content?.variant as 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link') || 'default'}
               size="sm"
               className="w-full"
               disabled

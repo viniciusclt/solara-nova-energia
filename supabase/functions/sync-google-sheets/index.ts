@@ -212,7 +212,7 @@ function extractSpreadsheetId(url: string): string | null {
   return match ? match[1] : null;
 }
 
-async function fetchGoogleSheetsData(spreadsheetId: string, settings: GoogleSheetsSettings): Promise<any[][]> {
+async function fetchGoogleSheetsData(spreadsheetId: string, settings: GoogleSheetsSettings): Promise<string[][]> {
   // First try to get API key from the database (user's saved key)
   const supabaseClient = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
@@ -230,8 +230,8 @@ async function fetchGoogleSheetsData(spreadsheetId: string, settings: GoogleShee
       .eq('is_active', true)
       .single();
     
-    if (apiKeyData && (apiKeyData.settings as any).api_key) {
-      apiKey = (apiKeyData.settings as any).api_key;
+    if (apiKeyData && (apiKeyData.settings as Record<string, unknown>).api_key) {
+      apiKey = (apiKeyData.settings as Record<string, unknown>).api_key as string;
       console.log('Using user-configured API key');
     }
   } catch (error) {
@@ -259,11 +259,11 @@ async function fetchGoogleSheetsData(spreadsheetId: string, settings: GoogleShee
     throw new Error(`Google Sheets API error: ${response.status} - ${errorText}`);
   }
 
-  const data = await response.json();
+  const data = await response.json() as { values?: string[][] };
   return data.values || [];
 }
 
-function processRow(row: any[], settings: GoogleSheetsSettings, userId: string, companyId: string) {
+function processRow(row: string[], settings: GoogleSheetsSettings, userId: string, companyId: string) {
   const getValue = (column: string) => {
     const colIndex = columnToIndex(column);
     return row[colIndex] || '';

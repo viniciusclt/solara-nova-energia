@@ -26,7 +26,7 @@ interface PDFFile {
   uploadProgress: number;
   status: 'pending' | 'uploading' | 'processing' | 'completed' | 'error';
   error?: string;
-  ocrData?: any;
+  ocrData?: { text: string; confidence: number; extractedFields: Record<string, string | number> };
   downloadUrl?: string;
 }
 
@@ -35,7 +35,7 @@ interface OCRData {
   fileName: string;
   rawText: string;
   confidence: number;
-  extractedFields: Record<string, any>;
+  extractedFields: Record<string, string | number>;
   processedAt: Date;
 }
 
@@ -173,7 +173,8 @@ const PDFImporter: React.FC<PDFImporterProps> = ({
         onProductsImported(products);
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       console.error('[PDFImporter] Erro ao salvar produtos:', error);
       throw error;
     }
@@ -206,11 +207,12 @@ const PDFImporter: React.FC<PDFImporterProps> = ({
       setFinalProducts([]);
       setCurrentTab('upload');
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       console.error('[PDFImporter] Erro na importação final:', error);
       toast({
         title: "Erro na Importação",
-        description: error.message || 'Erro desconhecido',
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {

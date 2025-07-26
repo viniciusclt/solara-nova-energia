@@ -104,23 +104,6 @@ export function PerformanceMonitor() {
   const [refreshInterval, setRefreshInterval] = useState(30); // segundos
   const [timeRange, setTimeRange] = useState('1h');
 
-  // Verificar permissões
-  if (!hasPermission('admin') && !hasPermission('monitor_system')) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="text-center">
-            <Monitor className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Acesso Restrito</h3>
-            <p className="text-muted-foreground">
-              Você não tem permissão para acessar o monitor de performance.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   // Gerar dados mock para demonstração
   const generateMockData = useCallback(() => {
     const now = new Date();
@@ -329,6 +312,23 @@ export function PerformanceMonitor() {
       return `${value.toFixed(0)} ${unit}`;
     }
   };
+
+  // Verificar permissões
+  if (!hasPermission('admin') && !hasPermission('monitor_system')) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center">
+            <Monitor className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Acesso Restrito</h3>
+            <p className="text-muted-foreground">
+              Você não tem permissão para acessar o monitor de performance.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -62,7 +62,7 @@ interface DistributionConfig {
 interface AutoDistributionProps {
   modules: SolarModule[];
   inverters: Inverter[];
-  onSave?: (distribution: any) => void;
+  onSave?: (distribution: { config: DistributionConfig; result: unknown }) => void;
   className?: string;
 }
 
@@ -84,7 +84,7 @@ export const AutoDistribution: React.FC<AutoDistributionProps> = ({
   
   const [selectedModule, setSelectedModule] = useState<string>('');
   const [selectedInverter, setSelectedInverter] = useState<string>('');
-  const [distributionResult, setDistributionResult] = useState<any>(null);
+  const [distributionResult, setDistributionResult] = useState<unknown>(null);
   const [isCalculating, setIsCalculating] = useState(false);
 
   // Containers para o drag & drop
@@ -299,7 +299,7 @@ export const AutoDistribution: React.FC<AutoDistributionProps> = ({
                     <Label>Orientação</Label>
                     <Select
                       value={config.orientation}
-                      onValueChange={(value: any) => setConfig(prev => ({ ...prev, orientation: value }))}
+                      onValueChange={(value: string) => setConfig(prev => ({ ...prev, orientation: value }))}
                     >
                       <SelectTrigger>
                         <SelectValue />

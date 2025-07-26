@@ -33,7 +33,7 @@ interface PropertiesPanelProps {
 export function PropertiesPanel({ selectedComponent, onComponentUpdate }: PropertiesPanelProps) {
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
 
-  const updateProperty = useCallback((property: keyof ComponentProperties, value: any) => {
+  const updateProperty = useCallback((property: keyof ComponentProperties, value: unknown) => {
     if (!selectedComponent) return;
     
     const newProperties = {
@@ -44,10 +44,10 @@ export function PropertiesPanel({ selectedComponent, onComponentUpdate }: Proper
     onComponentUpdate(selectedComponent.id, { properties: newProperties });
   }, [selectedComponent, onComponentUpdate]);
 
-  const updateNestedProperty = useCallback((parentProperty: keyof ComponentProperties, childProperty: string, value: any) => {
+  const updateNestedProperty = useCallback((parentProperty: keyof ComponentProperties, childProperty: string, value: unknown) => {
     if (!selectedComponent) return;
     
-    const currentValue = selectedComponent.properties[parentProperty] as any;
+    const currentValue = selectedComponent.properties[parentProperty] as Record<string, unknown>;
     const newValue = {
       ...currentValue,
       [childProperty]: value

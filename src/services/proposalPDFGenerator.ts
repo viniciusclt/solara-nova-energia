@@ -197,7 +197,7 @@ export class ProposalPDFGenerator {
       margin: { left: this.margin, right: this.margin }
     });
 
-    return (this.doc as any).lastAutoTable.finalY + 20;
+    return (this.doc as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 20;
   }
 
   private addBenefitsSection(yPos: number) {

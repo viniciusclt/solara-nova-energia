@@ -164,7 +164,7 @@ export const DragDropExample: React.FC<DragDropExampleProps> = ({ className }) =
                 <CardContent>
                   <Select
                     value={selectedLayout}
-                    onValueChange={(value: any) => setSelectedLayout(value)}
+                    onValueChange={(value: 'free' | 'horizontal' | 'vertical' | 'grid') => setSelectedLayout(value)}
                   >
                     <SelectTrigger>
                       <SelectValue />

@@ -15,7 +15,7 @@ interface PDFFile {
   id: string;
   status: 'pending' | 'processing' | 'completed' | 'error';
   progress: number;
-  extractedData?: any;
+  extractedData?: Record<string, unknown>;
   error?: string;
   preview?: string;
   uploadedAt: Date;
@@ -24,7 +24,7 @@ interface PDFFile {
 
 interface PDFDropzoneProps {
   onFilesSelected: (files: File[]) => void;
-  onFileProcessed: (fileId: string, data: any) => void;
+  onFileProcessed: (fileId: string, data: Record<string, unknown>) => void;
   onFileError: (fileId: string, error: string) => void;
   maxFiles?: number;
   maxSize?: number; // em MB
@@ -50,11 +50,11 @@ export const PDFDropzone: React.FC<PDFDropzoneProps> = ({
   const [selectedPreview, setSelectedPreview] = useState<string | null>(null);
   const [dragCounter, setDragCounter] = useState(0);
 
-  const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: any[]) => {
+  const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: Array<{file: File, errors: Array<{message: string}>}>) => {
     // Validar arquivos rejeitados
     if (rejectedFiles.length > 0) {
       const errors = rejectedFiles.map(({ file, errors }) => 
-        `${file.name}: ${errors.map((e: any) => e.message).join(', ')}`
+        `${file.name}: ${errors.map((e: {message: string}) => e.message).join(', ')}`
       ).join('\n');
       
       onFileError('validation', `Arquivos rejeitados:\n${errors}`);

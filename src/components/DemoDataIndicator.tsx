@@ -11,7 +11,7 @@ import { EnvironmentDetector } from '@/utils/EnvironmentDetector';
  */
 export function DemoDataIndicator() {
   const [showIndicator, setShowIndicator] = useState(false);
-  const [environmentInfo, setEnvironmentInfo] = useState<any>(null);
+  const [environmentInfo, setEnvironmentInfo] = useState<{ hostname: string; mode: string } | null>(null);
 
   useEffect(() => {
     const demoService = DemoDataService.getInstance();

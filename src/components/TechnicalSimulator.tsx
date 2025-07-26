@@ -406,9 +406,9 @@ export function TechnicalSimulator({
                   <Label>Tipo</Label>
                   <Select
                     value={configuration.inverter.type}
-                    onValueChange={(value) => setConfiguration(prev => ({
+                    onValueChange={(value: string) => setConfiguration(prev => ({
                       ...prev,
-                      inverter: { ...prev.inverter, type: value as any }
+                      inverter: { ...prev.inverter, type: value }
                     }))}
                   >
                     <SelectTrigger>

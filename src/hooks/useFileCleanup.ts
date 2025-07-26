@@ -304,9 +304,10 @@ export const useFileCleanup = () => {
               switch (rule.type) {
                 case 'size':
                   return rule.criteria.maxSize && (file.size / (1024 * 1024)) > rule.criteria.maxSize;
-                case 'age':
+                case 'age': {
                   const fileAge = (Date.now() - new Date(file.lastModified).getTime()) / (1000 * 60 * 60 * 24);
                   return rule.criteria.maxAge && fileAge > rule.criteria.maxAge;
+                }
                 case 'duplicate':
                   return file.isDuplicate;
                 case 'extension':

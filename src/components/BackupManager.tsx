@@ -114,24 +114,7 @@ export function BackupManager() {
     retention_days: 30
   });
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [pendingSyncs, setPendingSyncs] = useState<any[]>([]);
-
-  // Verificar permissões
-  if (!hasPermission('admin') && !hasPermission('backup_manage')) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="text-center">
-            <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Acesso Restrito</h3>
-            <p className="text-muted-foreground">
-              Você não tem permissão para acessar o gerenciador de backup.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const [pendingSyncs, setPendingSyncs] = useState<unknown[]>([]);
 
   const availableTables = [
     { id: 'leads', name: 'Leads', description: 'Dados dos clientes potenciais' },
@@ -211,7 +194,7 @@ export function BackupManager() {
     } finally {
       setLoading(false);
     }
-  }, [user, profile]);
+  }, [user, profile, isOnline, pendingSyncs.length, syncSettings.auto_backup_enabled]);
 
   // Criar backup
   const createBackup = useCallback(async () => {
@@ -268,7 +251,7 @@ export function BackupManager() {
     } finally {
       setLoading(false);
     }
-  }, [user, profile, selectedTables, backupName, backupDescription, loadBackups]);
+  }, [user, profile, selectedTables, loadBackups]);
 
   // Restaurar backup
   const restoreBackup = useCallback(async (backup: BackupRecord) => {
@@ -373,7 +356,7 @@ export function BackupManager() {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [syncPendingBackups]);
 
   // Backup automático
   useEffect(() => {
@@ -401,7 +384,7 @@ export function BackupManager() {
 
     const timeoutId = scheduleNextBackup();
     return () => clearTimeout(timeoutId);
-  }, [syncSettings.auto_backup_enabled, syncSettings.backup_time]);
+  }, [syncSettings.auto_backup_enabled, syncSettings.backup_time, performAutomaticBackup]);
 
   // Sincronizar backups pendentes
   const syncPendingBackups = useCallback(async () => {
@@ -458,10 +441,15 @@ export function BackupManager() {
     } catch (error) {
       console.error('Erro no backup automático:', error);
     }
-  }, [user, profile, isOnline]);
+  }, [user, profile, isOnline, createBackupWithData]);
 
   // Criar backup com dados específicos
-  const createBackupWithData = useCallback(async (backupData: any) => {
+  const createBackupWithData = useCallback(async (backupData: {
+    name: string;
+    description: string;
+    tables: string[];
+    type: 'manual' | 'automatic' | 'scheduled';
+  }) => {
     // Implementar criação de backup com dados específicos
     await new Promise(resolve => setTimeout(resolve, 2000));
     
@@ -483,7 +471,6 @@ export function BackupManager() {
     };
 
     setBackups(prev => [newBackup, ...prev]);
-    await loadBackups();
   }, []);
 
   // Salvar configurações de sincronização
@@ -519,6 +506,23 @@ export function BackupManager() {
   React.useEffect(() => {
     loadBackups();
   }, [loadBackups]);
+
+  // Verificar permissões
+  if (!hasPermission('admin') && !hasPermission('backup_manage')) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center">
+            <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Acesso Restrito</h3>
+            <p className="text-muted-foreground">
+              Você não tem permissão para acessar o gerenciador de backup.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">

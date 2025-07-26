@@ -45,7 +45,7 @@ export interface Notification {
   action_label?: string;
   user_id: string;
   company_id?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean>;
 }
 
 interface NotificationCenterProps {
@@ -79,7 +79,7 @@ export function NotificationCenter({ isOpen, onClose }: NotificationCenterProps)
 
   // Aplicar filtros quando os valores mudarem
   useEffect(() => {
-    const newFilters: any = {};
+    const newFilters: Record<string, string | boolean | NotificationType[] | NotificationPriority[]> = {};
     
     if (searchTerm) {
       newFilters.searchTerm = searchTerm;
@@ -119,7 +119,7 @@ export function NotificationCenter({ isOpen, onClose }: NotificationCenterProps)
     clearFilters();
   };
 
-  const renderNotificationGroup = (group: any) => {
+  const renderNotificationGroup = (group: { type: string; count: number; notifications: Notification[] }) => {
     return (
       <div key={group.type} className="mb-6">
         <div className="flex items-center gap-2 mb-3">

@@ -242,7 +242,7 @@ export abstract class ProfessionalA4Template extends BaseTemplate {
     this.doc.addPage();
     this.addPageHeader('SOBRE A EMPRESA');
     
-    let yPos = 60;   
+    const yPos = 60;   
     // 4 Pilares da empresa
     const pillars = [
       {

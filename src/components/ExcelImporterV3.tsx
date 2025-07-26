@@ -60,7 +60,7 @@ type FinancialKitData = z.infer<typeof FinancialKitSchema>;
 
 interface ExcelRow {
   id: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface ValidationError {
@@ -71,7 +71,7 @@ interface ValidationError {
 }
 
 interface ExcelImporterV3Props {
-  onDataImported?: (data: any[]) => void;
+  onDataImported?: (data: unknown[]) => void;
   maxFileSize?: number;
   allowedFileTypes?: string[];
 }
@@ -107,7 +107,7 @@ const ExcelImporterV3: React.FC<ExcelImporterV3Props> = ({
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
   
   // Templates pré-definidos
-  const templates = {
+  const templates = useMemo(() => ({
     financial_kits: {
       name: 'Kits Financeiros',
       columns: ['name', 'power', 'price', 'price_per_wp', 'manufacturer', 'category', 'description'],
@@ -125,7 +125,7 @@ const ExcelImporterV3: React.FC<ExcelImporterV3Props> = ({
         warranty: z.number().positive()
       })
     }
-  };
+  }), []);
   
   const [selectedTemplate, setSelectedTemplate] = useState<keyof typeof templates>('financial_kits');
   
@@ -170,11 +170,12 @@ const ExcelImporterV3: React.FC<ExcelImporterV3Props> = ({
         description: `${processedData.length} linhas importadas com sucesso.`
       });
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao processar arquivo:', error);
+      const errorMessage = error instanceof Error ? error.message : "Erro ao processar o arquivo.";
       toast({
         title: "Erro na Importação",
-        description: error.message || "Erro ao processar o arquivo.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -194,7 +195,7 @@ const ExcelImporterV3: React.FC<ExcelImporterV3Props> = ({
   });
   
   // Função para ler arquivo Excel
-  const readExcelFile = async (file: File): Promise<any[]> => {
+  const readExcelFile = async (file: File): Promise<unknown[]> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       
@@ -207,9 +208,9 @@ const ExcelImporterV3: React.FC<ExcelImporterV3Props> = ({
           const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
           
           // Converter para formato de objeto
-          const [headers, ...rows] = jsonData as any[][];
+          const [headers, ...rows] = jsonData as unknown[][];
           const result = rows.map(row => {
-            const obj: any = {};
+            const obj: Record<string, unknown> = {};
             headers.forEach((header: string, index: number) => {
               obj[header] = row[index] || '';
             });
@@ -235,9 +236,9 @@ const ExcelImporterV3: React.FC<ExcelImporterV3Props> = ({
     data.forEach((row, index) => {
       try {
         schema.parse(row);
-      } catch (error: any) {
-        if (error.errors) {
-          error.errors.forEach((err: any) => {
+      } catch (error: unknown) {
+        if (error && typeof error === 'object' && 'errors' in error) {
+          (error as { errors: Array<{ path: string[]; message: string }> }).errors.forEach((err) => {
             errors.push({
               row: index + 1,
               column: err.path[0],
@@ -251,7 +252,7 @@ const ExcelImporterV3: React.FC<ExcelImporterV3Props> = ({
     
     setValidationErrors(errors);
     return errors;
-  }, [selectedTemplate]);
+  }, [selectedTemplate, templates]);
   
   // Configuração das colunas da tabela
   const columns = useMemo(() => {
@@ -301,14 +302,14 @@ const ExcelImporterV3: React.FC<ExcelImporterV3Props> = ({
         }
       })
     );
-  }, [gridState.present, editingCell]);
+  }, [gridState.present, editingCell, updateCellValue]);
   
   // Atualizar valor da célula
-  const updateCellValue = (rowIndex: number, columnId: string, value: string) => {
+  const updateCellValue = useCallback((rowIndex: number, columnId: string, value: string) => {
     const newData = [...gridState.present];
     newData[rowIndex] = { ...newData[rowIndex], [columnId]: value };
     setGridData(newData);
-  };
+  }, [gridState.present, setGridData]);
   
   // Configuração da tabela
   const table = useReactTable({
@@ -404,10 +405,10 @@ const ExcelImporterV3: React.FC<ExcelImporterV3Props> = ({
       setFileName('');
       setValidationErrors([]);
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro na Importação",
-        description: error.message || "Erro ao salvar os dados.",
+        description: error instanceof Error ? error.message : "Erro ao salvar os dados.",
         variant: "destructive"
       });
     } finally {

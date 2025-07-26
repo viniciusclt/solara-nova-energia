@@ -542,7 +542,7 @@ const ProjectViabilityAnalyzer: React.FC<ProjectViabilityAnalyzerProps> = ({
                     <Label>Tipo de Cliente</Label>
                     <Select 
                       value={projectData.tipoCliente} 
-                      onValueChange={(value: any) => setProjectData(prev => ({ ...prev, tipoCliente: value }))}
+                      onValueChange={(value: string) => setProjectData(prev => ({ ...prev, tipoCliente: value }))}
                     >
                       <SelectTrigger>
                         <SelectValue />

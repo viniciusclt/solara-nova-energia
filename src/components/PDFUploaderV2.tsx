@@ -211,13 +211,13 @@ const PDFUploaderV2: React.FC<PDFUploaderV2Props> = ({
       } else {
         await processImage(fileId);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao processar arquivo:', error);
       setUploadedFiles(prev => prev.map(f => 
         f.id === fileId ? { 
           ...f, 
           status: 'error', 
-          error: error.message || 'Erro desconhecido'
+          error: (error as Error).message || 'Erro desconhecido'
         } : f
       ));
     }

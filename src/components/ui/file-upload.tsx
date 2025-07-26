@@ -99,8 +99,8 @@ export function FileUpload({
       // Reset file input
       if (fileInputRef.current) fileInputRef.current.value = '';
       setFile(null);
-    } catch (error: any) {
-      const errorMessage = error.message || 'Erro ao fazer upload do arquivo';
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao fazer upload do arquivo';
       setError(errorMessage);
       if (onError) onError(errorMessage);
     } finally {
@@ -125,8 +125,8 @@ export function FileUpload({
 
       setFileUrl(null);
       onUploadComplete('');
-    } catch (error: any) {
-      const errorMessage = error.message || 'Erro ao remover o arquivo';
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao remover o arquivo';
       setError(errorMessage);
       if (onError) onError(errorMessage);
     }

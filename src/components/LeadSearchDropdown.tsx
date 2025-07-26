@@ -51,20 +51,20 @@ export function LeadSearchDropdown({
 
   // Buscar leads quando o termo de busca mudar
   useEffect(() => {
-    if (debouncedSearchTerm.length >= 2) {
+    if (debouncedSearchTerm && debouncedSearchTerm.length >= 2) {
       fetchLeads(debouncedSearchTerm);
     } else {
       setLeads([]);
       setShowDropdown(false);
     }
-  }, [debouncedSearchTerm]);
+  }, [debouncedSearchTerm, fetchLeads]);
 
   // Carregar lead selecionado na inicialização
   useEffect(() => {
     if (selectedLeadId && !selectedLead) {
       loadSelectedLead(selectedLeadId);
     }
-  }, [selectedLeadId]);
+  }, [selectedLeadId, selectedLead]);
 
   // Fechar dropdown ao clicar fora
   useEffect(() => {

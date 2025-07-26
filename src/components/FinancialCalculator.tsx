@@ -68,10 +68,10 @@ const FinancialCalculator: React.FC = () => {
       if (error) throw error;
 
       setInstitutions(data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar instituições',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Erro desconhecido',
         variant: 'destructive'
       });
     }
@@ -196,10 +196,10 @@ const FinancialCalculator: React.FC = () => {
           variant: 'destructive'
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro no cálculo',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Erro desconhecido',
         variant: 'destructive'
       });
     } finally {

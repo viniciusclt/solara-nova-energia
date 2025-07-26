@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 export interface SharedProposal {
   id: string;
   share_token: string;
-  proposal_data: any;
+  proposal_data: unknown;
   lead_name: string;
   created_by: string | null;
   created_at: string;
@@ -40,7 +40,7 @@ export class ProposalSharingService {
    * Cria um link de compartilhamento para uma proposta
    */
   async createSharedProposal(
-    proposalData: any,
+    proposalData: unknown,
     leadName: string,
     expirationDays: number = 30
   ): Promise<{ shareToken: string; shareUrl: string }> {

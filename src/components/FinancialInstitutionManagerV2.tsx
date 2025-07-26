@@ -44,8 +44,6 @@ import {
   Compare,
   Shuffle,
   Loader2,
-  TrendingDown,
-  DollarSign,
   Star
 } from 'lucide-react';
 
@@ -219,11 +217,12 @@ const FinancialInstitutionManagerV2: React.FC<FinancialInstitutionManagerV2Props
       
       setInstitutions(data || []);
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao carregar instituições:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: 'Erro ao Carregar',
-        description: error.message || 'Erro desconhecido',
+        description: errorMessage,
         variant: 'destructive'
       });
     } finally {
@@ -261,7 +260,7 @@ const FinancialInstitutionManagerV2: React.FC<FinancialInstitutionManagerV2Props
     
     // Ordenação
     filtered.sort((a, b) => {
-      let aValue: any, bValue: any;
+      let aValue: string | number, bValue: string | number;
       
       switch (sortBy) {
         case 'nome':
@@ -468,10 +467,11 @@ const FinancialInstitutionManagerV2: React.FC<FinancialInstitutionManagerV2Props
         description: institution.nome
       });
       
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: 'Erro',
-        description: error.message,
+        description: errorMessage,
         variant: 'destructive'
       });
     }
@@ -1082,11 +1082,10 @@ const FinancialInstitutionManagerV2: React.FC<FinancialInstitutionManagerV2Props
                             </CardContent>
                           </Card>
                         )}
-                  </div>
-                </CardContent>
-              </Card>
-              </>
-            )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
                 
                 <Card>
                   <CardHeader>
@@ -1164,6 +1163,7 @@ const FinancialInstitutionManagerV2: React.FC<FinancialInstitutionManagerV2Props
                   </div>
                 </CardContent>
               </Card>
+              </>
             )}
           </TabsContent>
           
@@ -1219,7 +1219,7 @@ const FinancialInstitutionManagerV2: React.FC<FinancialInstitutionManagerV2Props
                       return (
                         <div key={tipo.value} className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <tipo.icon className="h-4 w-4" />
+                            {React.createElement(tipo.icon, { className: "h-4 w-4" })}
                             <span className="text-sm">{tipo.label}</span>
                           </div>
                           <div className="flex items-center gap-2">

@@ -39,7 +39,7 @@ interface SimulationData {
 }
 
 interface TechnicalSimulationProps {
-  currentLead: any;
+  currentLead: Record<string, unknown> | null;
 }
 
 export function TechnicalSimulation({ currentLead }: TechnicalSimulationProps) {
@@ -48,7 +48,7 @@ export function TechnicalSimulation({ currentLead }: TechnicalSimulationProps) {
   const [showEquipmentManager, setShowEquipmentManager] = useState(false);
   const [equipmentManagerTab, setEquipmentManagerTab] = useState<"modules" | "inverters">("modules");
   const [showPVSolImporter, setShowPVSolImporter] = useState(false);
-  const [pvsolData, setPvsolData] = useState<any[]>([]);
+  const [pvsolData, setPvsolData] = useState<Array<Record<string, unknown>>>([]);
   const [simulation, setSimulation] = useState<SimulationData>({
     desvioAzimutal: 15,
     inclinacao: 15,
@@ -173,7 +173,7 @@ export function TechnicalSimulation({ currentLead }: TechnicalSimulationProps) {
     setShowEquipmentManager(false);
   };
 
-  const handlePVSolDataImported = (data: any[]) => {
+  const handlePVSolDataImported = (data: Array<Record<string, unknown>>) => {
     setPvsolData(data);
     setShowPVSolImporter(false);
     

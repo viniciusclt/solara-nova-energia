@@ -90,11 +90,7 @@ export function InverterManagerAdvanced() {
     "WiFi", "Ethernet", "RS485", "Bluetooth", "4G/LTE", "Zigbee", "LoRa", "USB"
   ];
 
-  useEffect(() => {
-    fetchInverters();
-  }, []);
-
-  const fetchInverters = async (retryCount = 0) => {
+  const fetchInverters = useCallback(async (retryCount = 0) => {
     setIsLoading(true);
     try {
       const demoDataService = DemoDataService.getInstance();
@@ -151,7 +147,11 @@ export function InverterManagerAdvanced() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchInverters();
+  }, [fetchInverters]);
 
   const handleSaveInverter = async () => {
     try {
@@ -180,13 +180,13 @@ export function InverterManagerAdvanced() {
         // Atualizar inversor existente
         result = await supabase
           .from('inverters' as never)
-          .update(inverterToSave as any)
+          .update(inverterToSave as never)
           .eq('id', currentInverter.id);
       } else {
         // Criar novo inversor
         result = await supabase
           .from('inverters' as never)
-          .insert(inverterToSave as any);
+          .insert(inverterToSave as never);
       }
 
       if (result.error) {

@@ -130,7 +130,7 @@ export class DataFocusedTemplate extends BaseTemplate {
       margin: { left: this.margin, right: this.margin }
     });
     
-    return (this.doc as any).lastAutoTable.finalY + 20;
+    return (this.doc as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 20;
   }
 
   private addFinancialAnalysis(data: ProposalData, yPos: number): number {
@@ -175,7 +175,7 @@ export class DataFocusedTemplate extends BaseTemplate {
       margin: { left: this.margin, right: this.margin }
     });
     
-    return (this.doc as any).lastAutoTable.finalY + 20;
+    return (this.doc as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 20;
   }
 
   private addROIAnalysis(data: ProposalData, yPos: number): number {
@@ -228,7 +228,7 @@ export class DataFocusedTemplate extends BaseTemplate {
       margin: { left: this.margin, right: this.margin }
     });
     
-    return (this.doc as any).lastAutoTable.finalY + 20;
+    return (this.doc as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 20;
   }
 
   private addRiskAnalysis(data: ProposalData, yPos: number): number {
@@ -273,7 +273,7 @@ export class DataFocusedTemplate extends BaseTemplate {
       margin: { left: this.margin, right: this.margin }
     });
     
-    return (this.doc as any).lastAutoTable.finalY + 20;
+    return (this.doc as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 20;
   }
 
   private addRecommendations(data: ProposalData, yPos: number): number {

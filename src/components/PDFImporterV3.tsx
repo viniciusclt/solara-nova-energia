@@ -155,45 +155,45 @@ const PDFImporterV3: React.FC<PDFImporterV3Props> = ({
   const getPatterns = (type: 'module' | 'inverter' | 'battery') => {
     const basePatterns = {
       nome: [
-        /(?:model|modelo|type|tipo)\s*:?\s*([A-Z0-9][A-Z0-9\-\s]{2,30})/gi,
-        /^([A-Z0-9][A-Z0-9\-\s]{2,30})(?:\s|$)/gm
+        /(?:model|modelo|type|tipo)\s*:?\s*([A-Z0-9][A-Z0-9-\s]{2,30})/gi,
+        /^([A-Z0-9][A-Z0-9-\s]{2,30})(?:\s|$)/gm
       ],
       fabricante: [
         /(?:manufacturer|fabricante|marca|brand)\s*:?\s*([A-Za-z\s]{2,30})/gi,
         /(?:jinko|canadian solar|trina|ja solar|longi|risen|astronergy|seraphim|hanwha|rec|lg|panasonic|sunpower|first solar|yingli|sharp|kyocera|sanyo|mitsubishi|bp solar|shell|siemens|abb|sma|fronius|huawei|growatt|goodwe|solaredge|enphase|power one|schneider|delta|kaco|kostal|refusol|sungrow|ginlong|omnik|samil|zeversolar|chint|tbea|kehua|east group|saj|sofar|must|voltronic|victron|outback|magnum|xantrex|morningstar|midnite|schneider|studer|selectronic|sma|fronius|victron|outback|magnum|xantrex|morningstar|midnite|schneider|studer|selectronic)\b/gi
       ],
       potencia: [
-        /(?:power|potência|puissance|pmax|p-max|maximum power|rated power)\s*:?\s*([0-9,\.]+)\s*(?:w|wp|watt|watts|kw|kwp)/gi,
-        /([0-9,\.]+)\s*(?:w|wp|watt|watts|kw|kwp)\s*(?:power|potência|puissance|pmax|p-max)/gi,
-        /([0-9,\.]+)\s*(?:w|wp)(?!\w)/gi
+        /(?:power|potência|puissance|pmax|p-max|maximum power|rated power)\s*:?\s*([0-9,.]+)\s*(?:w|wp|watt|watts|kw|kwp)/gi,
+        /([0-9,.]+)\s*(?:w|wp|watt|watts|kw|kwp)\s*(?:power|potência|puissance|pmax|p-max)/gi,
+        /([0-9,.]+)\s*(?:w|wp)(?!\w)/gi
       ],
       tensaoVoc: [
-        /(?:voc|v-oc|open circuit voltage|tensão circuito aberto|tension circuit ouvert)\s*:?\s*([0-9,\.]+)\s*(?:v|volt|volts)/gi,
-        /([0-9,\.]+)\s*(?:v|volt|volts)\s*(?:voc|v-oc)/gi
+        /(?:voc|v-oc|open circuit voltage|tensão circuito aberto|tension circuit ouvert)\s*:?\s*([0-9,.]+)\s*(?:v|volt|volts)/gi,
+        /([0-9,.]+)\s*(?:v|volt|volts)\s*(?:voc|v-oc)/gi
       ],
       tensaoVmp: [
-        /(?:vmp|v-mp|vmpp|voltage at maximum power|tensão potência máxima|tension puissance maximale)\s*:?\s*([0-9,\.]+)\s*(?:v|volt|volts)/gi,
-        /([0-9,\.]+)\s*(?:v|volt|volts)\s*(?:vmp|v-mp|vmpp)/gi
+        /(?:vmp|v-mp|vmpp|voltage at maximum power|tensão potência máxima|tension puissance maximale)\s*:?\s*([0-9,.]+)\s*(?:v|volt|volts)/gi,
+        /([0-9,.]+)\s*(?:v|volt|volts)\s*(?:vmp|v-mp|vmpp)/gi
       ],
       correnteIsc: [
-        /(?:isc|i-sc|short circuit current|corrente curto circuito|courant court-circuit)\s*:?\s*([0-9,\.]+)\s*(?:a|amp|ampere|amperes)/gi,
-        /([0-9,\.]+)\s*(?:a|amp|ampere|amperes)\s*(?:isc|i-sc)/gi
+        /(?:isc|i-sc|short circuit current|corrente curto circuito|courant court-circuit)\s*:?\s*([0-9,.]+)\s*(?:a|amp|ampere|amperes)/gi,
+        /([0-9,.]+)\s*(?:a|amp|ampere|amperes)\s*(?:isc|i-sc)/gi
       ],
       correnteImp: [
-        /(?:imp|i-mp|impp|current at maximum power|corrente potência máxima|courant puissance maximale)\s*:?\s*([0-9,\.]+)\s*(?:a|amp|ampere|amperes)/gi,
-        /([0-9,\.]+)\s*(?:a|amp|ampere|amperes)\s*(?:imp|i-mp|impp)/gi
+        /(?:imp|i-mp|impp|current at maximum power|corrente potência máxima|courant puissance maximale)\s*:?\s*([0-9,.]+)\s*(?:a|amp|ampere|amperes)/gi,
+        /([0-9,.]+)\s*(?:a|amp|ampere|amperes)\s*(?:imp|i-mp|impp)/gi
       ],
       eficiencia: [
-        /(?:efficiency|eficiência|rendement|η)\s*:?\s*([0-9,\.]+)\s*%/gi,
-        /([0-9,\.]+)\s*%\s*(?:efficiency|eficiência|rendement)/gi
+        /(?:efficiency|eficiência|rendement|η)\s*:?\s*([0-9,.]+)\s*%/gi,
+        /([0-9,.]+)\s*%\s*(?:efficiency|eficiência|rendement)/gi
       ],
       peso: [
-        /(?:weight|peso|poids|mass|massa)\s*:?\s*([0-9,\.]+)\s*(?:kg|kilogram|kilograms)/gi,
-        /([0-9,\.]+)\s*(?:kg|kilogram|kilograms)\s*(?:weight|peso|poids)/gi
+        /(?:weight|peso|poids|mass|massa)\s*:?\s*([0-9,.]+)\s*(?:kg|kilogram|kilograms)/gi,
+        /([0-9,.]+)\s*(?:kg|kilogram|kilograms)\s*(?:weight|peso|poids)/gi
       ],
       dimensoes: [
-        /(?:dimensions|dimensões|taille|size)\s*:?\s*([0-9,\.]+)\s*(?:x|×|\*)\s*([0-9,\.]+)\s*(?:x|×|\*)\s*([0-9,\.]+)\s*(?:mm|cm|m)/gi,
-        /([0-9,\.]+)\s*(?:mm|cm|m)\s*(?:x|×|\*)\s*([0-9,\.]+)\s*(?:mm|cm|m)\s*(?:x|×|\*)\s*([0-9,\.]+)\s*(?:mm|cm|m)/gi
+        /(?:dimensions|dimensões|taille|size)\s*:?\s*([0-9,.]+)\s*(?:x|×|\*)\s*([0-9,.]+)\s*(?:x|×|\*)\s*([0-9,.]+)\s*(?:mm|cm|m)/gi,
+        /([0-9,.]+)\s*(?:mm|cm|m)\s*(?:x|×|\*)\s*([0-9,.]+)\s*(?:mm|cm|m)\s*(?:x|×|\*)\s*([0-9,.]+)\s*(?:mm|cm|m)/gi
       ],
       garantiasProduto: [
         /(?:product warranty|garantia produto|garantie produit)\s*:?\s*([0-9]+)\s*(?:years|anos|ans)/gi,
@@ -204,7 +204,7 @@ const PDFImporterV3: React.FC<PDFImporterV3Props> = ({
         /([0-9]+)\s*(?:years|anos|ans)\s*(?:performance warranty|garantia performance|garantie performance)/gi
       ],
       certificacoes: [
-        /(?:iec|ul|ce|inmetro|aneel|tuv|cec|csa|mcs|pvqt|esti|jis|cnca|cgc|bis|soncap|sabs|kc|psc|ncc|as\/nzs)\s*[0-9\-\s]*/gi
+        /(?:iec|ul|ce|inmetro|aneel|tuv|cec|csa|mcs|pvqt|esti|jis|cnca|cgc|bis|soncap|sabs|kc|psc|ncc|as\/nzs)\s*[0-9-\s]*/gi
       ],
       tecnologia: [
         /(?:monocrystalline|polycrystalline|mono|poly|crystalline|silicon|monocristalino|policristalino|amorfo|perc|topcon|hjt|heterojunction|bifacial)/gi
@@ -215,19 +215,19 @@ const PDFImporterV3: React.FC<PDFImporterV3Props> = ({
       return {
         ...basePatterns,
         potenciaDC: [
-          /(?:dc power|potência dc|puissance dc|max dc power)\s*:?\s*([0-9,\.]+)\s*(?:w|wp|kw|kwp)/gi
+          /(?:dc power|potência dc|puissance dc|max dc power)\s*:?\s*([0-9,.]+)\s*(?:w|wp|kw|kwp)/gi
         ],
         potenciaAC: [
-          /(?:ac power|potência ac|puissance ac|rated ac power)\s*:?\s*([0-9,\.]+)\s*(?:w|wp|kw|kwp)/gi
+          /(?:ac power|potência ac|puissance ac|rated ac power)\s*:?\s*([0-9,.]+)\s*(?:w|wp|kw|kwp)/gi
         ],
         tensaoDC: [
-          /(?:dc voltage|tensão dc|tension dc|max dc voltage|mppt range)\s*:?\s*([0-9,\.\-]+)\s*(?:v|volt|volts)/gi
+          /(?:dc voltage|tensão dc|tension dc|max dc voltage|mppt range)\s*:?\s*([0-9,.-]+)\s*(?:v|volt|volts)/gi
         ],
         tensaoAC: [
-          /(?:ac voltage|tensão ac|tension ac|nominal ac voltage)\s*:?\s*([0-9,\.]+)\s*(?:v|volt|volts)/gi
+          /(?:ac voltage|tensão ac|tension ac|nominal ac voltage)\s*:?\s*([0-9,.]+)\s*(?:v|volt|volts)/gi
         ],
         frequencia: [
-          /(?:frequency|frequência|fréquence)\s*:?\s*([0-9,\.]+)\s*(?:hz|hertz)/gi
+          /(?:frequency|frequência|fréquence)\s*:?\s*([0-9,.]+)\s*(?:hz|hertz)/gi
         ],
         fases: [
           /(?:phases|fases|phase)\s*:?\s*([0-9]+)/gi,
@@ -240,16 +240,16 @@ const PDFImporterV3: React.FC<PDFImporterV3Props> = ({
       return {
         ...basePatterns,
         capacidade: [
-          /(?:capacity|capacidade|capacité)\s*:?\s*([0-9,\.]+)\s*(?:ah|kwh|wh)/gi
+          /(?:capacity|capacidade|capacité)\s*:?\s*([0-9,.]+)\s*(?:ah|kwh|wh)/gi
         ],
         tensaoNominal: [
-          /(?:nominal voltage|tensão nominal|tension nominale)\s*:?\s*([0-9,\.]+)\s*(?:v|volt|volts)/gi
+          /(?:nominal voltage|tensão nominal|tension nominale)\s*:?\s*([0-9,.]+)\s*(?:v|volt|volts)/gi
         ],
         ciclosVida: [
-          /(?:cycle life|ciclos vida|cycles de vie|life cycles)\s*:?\s*([0-9,\.]+)/gi
+          /(?:cycle life|ciclos vida|cycles de vie|life cycles)\s*:?\s*([0-9,.]+)/gi
         ],
         profundidadeDescarga: [
-          /(?:dod|depth of discharge|profundidade descarga|profondeur décharge)\s*:?\s*([0-9,\.]+)\s*%/gi
+          /(?:dod|depth of discharge|profundidade descarga|profondeur décharge)\s*:?\s*([0-9,.]+)\s*%/gi
         ]
       };
     }
@@ -277,7 +277,7 @@ const PDFImporterV3: React.FC<PDFImporterV3Props> = ({
           successfulMatches++;
           
           if (key === 'dimensoes') {
-            const dimensionMatch = text.match(/([0-9,\.]+)\s*(?:x|×|\*)\s*([0-9,\.]+)\s*(?:x|×|\*)\s*([0-9,\.]+)/gi);
+            const dimensionMatch = text.match(/([0-9,.]+)\s*(?:x|×|\*)\s*([0-9,.]+)\s*(?:x|×|\*)\s*([0-9,.]+)/gi);
             if (dimensionMatch) {
               const parts = dimensionMatch[0].split(/(?:x|×|\*)/);
               data.dimensoes = {
@@ -290,7 +290,7 @@ const PDFImporterV3: React.FC<PDFImporterV3Props> = ({
             data[key] = matches;
           } else {
             const match = matches[0];
-            const numberMatch = match.match(/([0-9,\.]+)/);
+            const numberMatch = match.match(/([0-9,.]+)/);
             data[key as keyof ExtractedData] = numberMatch ? numberMatch[1] : match.trim();
           }
           break;
@@ -413,17 +413,18 @@ const PDFImporterV3: React.FC<PDFImporterV3Props> = ({
         description: `Arquivo ${file.file.name} processado com ${extractedData.confidence.toFixed(1)}% de confiança.`
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro no processamento:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       setFiles(prev => prev.map(f => 
         f.id === file.id 
-          ? { ...f, status: 'error', error: error.message }
+          ? { ...f, status: 'error', error: errorMessage }
           : f
       ));
       
       toast({
         title: "Erro no Processamento",
-        description: `Falha ao processar ${file.file.name}: ${error.message}`,
+        description: `Falha ao processar ${file.file.name}: ${errorMessage}`,
         variant: "destructive"
       });
     }
@@ -608,11 +609,12 @@ const PDFImporterV3: React.FC<PDFImporterV3Props> = ({
       setFinalProducts([]);
       setCurrentTab('upload');
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao salvar produtos:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: "Erro na Importação",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {

@@ -76,16 +76,16 @@ interface ValidationError {
   column: string;
   message: string;
   severity: 'error' | 'warning';
-  value?: any;
+  value?: unknown;
 }
 
 interface GridData {
   id: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface ExcelImporterV4Props {
-  onDataImported: (data: any[]) => void;
+  onDataImported: (data: unknown[]) => void;
   template?: DataTemplate;
   maxFileSize?: number;
   allowedFileTypes?: string[];
@@ -178,44 +178,47 @@ const ExcelImporterV4: React.FC<ExcelImporterV4Props> = ({
   }), []);
   
   // Função de validação otimizada com debounce
-  const validateData = useCallback(
-    debounce((data: GridData[]) => {
-      const errors: ValidationError[] = [];
-      
-      data.forEach((row, index) => {
-        try {
-          validationSchema.parse(row);
-        } catch (error) {
-          if (error instanceof z.ZodError) {
-            error.errors.forEach(err => {
-              errors.push({
-                row: index + 1,
-                column: err.path.join('.'),
-                message: err.message,
-                severity: 'error',
-                value: err.path.reduce((obj, key) => obj?.[key], row)
-              });
-            });
-          }
-        }
-        
-        // Validações customizadas
-        if (selectedTemplate === 'financial_kits') {
-          if (row.email && !row.email.includes('@')) {
+  const validateData = useCallback((data: GridData[]) => {
+    const errors: ValidationError[] = [];
+    
+    data.forEach((row, index) => {
+      try {
+        validationSchema.parse(row);
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          error.errors.forEach(err => {
             errors.push({
               row: index + 1,
-              column: 'email',
-              message: 'Email deve conter @',
-              severity: 'warning',
-              value: row.email
+              column: err.path.join('.'),
+              message: err.message,
+              severity: 'error',
+              value: err.path.reduce((obj, key) => obj?.[key], row)
             });
-          }
+          });
         }
-      });
+      }
       
-      setValidationErrors(errors);
-    }, 300),
-    [validationSchema, selectedTemplate]
+      // Validações customizadas
+      if (selectedTemplate === 'financial_kits') {
+        if (row.email && !row.email.includes('@')) {
+          errors.push({
+            row: index + 1,
+            column: 'email',
+            message: 'Email deve conter @',
+            severity: 'warning',
+            value: row.email
+          });
+        }
+      }
+    });
+    
+    setValidationErrors(errors);
+  }, [validationSchema, selectedTemplate]);
+  
+  // Versão com debounce da função de validação
+  const debouncedValidateData = useMemo(
+    () => debounce(validateData, 300),
+    [validateData]
   );
   
   // Função para processar arquivo com otimização de performance
@@ -227,7 +230,7 @@ const ExcelImporterV4: React.FC<ExcelImporterV4Props> = ({
       const arrayBuffer = await file.arrayBuffer();
       setUploadProgress(30);
       
-      let data: any[][];
+      let data: unknown[][];
       
       if (file.name.endsWith('.csv')) {
         const text = new TextDecoder().decode(arrayBuffer);
@@ -289,7 +292,7 @@ const ExcelImporterV4: React.FC<ExcelImporterV4Props> = ({
       setCurrentTab('edit');
       
       // Validar dados após processamento
-      validateData(processedData);
+      debouncedValidateData(processedData);
       
       toast({
         title: 'Arquivo processado com sucesso',
@@ -338,28 +341,28 @@ const ExcelImporterV4: React.FC<ExcelImporterV4Props> = ({
       const previousData = history[historyIndex - 1];
       setGridData([...previousData]);
       setHistoryIndex(historyIndex - 1);
-      validateData(previousData);
+      debouncedValidateData(previousData);
     }
-  }, [history, historyIndex, validateData]);
+  }, [history, historyIndex, debouncedValidateData]);
   
   const redo = useCallback(() => {
     if (historyIndex < history.length - 1) {
       const nextData = history[historyIndex + 1];
       setGridData([...nextData]);
       setHistoryIndex(historyIndex + 1);
-      validateData(nextData);
+      debouncedValidateData(nextData);
     }
   }, [history, historyIndex, validateData]);
   
   // Funções de manipulação de dados
-  const updateCellValue = useCallback((rowId: string, columnId: string, value: any) => {
+  const updateCellValue = useCallback((rowId: string, columnId: string, value: unknown) => {
     const newData = gridData.map(row => 
       row.id === rowId ? { ...row, [columnId]: value } : row
     );
     setGridData(newData);
     saveToHistory(newData);
-    validateData(newData);
-  }, [gridData, saveToHistory, validateData]);
+    debouncedValidateData(newData);
+  }, [gridData, saveToHistory, debouncedValidateData]);
   
   const addNewRow = useCallback(() => {
     const newRow: GridData = {

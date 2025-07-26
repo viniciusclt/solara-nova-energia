@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { validateEmail, validatePassword, validateName, sanitizeInput } from '@/lib/validation';
+import { supabase } from '../integrations/supabase/client';
+import { useToast } from '../hooks/use-toast';
+import { PERMISSIONS, validateEmail, validatePassword, sanitizeEmail } from './authUtils';
+
 
 export type UserAccessType = 'vendedor' | 'engenheiro' | 'admin' | 'super_admin';
 
@@ -29,8 +30,8 @@ interface AuthContextType {
   profile: UserProfile | null;
   company: Company | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, name: string) => Promise<{ error: any }>;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, name: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   hasPermission: (action: string) => boolean;
   isSubscriptionActive: boolean;
@@ -46,12 +47,7 @@ export const useAuth = () => {
   return context;
 };
 
-const PERMISSIONS = {
-  vendedor: ['view_leads', 'generate_proposals', 'view_sales_dashboard'],
-  engenheiro: ['technical_simulations', 'edit_kits', 'view_climate_data', 'view_leads', 'generate_proposals'],
-  admin: ['manage_employees', 'view_reports', 'approve_budgets', 'view_leads', 'generate_proposals', 'technical_simulations'],
-  super_admin: ['all']
-};
+
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -178,14 +174,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Validate email format
-      const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
-      if (!emailRegex.test(email)) {
+      if (!validateEmail(email)) {
         const error = new Error('Formato de email inválido');
         return { error };
       }
 
       const { error } = await supabase.auth.signInWithPassword({
-        email: email.toLowerCase().trim(),
+        email: sanitizeEmail(email),
         password,
       });
       
@@ -201,7 +196,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               user_id: user?.id || 'anonymous',
               action: 'failed_login',
               details: { 
-                email: email.toLowerCase().trim(),
+                email: sanitizeEmail(email),
                 timestamp: new Date().toISOString()
               }
             });
@@ -240,24 +235,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Validate password strength
       const passwordValidation = validatePassword(password);
       if (!passwordValidation.isValid) {
-        const error = new Error(passwordValidation.message);
+        const error = new Error(passwordValidation.message || 'Senha inválida');
         return { error };
       }
 
       // Validate name
-      const nameValidation = validateName(name);
-      if (!nameValidation.isValid) {
-        const error = new Error(nameValidation.message);
+      if (!name.trim() || name.trim().length < 2) {
+        const error = new Error('Nome deve ter pelo menos 2 caracteres');
         return { error };
       }
 
       const { error } = await supabase.auth.signUp({
-        email: email.toLowerCase().trim(),
+        email: sanitizeEmail(email),
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/`,
           data: {
-            name: sanitizeInput(name),
+            name: name.trim(),
           },
         },
       });
@@ -285,7 +279,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               user_id: user?.id || 'pending',
               action: 'signup_attempt',
               details: { 
-                email: email.toLowerCase().trim(),
+                email: sanitizeEmail(email),
                 timestamp: new Date().toISOString()
               }
             });

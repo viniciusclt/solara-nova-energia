@@ -21,7 +21,7 @@ interface Equipment {
 }
 
 interface ConsumptionCalculatorProps {
-  currentLead: any;
+  currentLead: Record<string, unknown> | null;
 }
 
 export function ConsumptionCalculator({ currentLead }: ConsumptionCalculatorProps) {
@@ -131,7 +131,7 @@ export function ConsumptionCalculator({ currentLead }: ConsumptionCalculatorProp
     setEquipments(equipments.filter(eq => eq.id !== id));
   };
 
-  const usePreset = (preset: any) => {
+  const applyPreset = (preset: { name: string; power: number }) => {
     setNewEquipment(prev => ({
       ...prev,
       name: preset.name,
@@ -223,7 +223,7 @@ export function ConsumptionCalculator({ currentLead }: ConsumptionCalculatorProp
                         key={preset.name}
                         variant="outline"
                         size="sm"
-                        onClick={() => usePreset(preset)}
+                        onClick={() => applyPreset(preset)}
                         className="justify-start"
                       >
                         {preset.name}

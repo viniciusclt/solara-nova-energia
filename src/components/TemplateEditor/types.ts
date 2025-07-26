@@ -88,8 +88,8 @@ export interface ComponentProperties {
   
   // Chart properties
   chartType?: 'bar' | 'line' | 'pie' | 'area';
-  chartData?: any[];
-  chartConfig?: any;
+  chartData?: Record<string, unknown>[];
+  chartConfig?: Record<string, unknown>;
   
   // Placeholder properties
   placeholderKey?: string;
@@ -120,7 +120,7 @@ export interface TableColumn {
 
 export interface TableRow {
   id: string;
-  cells: Record<string, any>;
+  cells: Record<string, unknown>;
 }
 
 export interface TemplateData {
@@ -190,7 +190,7 @@ export interface CanvasRect {
 
 export interface EditorAction {
   type: 'ADD_COMPONENT' | 'UPDATE_COMPONENT' | 'DELETE_COMPONENT' | 'MOVE_COMPONENT' | 'DUPLICATE_COMPONENT';
-  payload: any;
+  payload: unknown;
   timestamp: number;
 }
 

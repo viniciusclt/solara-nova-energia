@@ -16,7 +16,7 @@ interface PDFFile {
   uploadProgress: number;
   status: 'pending' | 'uploading' | 'processing' | 'completed' | 'error';
   error?: string;
-  ocrData?: any;
+  ocrData?: Record<string, unknown>;
   downloadUrl?: string;
 }
 
@@ -36,14 +36,14 @@ const PDFUploader: React.FC<PDFUploaderProps> = ({
   const [files, setFiles] = useState<PDFFile[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: any[]) => {
+  const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: { file: File; errors: { code: string; message: string }[] }[]) => {
     console.log('[PDFUploader] Arquivos aceitos:', acceptedFiles);
     console.log('[PDFUploader] Arquivos rejeitados:', rejectedFiles);
 
     // Tratar arquivos rejeitados
     if (rejectedFiles.length > 0) {
       rejectedFiles.forEach(({ file, errors }) => {
-        errors.forEach((error: any) => {
+        errors.forEach((error: { code: string; message: string }) => {
           let message = 'Erro desconhecido';
           switch (error.code) {
             case 'file-too-large':
@@ -191,13 +191,13 @@ const PDFUploader: React.FC<PDFUploaderProps> = ({
 
           console.log(`[PDFUploader] Arquivo processado com sucesso: ${fileData.file.name}`);
 
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error(`[PDFUploader] Erro ao processar arquivo ${fileData.file.name}:`, error);
           
           updatedFiles[i] = { 
             ...updatedFiles[i], 
             status: 'error',
-            error: error.message || 'Erro desconhecido'
+            error: (error as Error).message || 'Erro desconhecido'
           };
           setFiles([...updatedFiles]);
         }
@@ -218,11 +218,11 @@ const PDFUploader: React.FC<PDFUploaderProps> = ({
         });
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[PDFUploader] Erro geral no processamento:', error);
       toast({
         title: "Erro no Processamento",
-        description: error.message || 'Erro desconhecido durante o processamento',
+        description: (error as Error).message || 'Erro desconhecido durante o processamento',
         variant: "destructive"
       });
     } finally {

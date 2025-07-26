@@ -65,7 +65,7 @@ export const SimpleOCR: React.FC<SimpleOCRProps> = ({
   const [selectedResult, setSelectedResult] = useState<string>('');
 
   // Patterns para extração de dados específicos
-  const extractionPatterns = {
+  const extractionPatterns = useMemo(() => ({
     cliente: [
       /Cliente:\s*(.+?)(?:\n|$)/gi,
       /Nome:\s*(.+?)(?:\n|$)/gi,
@@ -89,8 +89,8 @@ export const SimpleOCR: React.FC<SimpleOCRProps> = ({
     ],
     telefone: [
       /\(?\d{2}\)?\s*\d{4,5}-?\d{4}/g,
-      /Telefone:\s*([\d\s\(\)\-]+)/gi,
-      /Celular:\s*([\d\s\(\)\-]+)/gi
+      /Telefone:\s*([\d\s()-]+)/gi,
+      /Celular:\s*([\d\s()-]+)/gi
     ],
     email: [
       /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
@@ -101,7 +101,7 @@ export const SimpleOCR: React.FC<SimpleOCRProps> = ({
       /Vencimento:\s*(\d{1,2}\/\d{1,2}\/\d{4})/gi,
       /Validade:\s*(\d{1,2}\/\d{1,2}\/\d{4})/gi
     ]
-  };
+  }), []);
 
   // Simular OCR (em produção, usaria Tesseract.js ou API externa)
   const simulateOCR = async (file: File): Promise<string> => {
@@ -176,7 +176,7 @@ export const SimpleOCR: React.FC<SimpleOCRProps> = ({
   };
 
   // Extrair dados estruturados do texto
-  const extractStructuredData = (text: string): ExtractedData => {
+  const extractStructuredData = useCallback((text: string): ExtractedData => {
     const extracted: ExtractedData = {};
     
     Object.entries(extractionPatterns).forEach(([key, patterns]) => {
@@ -197,7 +197,7 @@ export const SimpleOCR: React.FC<SimpleOCRProps> = ({
     });
     
     return extracted;
-  };
+  }, [extractionPatterns]);
 
   // Processar arquivo
   const processFile = useCallback(async (file: File) => {
@@ -305,7 +305,7 @@ export const SimpleOCR: React.FC<SimpleOCRProps> = ({
       setIsProcessing(false);
       setProgress(0);
     }
-  }, [onDataExtracted, toast]);
+  }, [onDataExtracted, toast, extractStructuredData]);
 
   // Configurar dropzone
   const { getRootProps, getInputProps, isDragActive } = useDropzone({

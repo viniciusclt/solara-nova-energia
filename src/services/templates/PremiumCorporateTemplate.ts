@@ -213,7 +213,7 @@ export class PremiumCorporateTemplate extends BaseTemplate {
       margin: { left: this.margin, right: this.margin }
     });
     
-    yPos = (this.doc as any).lastAutoTable.finalY + 30;
+    yPos = (this.doc as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 30;
     
     // Consumption analysis
     this.doc.setFontSize(14);
@@ -311,7 +311,7 @@ export class PremiumCorporateTemplate extends BaseTemplate {
       margin: { left: this.margin, right: this.margin }
     });
     
-    yPos = (this.doc as any).lastAutoTable.finalY + 25;
+    yPos = (this.doc as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 25;
     
     // Performance guarantees
     this.doc.setFontSize(14);
@@ -400,7 +400,7 @@ export class PremiumCorporateTemplate extends BaseTemplate {
       margin: { left: this.margin, right: this.margin }
     });
     
-    yPos = (this.doc as any).lastAutoTable.finalY + 20;
+    yPos = (this.doc as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 20;
     
     // ROI visualization
     this.doc.setFontSize(12);
@@ -487,7 +487,7 @@ export class PremiumCorporateTemplate extends BaseTemplate {
       margin: { left: this.margin, right: this.margin }
     });
     
-    yPos = (this.doc as any).lastAutoTable.finalY + 25;
+    yPos = (this.doc as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 25;
     
     // Terms and conditions
     this.doc.setFontSize(14);
@@ -610,7 +610,7 @@ export class PremiumCorporateTemplate extends BaseTemplate {
     this.doc.text('SolarCalc Pro', this.pageWidth - 60, 30);
   }
 
-  private formatAddress(address: any): string {
+  private formatAddress(address: unknown): string {
     if (!address) return 'Não informado';
     if (typeof address === 'string') return address;
     return `${address.street || ''}, ${address.city || ''} - ${address.state || ''}`;

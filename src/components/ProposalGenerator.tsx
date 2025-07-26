@@ -38,7 +38,7 @@ interface ProposalData {
 }
 
 interface ProposalGeneratorProps {
-  currentLead: any;
+  currentLead: Record<string, unknown> | null;
 }
 
 export function ProposalGenerator({ currentLead }: ProposalGeneratorProps) {

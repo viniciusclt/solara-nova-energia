@@ -27,7 +27,7 @@ export interface ProcessedData {
   id: string;
   type: 'module' | 'inverter' | 'battery' | 'unknown';
   confidence: number;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   rawText: string;
   pageNumber: number;
 }
@@ -91,9 +91,9 @@ export const PDFImporter: React.FC<PDFImporterProps> = ({
     }
   }, [autoProcess]);
 
-  const handleFileRejected = useCallback((rejectedFiles: any[]) => {
+  const handleFileRejected = useCallback((rejectedFiles: Array<{file: File, errors: Array<{code: string, message: string}>}>) => {
     const errors = rejectedFiles.map(file => {
-      const errors = file.errors.map((error: any) => {
+      const errors = file.errors.map((error: {code: string, message: string}) => {
         switch (error.code) {
           case 'file-too-large':
             return `Arquivo muito grande (máximo ${maxFileSize}MB)`;
