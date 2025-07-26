@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -47,6 +47,9 @@ export function useNotifications() {
   const { toast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Referência para markAsRead para uso em callbacks
+  const markAsReadRef = useRef<((id: string) => Promise<void>) | null>(null);
   const [stats, setStats] = useState<NotificationStats>({
     total: 0,
     unread: 0,
@@ -165,6 +168,64 @@ export function useNotifications() {
     }
   }, [profile, toast]);
 
+  // Solicitar permissão para notificações push
+  const requestNotificationPermission = useCallback(async (): Promise<boolean> => {
+    if (!('Notification' in window)) {
+      console.warn('Este navegador não suporta notificações push');
+      return false;
+    }
+    
+    if (Notification.permission === 'granted') {
+      return true;
+    }
+    
+    if (Notification.permission === 'denied') {
+      return false;
+    }
+    
+    const permission = await Notification.requestPermission();
+    return permission === 'granted';
+  }, []);
+
+  // Enviar notificação push
+  const sendPushNotification = useCallback(async (notification: Notification) => {
+    const hasPermission = await requestNotificationPermission();
+    
+    if (!hasPermission) {
+      return;
+    }
+    
+    try {
+      const pushNotification = new Notification(notification.title, {
+        body: notification.message,
+        icon: '/favicon.ico',
+        badge: '/favicon.ico',
+        tag: notification.id,
+        requireInteraction: notification.priority === 'urgent',
+        silent: notification.priority === 'low'
+      });
+      
+      pushNotification.onclick = () => {
+         window.focus();
+         // markAsRead será definido mais tarde, então vamos usar uma referência
+         if (markAsReadRef.current) {
+           markAsReadRef.current(notification.id);
+         }
+         pushNotification.close();
+       };
+      
+      // Auto-fechar após 5 segundos para notificações não urgentes
+      if (notification.priority !== 'urgent') {
+        setTimeout(() => {
+          pushNotification.close();
+        }, 5000);
+      }
+      
+    } catch (error) {
+      console.error('Erro ao enviar notificação push:', error);
+    }
+  }, [requestNotificationPermission]);
+
   // Criar nova notificação
   const createNotification = useCallback(async (params: CreateNotificationParams) => {
     if (!profile) return null;
@@ -250,6 +311,11 @@ export function useNotifications() {
       console.error('Erro ao marcar como lida:', error);
     }
   }, []);
+  
+  // Atualizar referência para markAsRead
+  useEffect(() => {
+    markAsReadRef.current = markAsRead;
+  }, [markAsRead]);
 
   // Marcar como não lida
   const markAsUnread = useCallback(async (notificationId: string) => {
@@ -479,60 +545,7 @@ export function useNotifications() {
     setGroupedNotifications(grouped);
   }, [notifications, groupNotificationsByType]);
 
-  // Solicitar permissão para notificações push
-  const requestNotificationPermission = useCallback(async (): Promise<boolean> => {
-    if (!('Notification' in window)) {
-      console.warn('Este navegador não suporta notificações push');
-      return false;
-    }
-    
-    if (Notification.permission === 'granted') {
-      return true;
-    }
-    
-    if (Notification.permission === 'denied') {
-      return false;
-    }
-    
-    const permission = await Notification.requestPermission();
-    return permission === 'granted';
-  }, []);
 
-  // Enviar notificação push
-  const sendPushNotification = useCallback(async (notification: Notification) => {
-    const hasPermission = await requestNotificationPermission();
-    
-    if (!hasPermission) {
-      return;
-    }
-    
-    try {
-      const pushNotification = new Notification(notification.title, {
-        body: notification.message,
-        icon: '/favicon.ico',
-        badge: '/favicon.ico',
-        tag: notification.id,
-        requireInteraction: notification.priority === 'urgent',
-        silent: notification.priority === 'low'
-      });
-      
-      pushNotification.onclick = () => {
-        window.focus();
-        markAsRead(notification.id);
-        pushNotification.close();
-      };
-      
-      // Auto-fechar após 5 segundos para notificações não urgentes
-      if (notification.priority !== 'urgent') {
-        setTimeout(() => {
-          pushNotification.close();
-        }, 5000);
-      }
-      
-    } catch (error) {
-      console.error('Erro ao enviar notificação push:', error);
-    }
-  }, [requestNotificationPermission, markAsRead]);
 
   // Atualizar agrupamentos quando as notificações mudarem
   useEffect(() => {
