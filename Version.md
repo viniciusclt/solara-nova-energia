@@ -1,5 +1,18 @@
 # SolarCalc Pro - Histórico de Versões
 
+## [5.1.1] - 2025-01-27
+### Fixed
+- ✅ **Correção ERR_ABORTED**: Resolvido erro de conectividade em connectivityService.ts
+- Substituição de requisições HEAD para /favicon.ico por data URI
+- Eliminação de erros no console mantendo monitoramento de rede
+- Melhoria na experiência do desenvolvedor com logs mais limpos
+- Documentação atualizada com detalhes da correção
+
+### Changed
+- connectivityService.ts otimizado para usar data:text/plain;base64,dGVzdA==
+- Redução significativa de ruído no console do navegador
+- Manutenção da funcionalidade de monitoramento de conectividade
+
 ## [5.1.0] - 2025-01-27
 ### Fixed
 - ✅ **Correção de Problemas de Hoisting**: Resolvidos todos os problemas de hoisting no código
