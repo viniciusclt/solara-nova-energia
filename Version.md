@@ -1,5 +1,17 @@
 # SolarCalc Pro - Histórico de Versões
 
+## [5.2.1] - 2025-01-27
+### Fixed
+- ✅ **Correção de Hoisting Error**: Resolvido erro "Cannot access 'loadExcelFile' before initialization" em ExcelImporterV2.tsx
+- Reorganização das funções useCallback para evitar problemas de hoisting
+- Remoção de código duplicado (função loadExcelFileOld desnecessária)
+- Melhoria na estabilidade do componente de importação Excel
+
+### Changed
+- Melhor organização das declarações de função
+- Otimização do carregamento de arquivos Excel
+- Código mais limpo e organizado
+
 ## [5.2.0] - 2025-01-27
 ### Added
 - ✅ **Reestruturação Completa da Interface**: Remoção da aba "Gerenciamento" e realocação de funcionalidades
