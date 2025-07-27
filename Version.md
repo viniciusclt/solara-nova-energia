@@ -1,5 +1,51 @@
 # SolarCalc Pro - Histórico de Versões
 
+## [5.4.0] - 2025-01-27
+### Added
+- ✅ **ProposalEditor A4/16:9 com Animações**: Editor completo de propostas com múltiplos formatos
+  - Suporte a formatos A4, Letter e 16:9 para apresentações
+  - Sistema de animações web: fadein, fadeout, slide, zoom
+  - Delays configuráveis de 100ms a 5000ms
+  - Quebra automática A4 por altura do conteúdo
+  - Controle de slides para formato 16:9 (5-50 slides configuráveis)
+  - Interface de controle de apresentação (play/pause/anterior/próximo)
+  - Avanço automático ou manual (clique/seta)
+  - Indicadores visuais de progresso
+- ✅ **ResponsiveText Aplicado**: Correção definitiva dos subtítulos problemáticos
+  - Aplicado nos subtítulos "Importar e gerenciar dados do lead" e "Calcular incremento de consumo"
+  - Configuração otimizada com maxWidth de 120px
+  - Tooltip automático quando texto é truncado
+- ✅ **Sistema de Animações Web Otimizado**: Implementação CSS/JavaScript para web
+  - Performance otimizada com requestAnimationFrame
+  - Compatibilidade com navegadores modernos
+  - Custo-benefício otimizado para aplicações web
+  - Animações exclusivas para web (não PDF)
+
+### Changed
+- ProposalEditor.tsx expandido com 200+ linhas de novas funcionalidades
+- Interface de configuração com sliders e switches responsivos
+- Sistema de templates expandido com configurações de animação
+- melhorias.md atualizado para status 100% concluído
+- Documentação completa das implementações realizadas
+
+### Technical Implementation
+- Interfaces TypeScript: AnimationSettings, SlideSettings
+- Estados de controle: isPlaying, isPaused, currentSlide
+- Componentes UI: Slider, Switch, Button com ícones contextuais
+- Lógica de quebra automática para A4 vs controle manual para 16:9
+- Sistema de notificações toast para feedback do usuário
+
+### Fixed
+- ✅ **Subtítulos Responsivos**: Problema de overflow em diferentes tamanhos de tela resolvido
+- ✅ **Editor de Propostas**: Funcionalidades completas de A4/16:9 implementadas
+- ✅ **Sistema de Animações**: Delays e controles de apresentação funcionais
+
+### Closes
+- #proposal-editor-a4-16-9: Formatos A4 e 16:9 implementados
+- #animation-system: Sistema de animações web completo
+- #responsive-subtitles: Subtítulos responsivos aplicados
+- #presentation-controls: Controles de apresentação funcionais
+
 ## [5.3.0] - 2025-01-27
 ### Added
 - ✅ **ResponsiveText Component**: Componente avançado para texto responsivo com estratégias adaptativas
