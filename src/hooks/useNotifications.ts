@@ -124,24 +124,24 @@ export function useNotifications() {
       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       
       const newStats: NotificationStats = {
-        total: notificationData.length,
-        unread: notificationData.filter(n => !n.read).length,
-        urgent: notificationData.filter(n => n.priority === 'urgent' || n.priority === 'high').length,
+        total: result.length,
+        unread: result.filter(n => !n.read).length,
+        urgent: result.filter(n => n.priority === 'urgent' || n.priority === 'high').length,
         byType: {
-          info: notificationData.filter(n => n.type === 'info').length,
-          success: notificationData.filter(n => n.type === 'success').length,
-          warning: notificationData.filter(n => n.type === 'warning').length,
-          error: notificationData.filter(n => n.type === 'error').length,
-          system: notificationData.filter(n => n.type === 'system').length
+          info: result.filter(n => n.type === 'info').length,
+          success: result.filter(n => n.type === 'success').length,
+          warning: result.filter(n => n.type === 'warning').length,
+          error: result.filter(n => n.type === 'error').length,
+          system: result.filter(n => n.type === 'system').length
         },
         byPriority: {
-          low: notificationData.filter(n => n.priority === 'low').length,
-          medium: notificationData.filter(n => n.priority === 'medium').length,
-          high: notificationData.filter(n => n.priority === 'high').length,
-          urgent: notificationData.filter(n => n.priority === 'urgent').length
+          low: result.filter(n => n.priority === 'low').length,
+          medium: result.filter(n => n.priority === 'medium').length,
+          high: result.filter(n => n.priority === 'high').length,
+          urgent: result.filter(n => n.priority === 'urgent').length
         },
-        todayCount: notificationData.filter(n => new Date(n.created_at) >= today).length,
-        weekCount: notificationData.filter(n => new Date(n.created_at) >= weekAgo).length
+        todayCount: result.filter(n => new Date(n.created_at) >= today).length,
+        weekCount: result.filter(n => new Date(n.created_at) >= weekAgo).length
       };
       setStats(newStats);
 
@@ -326,7 +326,7 @@ export function useNotifications() {
         read: false
       };
 
-      const { data, error } = await supabase
+      const { data: newNotification, error } = await supabase
         .from('notifications')
         .insert(notificationData)
         .select()
