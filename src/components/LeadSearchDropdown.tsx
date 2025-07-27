@@ -49,6 +49,33 @@ export function LeadSearchDropdown({
   // Debounce da busca para evitar requisições excessivas
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
+  const fetchLeads = async (term: string) => {
+    try {
+      setLoading(true);
+      
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, name, email, phone, concessionaria, grupo, consumo_medio, created_at, updated_at')
+        .or(`name.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%`)
+        .order('updated_at', { ascending: false })
+        .limit(maxResults);
+
+      if (error) throw error;
+
+      setLeads(data || []);
+      setShowDropdown(true);
+    } catch (error) {
+      console.error('Error fetching leads:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao buscar leads",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Buscar leads quando o termo de busca mudar
   useEffect(() => {
     if (debouncedSearchTerm && debouncedSearchTerm.length >= 2) {
@@ -57,7 +84,7 @@ export function LeadSearchDropdown({
       setLeads([]);
       setShowDropdown(false);
     }
-  }, [debouncedSearchTerm, fetchLeads]);
+  }, [debouncedSearchTerm]);
 
   // Carregar lead selecionado na inicialização
   useEffect(() => {
@@ -99,33 +126,6 @@ export function LeadSearchDropdown({
       }
     } catch (error) {
       console.error('Error loading selected lead:', error);
-    }
-  };
-
-  const fetchLeads = async (term: string) => {
-    try {
-      setLoading(true);
-      
-      const { data, error } = await supabase
-        .from('leads')
-        .select('id, name, email, phone, concessionaria, grupo, consumo_medio, created_at, updated_at')
-        .or(`name.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%`)
-        .order('updated_at', { ascending: false })
-        .limit(maxResults);
-
-      if (error) throw error;
-
-      setLeads(data || []);
-      setShowDropdown(true);
-    } catch (error) {
-      console.error('Error fetching leads:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao buscar leads",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
     }
   };
 
