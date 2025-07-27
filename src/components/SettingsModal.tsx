@@ -9,10 +9,14 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Settings, Sheet, RefreshCw, History, AlertCircle, CheckCircle2, Clock, Search } from "lucide-react";
+import { Settings, Sheet, RefreshCw, History, AlertCircle, CheckCircle2, Clock, Search, Shield, Database, Activity, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { AuditLogViewer } from "./AuditLogViewer";
+import { BackupManager } from "./BackupManager";
+import { PerformanceMonitor } from "./PerformanceMonitor";
+import { ReportsManager } from "./ReportsManager";
 
 interface GoogleSheetsSettings {
   spreadsheetUrl: string;
@@ -739,7 +743,7 @@ export const SettingsModal: React.FC = () => {
         </DialogHeader>
 
         <Tabs defaultValue="google-sheets" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="google-sheets" className="flex items-center gap-2">
               <Sheet className="h-4 w-4" />
               Google Sheets
@@ -747,6 +751,22 @@ export const SettingsModal: React.FC = () => {
             <TabsTrigger value="import-history" className="flex items-center gap-2">
               <History className="h-4 w-4" />
               Histórico
+            </TabsTrigger>
+            <TabsTrigger value="audit-logs" className="flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              Logs de Auditoria
+            </TabsTrigger>
+            <TabsTrigger value="backup" className="flex items-center gap-2">
+              <Database className="h-4 w-4" />
+              Backup
+            </TabsTrigger>
+            <TabsTrigger value="performance" className="flex items-center gap-2">
+              <Activity className="h-4 w-4" />
+              Performance
+            </TabsTrigger>
+            <TabsTrigger value="reports" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Relatórios
             </TabsTrigger>
             <TabsTrigger value="general" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
@@ -2155,6 +2175,22 @@ export const SettingsModal: React.FC = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="audit-logs" className="space-y-4">
+            <AuditLogViewer />
+          </TabsContent>
+
+          <TabsContent value="backup" className="space-y-4">
+            <BackupManager />
+          </TabsContent>
+
+          <TabsContent value="performance" className="space-y-4">
+            <PerformanceMonitor />
+          </TabsContent>
+
+          <TabsContent value="reports" className="space-y-4">
+            <ReportsManager />
           </TabsContent>
 
           <TabsContent value="general" className="space-y-4">

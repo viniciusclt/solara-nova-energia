@@ -33,6 +33,7 @@ import { TechnicalSimulation } from "./TechnicalSimulation";
 import { FinancialAnalysis } from "./FinancialAnalysis";
 import FinancialCalculator from "./FinancialCalculator";
 import { ProposalGenerator } from "./ProposalGenerator";
+import { ProposalEditor } from "./ProposalEditor";
 import { SettingsModal } from "./SettingsModal";
 import { SelectedLeadBreadcrumb } from "./SelectedLeadBreadcrumb";
 import { DemoDataIndicator } from "./DemoDataIndicator";
@@ -191,12 +192,13 @@ export function SolarDashboard({ onBackToMenu }: SolarDashboardProps = {}) {
       permission: "generate_proposals"
     },
     { 
-      id: "management", 
-      label: "Gerenciamento", 
-      icon: Building2, 
-      description: "Importação e gestão de dados",
-      permission: "admin"
-    }
+      id: "proposal-editor", 
+      label: "Editor", 
+      icon: Database, 
+      description: "Editor de propostas drag-and-drop",
+      permission: "generate_proposals"
+    },
+    // Aba "Gerenciamento" removida - funcionalidades realocadas para outras abas
   ].filter(tab => !tab.permission || hasPermission(tab.permission));
 
   return (
@@ -399,66 +401,50 @@ export function SolarDashboard({ onBackToMenu }: SolarDashboardProps = {}) {
           )}
 
           <TabsContent value="financial">
-            {!currentLead ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Nenhum lead selecionado</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Selecione um lead na aba "Dados do Lead" para fazer a análise financeira
-                  </p>
-                  <Button onClick={() => setActiveTab("lead-data")}>
-                    Ir para Dados do Lead
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <TrendingUp className="h-6 w-6" />
-                      Análise Financeira
-                    </CardTitle>
-                    <CardDescription>
-                      Análise completa de viabilidade e opções de financiamento
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-
-                <Tabs defaultValue="analysis" className="space-y-4">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="analysis" className="flex items-center gap-2">
-                      <BarChart3 className="h-4 w-4" />
-                      Análise de Viabilidade
-                    </TabsTrigger>
-                    <TabsTrigger value="financing" className="flex items-center gap-2">
-                      <Calculator className="h-4 w-4" />
-                      Simulador de Financiamento
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="analysis">
-                    <FinancialAnalysis currentLead={currentLead} />
-                  </TabsContent>
-
-                  <TabsContent value="financing">
-                    <FinancialCalculator currentLead={currentLead} />
-                  </TabsContent>
-                </Tabs>
-              </div>
-            )}
-          </TabsContent>
-
-          {hasPermission('generate_proposals') && (
-            <TabsContent value="proposal">
+            <div className="space-y-6">
+              {/* Funcionalidades administrativas - Realocadas do menu Gerenciamento */}
+              {hasPermission('admin') && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Upload className="h-6 w-6" />
+                        Importação Excel
+                      </CardTitle>
+                      <CardDescription>
+                        Importe kits e valores financeiros via Excel
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ExcelImporterV2 />
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Building2 className="h-6 w-6" />
+                        Instituições Financeiras
+                      </CardTitle>
+                      <CardDescription>
+                        Gerencie bancos e opções de financiamento
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <FinancialInstitutionManager />
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+              
+              {/* Análise Financeira */}
               {!currentLead ? (
                 <Card>
                   <CardContent className="py-12 text-center">
                     <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                     <h3 className="text-lg font-semibold mb-2">Nenhum lead selecionado</h3>
                     <p className="text-muted-foreground mb-4">
-                      Selecione um lead na aba "Dados do Lead" para gerar uma proposta
+                      Selecione um lead na aba "Dados do Lead" para fazer a análise financeira
                     </p>
                     <Button onClick={() => setActiveTab("lead-data")}>
                       Ir para Dados do Lead
@@ -466,89 +452,113 @@ export function SolarDashboard({ onBackToMenu }: SolarDashboardProps = {}) {
                   </CardContent>
                 </Card>
               ) : (
-                <ProposalGenerator currentLead={currentLead} />
+                <div className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <TrendingUp className="h-6 w-6" />
+                        Análise Financeira
+                      </CardTitle>
+                      <CardDescription>
+                        Análise completa de viabilidade e opções de financiamento
+                      </CardDescription>
+                    </CardHeader>
+                  </Card>
+
+                  <Tabs defaultValue="analysis" className="space-y-4">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="analysis" className="flex items-center gap-2">
+                        <BarChart3 className="h-4 w-4" />
+                        Análise de Viabilidade
+                      </TabsTrigger>
+                      <TabsTrigger value="financing" className="flex items-center gap-2">
+                        <Calculator className="h-4 w-4" />
+                        Simulador de Financiamento
+                      </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="analysis">
+                      <FinancialAnalysis currentLead={currentLead} />
+                    </TabsContent>
+
+                    <TabsContent value="financing">
+                      <FinancialCalculator currentLead={currentLead} />
+                    </TabsContent>
+                  </Tabs>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          {hasPermission('generate_proposals') && (
+            <TabsContent value="proposal">
+              <div className="space-y-6">
+                {/* Importação PDF - Realocada do menu Gerenciamento */}
+                {hasPermission('admin') && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <FileText className="h-6 w-6" />
+                        Importação de Datasheets PDF
+                      </CardTitle>
+                      <CardDescription>
+                        Importe datasheets de equipamentos em formato PDF
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <PDFImporter />
+                    </CardContent>
+                  </Card>
+                )}
+                
+                {/* Geração de Propostas */}
+                {!currentLead ? (
+                  <Card>
+                    <CardContent className="py-12 text-center">
+                      <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">Nenhum lead selecionado</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Selecione um lead na aba "Dados do Lead" para gerar uma proposta
+                      </p>
+                      <Button onClick={() => setActiveTab("lead-data")}>
+                        Ir para Dados do Lead
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <ProposalGenerator currentLead={currentLead} />
+                )}
+              </div>
+            </TabsContent>
+          )}
+
+          {hasPermission('generate_proposals') && (
+            <TabsContent value="proposal-editor">
+              {!currentLead ? (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Nenhum lead selecionado</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Selecione um lead na aba "Dados do Lead" para usar o editor de propostas
+                    </p>
+                    <Button onClick={() => setActiveTab("lead-data")}>
+                      Ir para Dados do Lead
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <ProposalEditor currentLead={currentLead} />
               )}
             </TabsContent>
           )}
 
-          {hasPermission('admin') && (
-            <TabsContent value="management">
-              <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Building2 className="h-6 w-6" />
-                      Gerenciamento de Dados
-                    </CardTitle>
-                    <CardDescription>
-                      Ferramentas avançadas para importação e gestão de dados do sistema
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-
-                <Tabs defaultValue="pdf-import" className="space-y-4">
-                  <TabsList className="grid w-full grid-cols-7">
-                    <TabsTrigger value="pdf-import" className="flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
-                      Importação PDF
-                    </TabsTrigger>
-                    <TabsTrigger value="excel-import" className="flex items-center gap-2">
-                      <Upload className="h-4 w-4" />
-                      Importação Excel
-                    </TabsTrigger>
-                    <TabsTrigger value="institutions" className="flex items-center gap-2">
-                      <Building2 className="h-4 w-4" />
-                      Instituições
-                    </TabsTrigger>
-                    <TabsTrigger value="audit-logs" className="flex items-center gap-2">
-                      <Database className="h-4 w-4" />
-                      Logs de Auditoria
-                    </TabsTrigger>
-                    <TabsTrigger value="backup" className="flex items-center gap-2">
-                      <Download className="h-4 w-4" />
-                      Backup
-                    </TabsTrigger>
-                    <TabsTrigger value="performance" className="flex items-center gap-2">
-                      <Monitor className="h-4 w-4" />
-                      Performance
-                    </TabsTrigger>
-                    <TabsTrigger value="reports" className="flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
-                      Relatórios
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="pdf-import">
-                    <PDFImporter />
-                  </TabsContent>
-
-                  <TabsContent value="excel-import">
-                    <ExcelImporterV2 />
-                  </TabsContent>
-
-                  <TabsContent value="institutions">
-                    <FinancialInstitutionManager />
-                  </TabsContent>
-
-                  <TabsContent value="audit-logs">
-                    <AuditLogViewer />
-                  </TabsContent>
-
-                  <TabsContent value="backup">
-                    <BackupManager />
-                  </TabsContent>
-
-                  <TabsContent value="performance">
-                    <PerformanceMonitor />
-                  </TabsContent>
-
-                  <TabsContent value="reports">
-                    <ReportsManager />
-                  </TabsContent>
-                </Tabs>
-              </div>
-            </TabsContent>
-          )}
+          {/* Aba "Gerenciamento" removida - funcionalidades realocadas:
+             - PDF Import → Aba "Proposta"
+             - Excel Import → Aba "Financeiro" 
+             - Instituições → Aba "Financeiro"
+             - Audit Logs, Backup, Performance, Reports → SettingsModal
+          */}
         </Tabs>
       </div>
       

@@ -158,9 +158,40 @@ const FinancialInstitutionManager: React.FC<FinancialInstitutionManagerProps> = 
     loadInstitutions();
   }, []);
 
+  const filterInstitutions = useCallback(() => {
+    let filtered = [...institutions];
+
+    // Filtro por termo de busca
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(inst => 
+        inst.nome.toLowerCase().includes(term) ||
+        inst.cnpj?.toLowerCase().includes(term) ||
+        inst.cidade?.toLowerCase().includes(term) ||
+        inst.contato_principal?.toLowerCase().includes(term)
+      );
+    }
+
+    // Filtro por tipo
+    if (filterType !== 'all') {
+      filtered = filtered.filter(inst => inst.tipo === filterType);
+    }
+
+    // Filtro por status
+    if (filterStatus === 'ativo') {
+      filtered = filtered.filter(inst => inst.ativo);
+    } else if (filterStatus === 'inativo') {
+      filtered = filtered.filter(inst => !inst.ativo);
+    } else if (filterStatus === 'favorito') {
+      filtered = filtered.filter(inst => inst.favorito);
+    }
+
+    setFilteredInstitutions(filtered);
+  }, [institutions, searchTerm, filterType, filterStatus]);
+
   useEffect(() => {
     filterInstitutions();
-  }, [institutions, searchTerm, filterType, filterStatus, filterInstitutions]);
+  }, [filterInstitutions]);
 
   const loadInstitutions = async () => {
     try {
@@ -211,37 +242,6 @@ const FinancialInstitutionManager: React.FC<FinancialInstitutionManagerProps> = 
       setIsLoading(false);
     }
   };
-
-  const filterInstitutions = useCallback(() => {
-    let filtered = [...institutions];
-
-    // Filtro por termo de busca
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(inst => 
-        inst.nome.toLowerCase().includes(term) ||
-        inst.cnpj?.toLowerCase().includes(term) ||
-        inst.cidade?.toLowerCase().includes(term) ||
-        inst.contato_principal?.toLowerCase().includes(term)
-      );
-    }
-
-    // Filtro por tipo
-    if (filterType !== 'all') {
-      filtered = filtered.filter(inst => inst.tipo === filterType);
-    }
-
-    // Filtro por status
-    if (filterStatus === 'ativo') {
-      filtered = filtered.filter(inst => inst.ativo);
-    } else if (filterStatus === 'inativo') {
-      filtered = filtered.filter(inst => !inst.ativo);
-    } else if (filterStatus === 'favorito') {
-      filtered = filtered.filter(inst => inst.favorito);
-    }
-
-    setFilteredInstitutions(filtered);
-  }, [institutions, searchTerm, filterType, filterStatus]);
 
   const resetForm = () => {
     setFormData({

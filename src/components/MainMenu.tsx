@@ -8,8 +8,8 @@ import { useSidebar } from "@/hooks/useSidebar";
 
 export function MainMenu() {
   const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
-  const { profile } = useAuth();
-  const { stats } = useNotifications();
+  const { } = useAuth();
+  const { } = useNotifications();
 
 
   return (

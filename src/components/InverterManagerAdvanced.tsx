@@ -5,12 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
+// Remove unused Badge import
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Edit, Trash2, Save, X, FileText, Zap, Settings, Shield, Gauge } from "lucide-react";
+import { Plus, Edit, Trash2, Save, FileText, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Inverter } from "@/types";
@@ -90,7 +90,7 @@ export function InverterManagerAdvanced() {
     "WiFi", "Ethernet", "RS485", "Bluetooth", "4G/LTE", "Zigbee", "LoRa", "USB"
   ];
 
-  const fetchInverters = useCallback(async (retryCount = 0) => {
+  const fetchInverters = async (retryCount = 0) => {
     setIsLoading(true);
     try {
       const demoDataService = DemoDataService.getInstance();
@@ -147,7 +147,7 @@ export function InverterManagerAdvanced() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  };
 
   useEffect(() => {
     fetchInverters();

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { connectivityService } from '@/services/connectivityService';
 import type { Notification, NotificationType, NotificationPriority } from '@/components/NotificationCenter';
 
 interface CreateNotificationParams {
@@ -73,33 +74,45 @@ export function useNotifications() {
   const [filters, setFilters] = useState<NotificationFilters>({});
   const [groupedNotifications, setGroupedNotifications] = useState<NotificationGroup[]>([]);
 
-  // Carregar notificações com fallback
+  // Carregar notificações com retry automático e fallback melhorado
   const loadNotifications = useCallback(async () => {
     if (!profile) return;
 
+    setIsLoading(true);
+    console.log('🔄 Carregando notificações...');
+
     try {
-      setIsLoading(true);
-      console.log('🔄 Carregando notificações...');
-      
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .or(`user_id.eq.${profile.id},company_id.eq.${profile.company_id}`)
-        .order('created_at', { ascending: false })
-        .limit(100);
+      // Usar o serviço de conectividade com retry automático
+      const result = await connectivityService.withRetry(async () => {
+        const { data, error } = await supabase
+          .from('notifications')
+          .select('*')
+          .or(`user_id.eq.${profile.id},company_id.eq.${profile.company_id}`)
+          .order('created_at', { ascending: false })
+          .limit(100);
 
-      if (error) {
-        console.error('❌ Erro na query de notificações:', error);
-        throw error;
-      }
+        if (error) {
+          console.error('❌ Erro na query de notificações:', error);
+          throw error;
+        }
 
-      const notificationData = data || [];
-      console.log(`✅ Notificações carregadas: ${notificationData.length}`);
-      setNotifications(notificationData);
+        return data || [];
+      }, {
+        maxRetries: 2,
+        baseDelay: 1000
+      });
+
+      console.log(`✅ Notificações carregadas: ${result.length}`);
+      setNotifications(result);
       
       // Salvar no cache local para fallback
       try {
-        localStorage.setItem('notifications_cache', JSON.stringify(notificationData));
+        const cacheData = {
+          notifications: result,
+          timestamp: Date.now(),
+          profileId: profile.id
+        };
+        localStorage.setItem('notifications_cache', JSON.stringify(cacheData));
         console.log('💾 Notificações salvas no cache local');
       } catch (cacheError) {
         console.warn('⚠️ Erro ao salvar cache:', cacheError);
@@ -133,54 +146,37 @@ export function useNotifications() {
       setStats(newStats);
 
     } catch (error) {
-      console.error('❌ Erro ao carregar notificações:', error);
+      console.error('❌ Erro ao carregar notificações após tentativas:', error);
       
-      // Determinar tipo de erro específico
-      let errorMessage = 'Não foi possível carregar as notificações. Verifique sua conexão.';
+      // Verificar se deve usar fallback
+      const shouldFallback = connectivityService.shouldUseFallback(error);
       
-      if (error && typeof error === 'object' && 'code' in error) {
-        const supabaseError = error as { code: string; message: string };
+      if (shouldFallback) {
+        // Tentar carregar do cache local melhorado
+        const fallbackResult = await loadFromCache();
         
-        switch (supabaseError.code) {
-          case 'PGRST116':
-            errorMessage = 'Tabela de notificações não encontrada. Entre em contato com o suporte.';
-            break;
-          case '42501':
-            errorMessage = 'Permissão negada para acessar notificações. Faça login novamente.';
-            break;
-          case 'PGRST301':
-            errorMessage = 'Erro de autenticação. Faça login novamente.';
-            break;
-          default:
-            if (supabaseError.message?.includes('connection') || supabaseError.message?.includes('network')) {
-              errorMessage = 'Erro de conexão com o servidor. Verifique sua internet.';
-            }
-        }
-      }
-      
-      // Fallback: tentar carregar do cache local
-      try {
-        const cachedNotifications = localStorage.getItem('notifications_cache');
-        if (cachedNotifications) {
-          const parsed = JSON.parse(cachedNotifications);
-          console.log('📦 Carregando notificações do cache local');
-          setNotifications(parsed);
+        if (fallbackResult.success) {
+          setNotifications(fallbackResult.data);
+          
+          const connectivityStatus = connectivityService.getStatus();
+          const isStale = fallbackResult.isStale;
           
           toast({
-            title: 'Modo Offline',
-            description: 'Exibindo notificações em cache. Algumas podem estar desatualizadas.',
+            title: connectivityStatus.isOnline ? 'Dados em Cache' : 'Modo Offline',
+            description: isStale 
+              ? 'Exibindo notificações em cache. Dados podem estar desatualizados.'
+              : 'Exibindo notificações em cache.',
             variant: 'default'
           });
-          return; // Não mostrar erro se conseguiu carregar do cache
-        } else {
-          // Se não há cache, mostrar notificações vazias
-          console.log('📭 Nenhuma notificação em cache, exibindo lista vazia');
-          setNotifications([]);
+          return;
         }
-      } catch (cacheError) {
-        console.error('❌ Erro ao carregar cache:', cacheError);
-        setNotifications([]);
       }
+      
+      // Se chegou aqui, não conseguiu carregar nem do cache
+      setNotifications([]);
+      
+      // Determinar mensagem de erro específica
+      const errorMessage = getErrorMessage(error);
       
       toast({
         title: 'Erro de Conexão',
@@ -191,6 +187,67 @@ export function useNotifications() {
       setIsLoading(false);
     }
   }, [profile, toast]);
+
+  // Função auxiliar para carregar do cache
+  const loadFromCache = useCallback(async (): Promise<{
+    success: boolean;
+    data: Notification[];
+    isStale: boolean;
+  }> => {
+    try {
+      const cachedData = localStorage.getItem('notifications_cache');
+      if (!cachedData) {
+        console.log('📭 Nenhuma notificação em cache');
+        return { success: false, data: [], isStale: false };
+      }
+
+      const parsed = JSON.parse(cachedData);
+      
+      // Verificar se o cache é do usuário atual
+      if (parsed.profileId !== profile?.id) {
+        console.log('🔄 Cache de usuário diferente, ignorando');
+        return { success: false, data: [], isStale: false };
+      }
+
+      const notifications = parsed.notifications || [];
+      const cacheAge = Date.now() - (parsed.timestamp || 0);
+      const isStale = cacheAge > 5 * 60 * 1000; // 5 minutos
+      
+      console.log(`📦 Carregando ${notifications.length} notificações do cache (${Math.round(cacheAge / 1000)}s atrás)`);
+      
+      return {
+        success: true,
+        data: notifications,
+        isStale
+      };
+    } catch (cacheError) {
+      console.error('❌ Erro ao carregar cache:', cacheError);
+      return { success: false, data: [], isStale: false };
+    }
+  }, [profile?.id]);
+
+  // Função auxiliar para determinar mensagem de erro
+  const getErrorMessage = useCallback((error: unknown): string => {
+    if (!error || typeof error !== 'object') {
+      return 'Erro desconhecido ao carregar notificações.';
+    }
+
+    const errorObj = error as { code?: string; message?: string };
+    
+    switch (errorObj.code) {
+      case 'PGRST116':
+        return 'Tabela de notificações não encontrada. Entre em contato com o suporte.';
+      case '42501':
+        return 'Permissão negada para acessar notificações. Faça login novamente.';
+      case 'PGRST301':
+        return 'Erro de autenticação. Faça login novamente.';
+      default:
+        if (errorObj.message?.includes('connection') || errorObj.message?.includes('network')) {
+          return 'Erro de conexão com o servidor. Verifique sua internet.';
+        }
+        return 'Não foi possível carregar as notificações. Tente novamente.';
+    }
+  }, []);
 
   // Solicitar permissão para notificações push
   const requestNotificationPermission = useCallback(async (): Promise<boolean> => {

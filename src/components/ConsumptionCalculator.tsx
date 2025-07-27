@@ -195,44 +195,9 @@ export function ConsumptionCalculator({ currentLead }: ConsumptionCalculatorProp
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm">
                   <Settings className="h-4 w-4 mr-2" />
-                  Gerenciar Equipamentos
+                  Gerenciar
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Gerenciar Tipos de Equipamentos</DialogTitle>
-                  <DialogDescription>
-                    Visualize e gerencie os tipos de equipamentos disponíveis na calculadora
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                  {equipmentTypes.map(type => {
-                    const IconComponent = type.icon;
-                    return (
-                      <Card key={type.id} className="p-4">
-                        <div className="flex items-center gap-3 mb-3">
-                          <IconComponent className="h-5 w-5 text-primary" />
-                          <h3 className="font-semibold">{type.name}</h3>
-                        </div>
-                        <div className="space-y-2">
-                          <p className="text-sm text-muted-foreground mb-2">Presets disponíveis:</p>
-                          {type.presets.map(preset => (
-                            <div key={preset.name} className="flex justify-between items-center text-sm">
-                              <span>{preset.name}</span>
-                              <Badge variant="outline">{preset.power}W</Badge>
-                            </div>
-                          ))}
-                        </div>
-                      </Card>
-                    );
-                  })}
-                </div>
-                <div className="flex justify-end mt-6">
-                  <Button onClick={() => setShowManageModal(false)}>
-                    Fechar
-                  </Button>
-                </div>
-              </DialogContent>
             </Dialog>
           </div>
         </CardHeader>
@@ -271,7 +236,52 @@ export function ConsumptionCalculator({ currentLead }: ConsumptionCalculatorProp
         {/* Adicionar Equipamento */}
         <Card className="shadow-card">
           <CardHeader>
-            <CardTitle>Adicionar Equipamento</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Adicionar Equipamento</CardTitle>
+              <Dialog open={showManageModal} onOpenChange={setShowManageModal}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Gerenciar
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Gerenciar Tipos de Equipamentos</DialogTitle>
+                    <DialogDescription>
+                      Visualize e gerencie os tipos de equipamentos disponíveis na calculadora
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    {equipmentTypes.map(type => {
+                      const IconComponent = type.icon;
+                      return (
+                        <Card key={type.id} className="p-4">
+                          <div className="flex items-center gap-3 mb-3">
+                            <IconComponent className="h-5 w-5 text-primary" />
+                            <h3 className="font-semibold">{type.name}</h3>
+                          </div>
+                          <div className="space-y-2">
+                            <p className="text-sm text-muted-foreground mb-2">Presets disponíveis:</p>
+                            {type.presets.map(preset => (
+                              <div key={preset.name} className="flex justify-between items-center text-sm">
+                                <span>{preset.name}</span>
+                                <Badge variant="outline">{preset.power}W</Badge>
+                              </div>
+                            ))}
+                          </div>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                  <div className="flex justify-end mt-6">
+                    <Button onClick={() => setShowManageModal(false)}>
+                      Fechar
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
