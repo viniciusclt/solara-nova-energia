@@ -135,6 +135,29 @@ export function useNotifications() {
     } catch (error) {
       console.error('❌ Erro ao carregar notificações:', error);
       
+      // Determinar tipo de erro específico
+      let errorMessage = 'Não foi possível carregar as notificações. Verifique sua conexão.';
+      
+      if (error && typeof error === 'object' && 'code' in error) {
+        const supabaseError = error as { code: string; message: string };
+        
+        switch (supabaseError.code) {
+          case 'PGRST116':
+            errorMessage = 'Tabela de notificações não encontrada. Entre em contato com o suporte.';
+            break;
+          case '42501':
+            errorMessage = 'Permissão negada para acessar notificações. Faça login novamente.';
+            break;
+          case 'PGRST301':
+            errorMessage = 'Erro de autenticação. Faça login novamente.';
+            break;
+          default:
+            if (supabaseError.message?.includes('connection') || supabaseError.message?.includes('network')) {
+              errorMessage = 'Erro de conexão com o servidor. Verifique sua internet.';
+            }
+        }
+      }
+      
       // Fallback: tentar carregar do cache local
       try {
         const cachedNotifications = localStorage.getItem('notifications_cache');
@@ -148,6 +171,7 @@ export function useNotifications() {
             description: 'Exibindo notificações em cache. Algumas podem estar desatualizadas.',
             variant: 'default'
           });
+          return; // Não mostrar erro se conseguiu carregar do cache
         } else {
           // Se não há cache, mostrar notificações vazias
           console.log('📭 Nenhuma notificação em cache, exibindo lista vazia');
@@ -160,7 +184,7 @@ export function useNotifications() {
       
       toast({
         title: 'Erro de Conexão',
-        description: 'Não foi possível carregar as notificações. Verifique sua conexão.',
+        description: errorMessage,
         variant: 'destructive'
       });
     } finally {

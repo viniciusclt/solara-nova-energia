@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Calculator, Plus, Trash2, AirVent, Refrigerator, Lightbulb, Car } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Calculator, Plus, Trash2, AirVent, Refrigerator, Lightbulb, Car, Settings, ChefHat, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Equipment {
@@ -27,6 +28,7 @@ interface ConsumptionCalculatorProps {
 export function ConsumptionCalculator({ currentLead }: ConsumptionCalculatorProps) {
   const { toast } = useToast();
   const [equipments, setEquipments] = useState<Equipment[]>([]);
+  const [showManageModal, setShowManageModal] = useState(false);
   const [newEquipment, setNewEquipment] = useState({
     type: "",
     name: "",
@@ -75,6 +77,36 @@ export function ConsumptionCalculator({ currentLead }: ConsumptionCalculatorProp
       presets: [
         { name: "Carro Compacto", power: 3300 },
         { name: "SUV Elétrico", power: 7400 }
+      ]
+    },
+    { 
+      id: "airfryer", 
+      name: "Air Fryer", 
+      icon: ChefHat, 
+      presets: [
+        { name: "Air Fryer 3L", power: 1200 },
+        { name: "Air Fryer 5L", power: 1500 },
+        { name: "Air Fryer 7L", power: 1800 }
+      ]
+    },
+    { 
+      id: "fogao-inducao", 
+      name: "Fogão de Indução", 
+      icon: Zap, 
+      presets: [
+        { name: "Cooktop 1 Boca", power: 2000 },
+        { name: "Cooktop 2 Bocas", power: 3500 },
+        { name: "Fogão Indução 4 Bocas", power: 7000 }
+      ]
+    },
+    { 
+      id: "forno-eletrico", 
+      name: "Forno Elétrico", 
+      icon: ChefHat, 
+      presets: [
+        { name: "Forno Elétrico 30L", power: 1500 },
+        { name: "Forno Elétrico 45L", power: 2200 },
+        { name: "Forno Elétrico 60L", power: 3000 }
       ]
     }
   ];
@@ -149,13 +181,60 @@ export function ConsumptionCalculator({ currentLead }: ConsumptionCalculatorProp
     <div className="space-y-6">
       <Card className="shadow-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calculator className="h-5 w-5 text-primary" />
-            Calculadora de Incremento de Consumo
-          </CardTitle>
-          <CardDescription>
-            Adicione equipamentos para calcular o aumento no consumo elétrico
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Calculator className="h-5 w-5 text-primary" />
+                Calculadora de Incremento de Consumo
+              </CardTitle>
+              <CardDescription>
+                Adicione equipamentos para calcular o aumento no consumo elétrico
+              </CardDescription>
+            </div>
+            <Dialog open={showManageModal} onOpenChange={setShowManageModal}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Gerenciar Equipamentos
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Gerenciar Tipos de Equipamentos</DialogTitle>
+                  <DialogDescription>
+                    Visualize e gerencie os tipos de equipamentos disponíveis na calculadora
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  {equipmentTypes.map(type => {
+                    const IconComponent = type.icon;
+                    return (
+                      <Card key={type.id} className="p-4">
+                        <div className="flex items-center gap-3 mb-3">
+                          <IconComponent className="h-5 w-5 text-primary" />
+                          <h3 className="font-semibold">{type.name}</h3>
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-sm text-muted-foreground mb-2">Presets disponíveis:</p>
+                          {type.presets.map(preset => (
+                            <div key={preset.name} className="flex justify-between items-center text-sm">
+                              <span>{preset.name}</span>
+                              <Badge variant="outline">{preset.power}W</Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+                <div className="flex justify-end mt-6">
+                  <Button onClick={() => setShowManageModal(false)}>
+                    Fechar
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
         </CardHeader>
       </Card>
 
