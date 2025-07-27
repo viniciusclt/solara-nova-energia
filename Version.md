@@ -1,5 +1,20 @@
 # SolarCalc Pro - Histórico de Versões
 
+## [5.2.2] - 2025-01-27
+### Fixed
+- ✅ **Correção de Scripts de Tracking**: Eliminação dos erros ERR_BLOCKED_BY_CLIENT
+- Desabilitação do componentTagger() do lovable-tagger em desenvolvimento
+- Resolução de conflitos com extensões de privacidade do navegador
+- ✅ **Sistema de Notificações Robusto**: Tratamento de erro PGRST116 para tabela inexistente
+- Implementação de fallbacks graciais quando tabela notifications não existe
+- Adição de tipos TypeScript para tabela notifications
+- Logs informativos em vez de erros críticos
+
+### Changed
+- vite.config.ts otimizado para desenvolvimento sem tracking scripts
+- useNotifications.ts com tratamento robusto de erros de banco
+- Experiência de desenvolvimento mais limpa sem erros de console
+
 ## [5.2.1] - 2025-01-27
 ### Fixed
 - ✅ **Correção de Hoisting Error**: Resolvido erro "Cannot access 'loadExcelFile' before initialization" em ExcelImporterV2.tsx
