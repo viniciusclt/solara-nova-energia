@@ -1,5 +1,20 @@
 # SolarCalc Pro - Histórico de Versões
 
+## [5.1.0] - 2025-01-27
+### Fixed
+- ✅ **Correção de Problemas de Hoisting**: Resolvidos todos os problemas de hoisting no código
+- ✅ **Verificação TypeScript**: Compilação sem erros confirmada
+- ✅ **Conformidade ESLint**: Apenas avisos menores restantes
+- ✅ **Build de Produção**: Build bem-sucedido confirmado
+- ✅ **Estabilidade do Servidor**: Servidor de desenvolvimento funcionando corretamente
+- Documentação atualizada com progresso das melhorias
+- Sistema mais estável e confiável
+
+### Changed
+- Melhorias na qualidade do código
+- Otimização da estrutura de dependências
+- Redução de warnings de lint
+
 ## [5.0.0] - 2025-01-27
 ### Added
 - ✅ **Fase 1 - Correções Críticas**: Sistema de notificações avançado, backup e recuperação, gerenciamento de kits financeiros
