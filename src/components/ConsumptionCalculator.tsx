@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Calculator, Plus, Trash2, AirVent, Refrigerator, Lightbulb, Car, Settings, ChefHat, Zap } from "lucide-react";
+import { Calculator, Plus, Trash2, AirVent, Refrigerator, Lightbulb, Car, Settings, ChefHat, Zap, Check, X, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Equipment {
@@ -29,6 +29,7 @@ export function ConsumptionCalculator({ currentLead }: ConsumptionCalculatorProp
   const { toast } = useToast();
   const [equipments, setEquipments] = useState<Equipment[]>([]);
   const [showManageModal, setShowManageModal] = useState(false);
+  const [editingEquipment, setEditingEquipment] = useState<Equipment | null>(null);
   const [newEquipment, setNewEquipment] = useState({
     type: "",
     name: "",
@@ -161,6 +162,79 @@ export function ConsumptionCalculator({ currentLead }: ConsumptionCalculatorProp
 
   const removeEquipment = (id: string) => {
     setEquipments(equipments.filter(eq => eq.id !== id));
+    toast({
+      title: "Equipamento Removido",
+      description: "Equipamento removido com sucesso!"
+    });
+  };
+
+  const startEditEquipment = (equipment: Equipment) => {
+    setEditingEquipment(equipment);
+    setNewEquipment({
+      type: equipment.type,
+      name: equipment.name,
+      power: equipment.power,
+      hoursPerDay: equipment.hoursPerDay,
+      daysPerMonth: equipment.daysPerMonth,
+      monthsPerYear: equipment.monthsPerYear
+    });
+  };
+
+  const saveEditEquipment = () => {
+    if (!editingEquipment || !newEquipment.name || !newEquipment.power) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha o nome e potência do equipamento",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const consumption = calculateConsumption(
+      newEquipment.power,
+      newEquipment.hoursPerDay,
+      newEquipment.daysPerMonth,
+      newEquipment.monthsPerYear
+    );
+
+    const updatedEquipment: Equipment = {
+      ...editingEquipment,
+      type: newEquipment.type,
+      name: newEquipment.name,
+      power: newEquipment.power,
+      hoursPerDay: newEquipment.hoursPerDay,
+      daysPerMonth: newEquipment.daysPerMonth,
+      monthsPerYear: newEquipment.monthsPerYear,
+      consumptionKwh: consumption
+    };
+
+    setEquipments(equipments.map(eq => eq.id === editingEquipment.id ? updatedEquipment : eq));
+    setEditingEquipment(null);
+    setNewEquipment({
+      type: "",
+      name: "",
+      power: 0,
+      hoursPerDay: 8,
+      daysPerMonth: 30,
+      monthsPerYear: 12
+    });
+
+    toast({
+      title: "Equipamento Atualizado",
+      description: `${updatedEquipment.name} atualizado com sucesso!`
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingEquipment(null);
+    setNewEquipment({
+      type: "",
+      name: "",
+      power: 0,
+      hoursPerDay: 8,
+      daysPerMonth: 30,
+      monthsPerYear: 12
+    });
   };
 
   const applyPreset = (preset: { name: string; power: number }) => {
@@ -237,7 +311,7 @@ export function ConsumptionCalculator({ currentLead }: ConsumptionCalculatorProp
         <Card className="shadow-card">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Adicionar Equipamento</CardTitle>
+              <CardTitle>{editingEquipment ? 'Editar Equipamento' : 'Adicionar Equipamento'}</CardTitle>
               <Dialog open={showManageModal} onOpenChange={setShowManageModal}>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm">
@@ -394,10 +468,23 @@ export function ConsumptionCalculator({ currentLead }: ConsumptionCalculatorProp
               </div>
             </div>
 
-            <Button onClick={addEquipment} className="w-full">
-              <Plus className="h-4 w-4" />
-              Adicionar Equipamento
-            </Button>
+            {editingEquipment ? (
+              <div className="flex gap-2">
+                <Button onClick={saveEditEquipment} className="flex-1">
+                  <Check className="h-4 w-4" />
+                  Salvar Alterações
+                </Button>
+                <Button onClick={cancelEdit} variant="outline" className="flex-1">
+                  <X className="h-4 w-4" />
+                  Cancelar
+                </Button>
+              </div>
+            ) : (
+              <Button onClick={addEquipment} className="w-full">
+                <Plus className="h-4 w-4" />
+                Adicionar Equipamento
+              </Button>
+            )}
           </CardContent>
         </Card>
 
@@ -431,14 +518,24 @@ export function ConsumptionCalculator({ currentLead }: ConsumptionCalculatorProp
                           {equipment.consumptionKwh.toFixed(1)} kWh/ano ({(equipment.consumptionKwh / 12).toFixed(1)} kWh/mês)
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeEquipment(equipment.id)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => startEditEquipment(equipment)}
+                          className="text-muted-foreground hover:text-primary"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeEquipment(equipment.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))

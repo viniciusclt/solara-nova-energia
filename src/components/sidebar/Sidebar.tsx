@@ -7,7 +7,10 @@ import {
   Settings, 
   LogOut,
   X,
-  Wrench
+  Wrench,
+  Droplets,
+  Waves,
+  Zap
 } from 'lucide-react';
 import { useSidebar, useClickOutside, useSidebarKeyboard } from '../../hooks/useSidebar';
 import { SidebarItem } from './SidebarItem';
@@ -99,19 +102,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
               module="solar"
             />
             <SidebarItem
-              icon={Flame}
-              label="Aquecimento Solar"
-              module="heating"
+              icon={Droplets}
+              label="Aquecimento Banho"
+              module="heating-bath"
             />
+            <SidebarItem
+              icon={Waves}
+              label="Aquecimento Piscina"
+              module="heating-pool"
+            />
+            <SidebarItem
+              icon={Zap}
+              label="WallBox"
+              module="wallbox"
+            />
+          </SidebarSection>
+          
+          {/* Espaçamento */}
+          <div className="my-4" />
+          
+          {/* Seção Secundária */}
+          <SidebarSection>
             <SidebarItem
               icon={GraduationCap}
               label="Treinamentos"
               module="training"
-            />
-            <SidebarItem
-              icon={Wrench}
-              label="Gerenciar Equipamentos"
-              module="equipment-management"
             />
           </SidebarSection>
         </nav>

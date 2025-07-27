@@ -50,6 +50,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { SidebarToggle } from "./sidebar/SidebarToggle";
 
 interface SolarDashboardProps {
   onBackToMenu?: () => void;
@@ -235,6 +236,7 @@ export function SolarDashboard({ onBackToMenu }: SolarDashboardProps = {}) {
             </div>
             
             <div className="flex items-center gap-2 sm:gap-4">
+              <SidebarToggle className="lg:hidden" />
               <div className="text-right hidden sm:block">
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4" />
