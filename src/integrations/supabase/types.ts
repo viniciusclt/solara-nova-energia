@@ -281,6 +281,72 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          id: string
+          title: string
+          message: string
+          type: string
+          priority: string
+          read: boolean
+          user_id: string | null
+          company_id: string | null
+          action_url: string | null
+          action_label: string | null
+          expires_at: string | null
+          metadata: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          message: string
+          type: string
+          priority?: string
+          read?: boolean
+          user_id?: string | null
+          company_id?: string | null
+          action_url?: string | null
+          action_label?: string | null
+          expires_at?: string | null
+          metadata?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          message?: string
+          type?: string
+          priority?: string
+          read?: boolean
+          user_id?: string | null
+          company_id?: string | null
+          action_url?: string | null
+          action_label?: string | null
+          expires_at?: string | null
+          metadata?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           access_type: Database["public"]["Enums"]["user_access_type"]

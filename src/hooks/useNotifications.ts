@@ -76,39 +76,44 @@ export function useNotifications() {
 
   // Carregar notificações com retry automático e fallback melhorado
   const loadNotifications = useCallback(async () => {
-    if (!profile) return;
+    if (!profile?.id) {
+      console.log('⚠️ Perfil não carregado, aguardando...');
+      return;
+    }
 
-    setIsLoading(true);
     console.log('🔄 Carregando notificações...');
+    setIsLoading(true);
 
     try {
-      // Usar o serviço de conectividade com retry automático
-      const result = await connectivityService.withRetry(async () => {
-        const { data, error } = await supabase
-          .from('notifications')
-          .select('*')
-          .or(`user_id.eq.${profile.id},company_id.eq.${profile.company_id}`)
-          .order('created_at', { ascending: false })
-          .limit(100);
+      // Verificar se a tabela notifications existe
+      const { data: result, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .or(`user_id.eq.${profile.id},company_id.eq.${profile.company_id}`)
+        .order('created_at', { ascending: false })
+        .limit(100);
 
-        if (error) {
-          console.error('❌ Erro na query de notificações:', error);
-          throw error;
-        }
+      // Se a tabela não existir, retornar array vazio
+      if (error && error.code === 'PGRST116') {
+        console.warn('⚠️ Tabela notifications não existe ainda. Sistema de notificações desabilitado temporariamente.');
+        setNotifications([]);
+        setIsLoading(false);
+        return;
+      }
 
-        return data || [];
-      }, {
-        maxRetries: 2,
-        baseDelay: 1000
-      });
+      if (error) {
+        console.error('❌ Erro na query de notificações:', error);
+        throw error;
+      }
 
-      console.log(`✅ Notificações carregadas: ${result.length}`);
-      setNotifications(result);
+      const notifications = result || [];
+      console.log(`✅ Notificações carregadas: ${notifications.length}`);
+      setNotifications(notifications);
       
       // Salvar no cache local para fallback
       try {
         const cacheData = {
-          notifications: result,
+          notifications: notifications,
           timestamp: Date.now(),
           profileId: profile.id
         };
@@ -124,24 +129,24 @@ export function useNotifications() {
       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       
       const newStats: NotificationStats = {
-        total: result.length,
-        unread: result.filter(n => !n.read).length,
-        urgent: result.filter(n => n.priority === 'urgent' || n.priority === 'high').length,
+        total: notifications.length,
+        unread: notifications.filter(n => !n.read).length,
+        urgent: notifications.filter(n => n.priority === 'urgent' || n.priority === 'high').length,
         byType: {
-          info: result.filter(n => n.type === 'info').length,
-          success: result.filter(n => n.type === 'success').length,
-          warning: result.filter(n => n.type === 'warning').length,
-          error: result.filter(n => n.type === 'error').length,
-          system: result.filter(n => n.type === 'system').length
+          info: notifications.filter(n => n.type === 'info').length,
+          success: notifications.filter(n => n.type === 'success').length,
+          warning: notifications.filter(n => n.type === 'warning').length,
+          error: notifications.filter(n => n.type === 'error').length,
+          system: notifications.filter(n => n.type === 'system').length
         },
         byPriority: {
-          low: result.filter(n => n.priority === 'low').length,
-          medium: result.filter(n => n.priority === 'medium').length,
-          high: result.filter(n => n.priority === 'high').length,
-          urgent: result.filter(n => n.priority === 'urgent').length
+          low: notifications.filter(n => n.priority === 'low').length,
+          medium: notifications.filter(n => n.priority === 'medium').length,
+          high: notifications.filter(n => n.priority === 'high').length,
+          urgent: notifications.filter(n => n.priority === 'urgent').length
         },
-        todayCount: result.filter(n => new Date(n.created_at) >= today).length,
-        weekCount: result.filter(n => new Date(n.created_at) >= weekAgo).length
+        todayCount: notifications.filter(n => new Date(n.created_at) >= today).length,
+        weekCount: notifications.filter(n => new Date(n.created_at) >= weekAgo).length
       };
       setStats(newStats);
 
@@ -332,10 +337,16 @@ export function useNotifications() {
         .select()
         .single();
 
+      // Se a tabela não existir, retornar sem erro
+      if (error && error.code === 'PGRST116') {
+        console.warn('⚠️ Tabela notifications não existe - notificação não será salva');
+        return null;
+      }
+
       if (error) throw error;
 
       // Atualizar lista local
-      setNotifications(prev => [data, ...prev]);
+      setNotifications(prev => [newNotification, ...prev]);
       
       // Atualizar estatísticas
       setStats(prev => ({
@@ -344,20 +355,20 @@ export function useNotifications() {
         unread: prev.unread + 1,
         byType: {
           ...prev.byType,
-          [data.type]: prev.byType[data.type as NotificationType] + 1
+          [newNotification.type]: prev.byType[newNotification.type as NotificationType] + 1
         },
         byPriority: {
           ...prev.byPriority,
-          [data.priority]: prev.byPriority[data.priority as NotificationPriority] + 1
+          [newNotification.priority]: prev.byPriority[newNotification.priority as NotificationPriority] + 1
         }
       }));
 
       // Enviar notificação push para notificações urgentes ou de erro
-      if (data.priority === 'urgent' || data.priority === 'high' || data.type === 'error') {
-        await sendPushNotification(data);
+      if (newNotification.priority === 'urgent' || newNotification.priority === 'high' || newNotification.type === 'error') {
+        await sendPushNotification(newNotification);
       }
 
-      return data;
+      return newNotification;
     } catch (error) {
       console.error('Erro ao criar notificação:', error);
       toast({
@@ -376,6 +387,15 @@ export function useNotifications() {
         .from('notifications')
         .update({ read: true })
         .eq('id', notificationId);
+
+      // Se a tabela não existir, apenas atualizar localmente
+      if (error && error.code === 'PGRST116') {
+        console.warn('⚠️ Tabela notifications não existe - marcando como lida apenas localmente');
+        setNotifications(prev =>
+          prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+        );
+        return;
+      }
 
       if (error) throw error;
 
@@ -406,6 +426,15 @@ export function useNotifications() {
         .update({ read: false })
         .eq('id', notificationId);
 
+      // Se a tabela não existir, apenas atualizar localmente
+      if (error && error.code === 'PGRST116') {
+        console.warn('⚠️ Tabela notifications não existe - marcando como não lida apenas localmente');
+        setNotifications(prev =>
+          prev.map(n => n.id === notificationId ? { ...n, read: false } : n)
+        );
+        return;
+      }
+
       if (error) throw error;
 
       setNotifications(prev => 
@@ -432,6 +461,31 @@ export function useNotifications() {
         .from('notifications')
         .delete()
         .eq('id', notificationId);
+
+      // Se a tabela não existir, apenas remover localmente
+      if (error && error.code === 'PGRST116') {
+        console.warn('⚠️ Tabela notifications não existe - removendo apenas localmente');
+        setNotifications(prev => prev.filter(n => n.id !== notificationId));
+        
+        setStats(prev => ({
+          ...prev,
+          total: Math.max(0, prev.total - 1),
+          unread: notification.read ? prev.unread : Math.max(0, prev.unread - 1),
+          urgent: (notification.priority === 'urgent' || notification.priority === 'high') 
+            ? Math.max(0, prev.urgent - 1) 
+            : prev.urgent,
+          byType: {
+            ...prev.byType,
+            [notification.type]: Math.max(0, prev.byType[notification.type] - 1)
+          }
+        }));
+        
+        toast({
+          title: 'Sucesso',
+          description: 'Notificação removida'
+        });
+        return;
+      }
 
       if (error) throw error;
 
@@ -476,6 +530,19 @@ export function useNotifications() {
         .or(`user_id.eq.${profile.id},company_id.eq.${profile.company_id}`)
         .eq('read', false);
 
+      // Se a tabela não existir, apenas atualizar localmente
+      if (error && error.code === 'PGRST116') {
+        console.warn('⚠️ Tabela notifications não existe - marcando todas como lidas apenas localmente');
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        setStats(prev => ({ ...prev, unread: 0 }));
+        
+        toast({
+          title: 'Sucesso',
+          description: 'Todas as notificações foram marcadas como lidas'
+        });
+        return;
+      }
+
       if (error) throw error;
 
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
@@ -507,6 +574,12 @@ export function useNotifications() {
         .delete()
         .or(`user_id.eq.${profile.id},company_id.eq.${profile.company_id}`)
         .lt('expires_at', now);
+
+      // Se a tabela não existir, ignorar silenciosamente
+      if (error && error.code === 'PGRST116') {
+        console.warn('⚠️ Tabela notifications não existe - ignorando limpeza de notificações expiradas');
+        return;
+      }
 
       if (error) throw error;
 
