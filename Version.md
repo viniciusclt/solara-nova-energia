@@ -1,5 +1,33 @@
 # SolarCalc Pro - Histórico de Versões
 
+## [5.2.0] - 2025-01-27
+### Added
+- ✅ **Reestruturação Completa da Interface**: Remoção da aba "Gerenciamento" e realocação de funcionalidades
+- ✅ **SettingsModal Expandido**: 7 abas completas (Google Sheets, Histórico, Logs de Auditoria, Backup, Performance, Relatórios, Geral)
+- ✅ **Importação PDF Integrada**: ModuleManagerAdvanced com aba "Importar Datasheets" e OCR inteligente
+- ✅ **Importação Excel Integrada**: FinancialKitManager com importação em massa de kits de preços
+- ✅ **Sistema de Notificações Corrigido**: Correção crítica no useNotifications.ts (referência incorreta de dados)
+- Integração completa do DatasheetAnalyzer para extração automática de informações de equipamentos
+- Sistema de mapeamento inteligente de colunas para importação Excel
+- Validação avançada de dados importados
+
+### Changed
+- Funcionalidades administrativas movidas do dashboard principal para configurações
+- Interface mais limpa e organizada conforme especificações do melhorias.md
+- Navegação otimizada com foco nas funcionalidades principais
+- Melhor experiência do usuário com importações contextualizadas
+
+### Fixed
+- ✅ **Bug Crítico**: Correção da referência `notificationData` para `result` no cálculo de estatísticas
+- Estrutura de dados de notificações alinhada com schema do Supabase
+- Carregamento correto de estatísticas de notificações
+- Funcionalidade de importação PDF/Excel integrada nas áreas específicas
+
+### Breaking Changes
+- Remoção da aba "Gerenciamento" do dashboard principal
+- Realocação de funcionalidades para SettingsModal e abas específicas
+- Nova estrutura de navegação mais focada
+
 ## [5.1.1] - 2025-01-27
 ### Fixed
 - ✅ **Correção ERR_ABORTED**: Resolvido erro de conectividade em connectivityService.ts

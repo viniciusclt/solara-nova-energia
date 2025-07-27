@@ -109,48 +109,6 @@ const ExcelImporterV2: React.FC<ExcelImporterV2Props> = ({
   // Campos obrigatórios
   const requiredFields = ['nome', 'potencia', 'preco', 'fabricante'];
 
-  const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(event.target.files || []);
-    
-    console.log('[ExcelImporterV2] Arquivos selecionados:', selectedFiles);
-
-    for (const file of selectedFiles) {
-      if (files.length >= maxFiles) {
-        toast({
-          title: "Limite Excedido",
-          description: `Máximo de ${maxFiles} arquivos permitidos.`,
-          variant: "destructive"
-        });
-        break;
-      }
-
-      if (file.size > maxFileSize * 1024 * 1024) {
-        toast({
-          title: "Arquivo Muito Grande",
-          description: `${file.name} excede o limite de ${maxFileSize}MB.`,
-          variant: "destructive"
-        });
-        continue;
-      }
-
-      try {
-        await loadExcelFile(file);
-      } catch (error: unknown) {
-        console.error('[ExcelImporterV2] Erro ao carregar arquivo:', error);
-        toast({
-          title: "Erro no Arquivo",
-          description: `Erro ao carregar ${file.name}: ${(error as Error).message}`,
-          variant: "destructive"
-        });
-      }
-    }
-
-    // Limpar input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  }, [files.length, maxFiles, maxFileSize, loadExcelFile]);
-
   const loadExcelFile = useCallback(async (file: File): Promise<void> => {
     console.log('[ExcelImporterV2] Carregando arquivo:', file.name);
 
@@ -232,6 +190,48 @@ const ExcelImporterV2: React.FC<ExcelImporterV2Props> = ({
       reader.readAsArrayBuffer(file);
     });
   }, [skipRows, autoDetectHeaders, setFiles, selectedFile, setSelectedFile]);
+
+  const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(event.target.files || []);
+    
+    console.log('[ExcelImporterV2] Arquivos selecionados:', selectedFiles);
+
+    for (const file of selectedFiles) {
+      if (files.length >= maxFiles) {
+        toast({
+          title: "Limite Excedido",
+          description: `Máximo de ${maxFiles} arquivos permitidos.`,
+          variant: "destructive"
+        });
+        break;
+      }
+
+      if (file.size > maxFileSize * 1024 * 1024) {
+        toast({
+          title: "Arquivo Muito Grande",
+          description: `${file.name} excede o limite de ${maxFileSize}MB.`,
+          variant: "destructive"
+        });
+        continue;
+      }
+
+      try {
+        await loadExcelFile(file);
+      } catch (error: unknown) {
+        console.error('[ExcelImporterV2] Erro ao carregar arquivo:', error);
+        toast({
+          title: "Erro no Arquivo",
+          description: `Erro ao carregar ${file.name}: ${(error as Error).message}`,
+          variant: "destructive"
+        });
+      }
+    }
+
+    // Limpar input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, [files.length, maxFiles, maxFileSize, loadExcelFile]);
 
   const changeSheet = async (fileId: string, sheetName: string) => {
     const file = files.find(f => f.id === fileId);
