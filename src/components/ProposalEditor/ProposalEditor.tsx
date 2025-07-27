@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   FileText, 
@@ -30,7 +31,15 @@ import {
   Settings,
   Save,
   Undo,
-  Redo
+  Redo,
+  Play,
+  Pause,
+  SkipForward,
+  SkipBack,
+  Monitor,
+  FileImage,
+  Clock,
+  Sparkles
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 // Temporary simplified drag-drop components to avoid compilation errors
@@ -86,8 +95,32 @@ interface ProposalTemplate {
   description: string;
   sections: ProposalSection[];
   layout: 'free' | 'grid' | 'vertical';
-  pageSize: 'A4' | 'Letter';
+  pageSize: 'A4' | 'Letter' | '16:9';
   orientation: 'portrait' | 'landscape';
+  animations?: {
+    enabled: boolean;
+    type: 'fadein' | 'fadeout' | 'slide' | 'zoom';
+    delay: number;
+    autoAdvance: boolean;
+  };
+  slideSettings?: {
+    maxSlides: number;
+    currentSlide: number;
+    autoBreak: boolean;
+  };
+}
+
+interface AnimationSettings {
+  enabled: boolean;
+  type: 'fadein' | 'fadeout' | 'slide' | 'zoom';
+  delay: number;
+  autoAdvance: boolean;
+}
+
+interface SlideSettings {
+  maxSlides: number;
+  currentSlide: number;
+  autoBreak: boolean;
 }
 
 interface ProposalEditorProps {
@@ -228,12 +261,25 @@ const predefinedTemplates: ProposalTemplate[] = [
 
 export function ProposalEditor({ currentLead, onSave, initialTemplate }: ProposalEditorProps) {
   const { toast } = useToast();
-  const [currentTemplate, setCurrentTemplate] = useState<ProposalTemplate>(
-    initialTemplate || predefinedTemplates[0]
-  );
+  const [currentTemplate, setCurrentTemplate] = useState<ProposalTemplate>({
+    ...initialTemplate || predefinedTemplates[0],
+    animations: {
+      enabled: false,
+      type: 'fadein',
+      delay: 1000,
+      autoAdvance: false
+    },
+    slideSettings: {
+      maxSlides: 15,
+      currentSlide: 1,
+      autoBreak: true
+    }
+  });
   const [selectedTemplate, setSelectedTemplate] = useState(currentTemplate.id);
   const [isEditing, setIsEditing] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [history, setHistory] = useState<ProposalTemplate[]>([currentTemplate]);
   const [historyIndex, setHistoryIndex] = useState(0);
 
@@ -352,7 +398,7 @@ export function ProposalEditor({ currentLead, onSave, initialTemplate }: Proposa
         template: currentTemplate
       };
 
-      await proposalPDFGenerator.generateFromTemplate(proposalData);
+      await proposalPDFGenerator.generatePDF(proposalData);
       
       toast({
         title: 'PDF Gerado',
@@ -672,13 +718,18 @@ export function ProposalEditor({ currentLead, onSave, initialTemplate }: Proposa
                     </div>
                     
                     <div className="space-y-2">
-                      <Label>Tamanho da Página</Label>
+                      <Label>Formato da Página</Label>
                       <Select
                         value={currentTemplate.pageSize}
-                        onValueChange={(value: 'A4' | 'Letter') => 
+                        onValueChange={(value: 'A4' | 'Letter' | '16:9') => 
                           setCurrentTemplate({
                             ...currentTemplate,
-                            pageSize: value
+                            pageSize: value,
+                            slideSettings: {
+                              ...currentTemplate.slideSettings!,
+                              maxSlides: value === '16:9' ? 15 : value === 'A4' ? 1 : 1,
+                              autoBreak: value === 'A4'
+                            }
                           })
                         }
                       >
@@ -686,7 +737,18 @@ export function ProposalEditor({ currentLead, onSave, initialTemplate }: Proposa
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="A4">A4</SelectItem>
+                          <SelectItem value="A4">
+                            <div className="flex items-center gap-2">
+                              <FileImage className="h-4 w-4" />
+                              A4 (Quebra automática por altura)
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="16:9">
+                            <div className="flex items-center gap-2">
+                              <Monitor className="h-4 w-4" />
+                              16:9 (Apresentação - ~15 slides)
+                            </div>
+                          </SelectItem>
                           <SelectItem value="Letter">Letter</SelectItem>
                         </SelectContent>
                       </Select>
@@ -717,9 +779,170 @@ export function ProposalEditor({ currentLead, onSave, initialTemplate }: Proposa
                 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Ações</CardTitle>
+                    <CardTitle>Animações e Apresentação</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="animations-enabled">Habilitar Animações</Label>
+                        <Switch
+                          id="animations-enabled"
+                          checked={currentTemplate.animations?.enabled || false}
+                          onCheckedChange={(checked) => 
+                            setCurrentTemplate({
+                              ...currentTemplate,
+                              animations: {
+                                ...currentTemplate.animations!,
+                                enabled: checked
+                              }
+                            })
+                          }
+                        />
+                      </div>
+                      
+                      {currentTemplate.animations?.enabled && (
+                        <>
+                          <div className="space-y-2">
+                            <Label>Tipo de Animação</Label>
+                            <Select
+                              value={currentTemplate.animations.type}
+                              onValueChange={(value: 'fadein' | 'fadeout' | 'slide' | 'zoom') => 
+                                setCurrentTemplate({
+                                  ...currentTemplate,
+                                  animations: {
+                                    ...currentTemplate.animations!,
+                                    type: value
+                                  }
+                                })
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="fadein">Fade In</SelectItem>
+                                <SelectItem value="fadeout">Fade Out</SelectItem>
+                                <SelectItem value="slide">Slide</SelectItem>
+                                <SelectItem value="zoom">Zoom</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label>Delay (ms): {currentTemplate.animations.delay}</Label>
+                            <Slider
+                              value={[currentTemplate.animations.delay]}
+                              onValueChange={([value]) => 
+                                setCurrentTemplate({
+                                  ...currentTemplate,
+                                  animations: {
+                                    ...currentTemplate.animations!,
+                                    delay: value
+                                  }
+                                })
+                              }
+                              max={5000}
+                              min={100}
+                              step={100}
+                            />
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="auto-advance">Avanço Automático</Label>
+                            <Switch
+                              id="auto-advance"
+                              checked={currentTemplate.animations.autoAdvance}
+                              onCheckedChange={(checked) => 
+                                setCurrentTemplate({
+                                  ...currentTemplate,
+                                  animations: {
+                                    ...currentTemplate.animations!,
+                                    autoAdvance: checked
+                                  }
+                                })
+                              }
+                            />
+                          </div>
+                        </>
+                      )}
+                      
+                      {currentTemplate.pageSize === '16:9' && (
+                        <>
+                          <Separator />
+                          <div className="space-y-2">
+                            <Label>Máximo de Slides: {currentTemplate.slideSettings?.maxSlides}</Label>
+                            <Slider
+                              value={[currentTemplate.slideSettings?.maxSlides || 15]}
+                              onValueChange={([value]) => 
+                                setCurrentTemplate({
+                                  ...currentTemplate,
+                                  slideSettings: {
+                                    ...currentTemplate.slideSettings!,
+                                    maxSlides: value
+                                  }
+                                })
+                              }
+                              max={50}
+                              min={5}
+                              step={1}
+                            />
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setIsPlaying(!isPlaying)}
+                              disabled={!currentTemplate.animations?.enabled}
+                            >
+                              {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const current = currentTemplate.slideSettings?.currentSlide || 1;
+                                if (current > 1) {
+                                  setCurrentTemplate({
+                                    ...currentTemplate,
+                                    slideSettings: {
+                                      ...currentTemplate.slideSettings!,
+                                      currentSlide: current - 1
+                                    }
+                                  });
+                                }
+                              }}
+                            >
+                              <SkipBack className="h-4 w-4" />
+                            </Button>
+                            <span className="text-sm font-medium">
+                              {currentTemplate.slideSettings?.currentSlide || 1} / {currentTemplate.slideSettings?.maxSlides || 15}
+                            </span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const current = currentTemplate.slideSettings?.currentSlide || 1;
+                                const max = currentTemplate.slideSettings?.maxSlides || 15;
+                                if (current < max) {
+                                  setCurrentTemplate({
+                                    ...currentTemplate,
+                                    slideSettings: {
+                                      ...currentTemplate.slideSettings!,
+                                      currentSlide: current + 1
+                                    }
+                                  });
+                                }
+                              }}
+                            >
+                              <SkipForward className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    
+                    <Separator />
                     <Button
                       variant="outline"
                       className="w-full"
@@ -728,6 +951,23 @@ export function ProposalEditor({ currentLead, onSave, initialTemplate }: Proposa
                       <Eye className="h-4 w-4 mr-2" />
                       {showPreview ? 'Ocultar' : 'Mostrar'} Preview
                     </Button>
+                    
+                    {currentTemplate.animations?.enabled && (
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => {
+                          setIsPlaying(!isPlaying);
+                          toast({
+                            title: isPlaying ? 'Apresentação Pausada' : 'Apresentação Iniciada',
+                            description: isPlaying ? 'Clique para continuar' : 'Animações ativadas'
+                          });
+                        }}
+                      >
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        {isPlaying ? 'Pausar' : 'Iniciar'} Apresentação
+                      </Button>
+                    )}
                     
                     <Button
                       variant="outline"

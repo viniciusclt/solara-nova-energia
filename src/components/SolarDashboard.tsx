@@ -347,7 +347,7 @@ export function SolarDashboard({ onBackToMenu }: SolarDashboardProps = {}) {
                     <div className="text-center w-full">
                       <div className="font-medium text-sm leading-tight mb-1">{tab.label}</div>
                       <div className="text-xs leading-tight text-muted-foreground group-data-[state=active]:text-primary-foreground/90 group-data-[state=active]:font-medium hidden sm:block">
-                        {tab.description}
+                        <ResponsiveText text={tab.description} maxWidth="120px" />
                       </div>
                     </div>
                   </TabsTrigger>

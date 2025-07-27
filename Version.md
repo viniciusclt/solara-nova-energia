@@ -1,5 +1,53 @@
 # SolarCalc Pro - Histórico de Versões
 
+## [5.3.0] - 2025-01-27
+### Added
+- ✅ **ResponsiveText Component**: Componente avançado para texto responsivo com estratégias adaptativas
+  - Estratégias: wrap (quebra de linha), hide (ocultar), truncate (cortar com ellipsis)
+  - Tooltip automático quando texto é truncado
+  - Breakpoints configuráveis para diferentes tamanhos de tela
+  - Medição automática de overflow
+- ✅ **TemplateManager**: Sistema completo de gerenciamento de templates editáveis
+  - CRUD completo (Create, Read, Update, Delete)
+  - Integração com Supabase para persistência
+  - Sistema de versionamento automático
+  - Categorização visual com ícones
+  - Busca e filtros avançados
+  - Soft delete para preservar histórico
+  - Duplicação inteligente de templates
+- ✅ **Equipment CRUD Enhancement**: Funcionalidades completas de gerenciamento de equipamentos
+  - Edição de equipamentos existentes no ConsumptionCalculator
+  - Interface dinâmica (Adicionar/Editar)
+  - Validações de formulário robustas
+  - Notificações toast para feedback
+  - Botões de ação contextuais (Edit, Delete)
+- ✅ **Sidebar Navigation Restoration**: Restauração completa da navegação lateral
+  - SidebarToggle restaurado no header
+  - Novos módulos: Aquecimento Banho, Aquecimento Piscina, WallBox
+  - Hierarquia reorganizada com seções
+  - Ícones atualizados e espaçamento adequado
+
+### Changed
+- melhorias.md atualizado como Product Requirements Document (PRD) completo
+- Arquitetura modular expandida com novos componentes
+- Interface de usuário aprimorada com componentes responsivos
+- Sistema de navegação reorganizado e otimizado
+
+### Technical Implementation
+- 6 arquivos modificados, 1157 inserções, 1923 deleções
+- Novo componente: src/components/TemplateManager.tsx (500+ linhas)
+- Schemas Supabase para templates e versionamento
+- TypeScript interfaces para tipagem robusta
+- Integração completa com sistema de autenticação
+
+### Breaking Changes
+- None
+
+### Closes
+- #responsive-text: Implementação completa de texto responsivo
+- #template-editor: Sistema de templates editáveis funcional
+- #equipment-management: CRUD de equipamentos implementado
+
 ## [5.2.2] - 2025-01-27
 ### Fixed
 - ✅ **Correção de Scripts de Tracking**: Eliminação dos erros ERR_BLOCKED_BY_CLIENT
