@@ -1,5 +1,57 @@
 # SolarCalc Pro - Histórico de Versões
 
+## [5.5.0] - 2025-01-27
+### Added
+- ✅ **5 Melhorias de UX/UI e Sistema Offline**: Implementação completa das melhorias solicitadas
+  - Botão "Gerenciar" reposicionado ao lado de "Adicionar Equipamento" no ConsumptionCalculator
+  - Sistema completo de criação e edição de presets de equipamentos
+  - Botão sidebar sempre visível (removida restrição lg:hidden)
+  - Sincronização automática de campos relacionados em módulos solares
+  - Sistema offline com sincronização automática via OfflineService
+- ✅ **OfflineService**: Serviço robusto para operações offline
+  - Cache local de módulos com localStorage
+  - Detecção automática de status online/offline
+  - Sincronização automática de alterações pendentes
+  - Suporte a operações CRUD offline (create, update, delete)
+  - Indicadores visuais de status offline e sincronização
+- ✅ **Preset Management System**: Sistema avançado de gerenciamento de presets
+  - Criação de novos tipos de equipamento
+  - Edição de presets existentes com interface modal
+  - Exclusão de presets com confirmação
+  - Validação de dados e feedback visual
+- ✅ **Auto-Sync Module Fields**: Sincronização inteligente de campos
+  - Tecnologia automaticamente sincronizada com tipo de célula
+  - Cálculo automático de área baseado em dimensões
+  - Exibição de densidade de potência quando aplicável
+  - Inicialização inteligente de novos módulos
+
+### Changed
+- ConsumptionCalculator.tsx: Interface reorganizada com botão "Gerenciar" reposicionado
+- ModuleManagerAdvanced.tsx: Integração completa com OfflineService e sincronização automática
+- SolarDashboard.tsx: Botão sidebar sempre visível em todas as telas
+- Interface de usuário aprimorada com indicadores de status offline
+- Sistema de notificações expandido para feedback de sincronização
+
+### Technical Implementation
+- Novo serviço: src/services/offlineService.ts (300+ linhas)
+- Padrão Singleton para OfflineService garantindo instância única
+- Event listeners para detecção de mudanças de conectividade
+- Sistema de cache inteligente com fallback automático
+- Interfaces TypeScript robustas para tipagem
+- Integração com Supabase mantendo compatibilidade
+
+### Fixed
+- ✅ **Experiência Offline**: Aplicação funciona completamente offline
+- ✅ **Sincronização Automática**: Dados sincronizados automaticamente quando online
+- ✅ **Interface Responsiva**: Botões e elementos sempre acessíveis
+- ✅ **Validação de Dados**: Campos relacionados sempre consistentes
+
+### Closes
+- #ux-improvements: 5 melhorias de UX/UI implementadas
+- #offline-system: Sistema offline robusto funcional
+- #preset-management: Gerenciamento completo de presets
+- #auto-sync: Sincronização automática de campos
+
 ## [5.4.0] - 2025-01-27
 ### Added
 - ✅ **ProposalEditor A4/16:9 com Animações**: Editor completo de propostas com múltiplos formatos
