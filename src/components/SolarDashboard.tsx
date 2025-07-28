@@ -217,6 +217,7 @@ export function SolarDashboard({ onBackToMenu }: SolarDashboardProps = {}) {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
+              <SidebarToggle />
               {onBackToMenu && (
                 <Button
                   variant="outline"
@@ -244,7 +245,6 @@ export function SolarDashboard({ onBackToMenu }: SolarDashboardProps = {}) {
             </div>
             
             <div className="flex items-center gap-2 sm:gap-4">
-              <SidebarToggle />
               <div className="text-right hidden sm:block">
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4" />
@@ -281,7 +281,6 @@ export function SolarDashboard({ onBackToMenu }: SolarDashboardProps = {}) {
                 className="flex items-center gap-2 relative"
               >
                 <Bell className="h-4 w-4" />
-                <span className="hidden sm:inline">Notificações</span>
                 {stats.unread > 0 && (
                   <Badge 
                     variant="destructive" 
@@ -290,11 +289,6 @@ export function SolarDashboard({ onBackToMenu }: SolarDashboardProps = {}) {
                     {stats.unread > 99 ? '99+' : stats.unread}
                   </Badge>
                 )}
-              </Button>
-              <SettingsModal />
-              <Button variant="outline" size="sm" onClick={signOut}>
-                <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline">Sair</span>
               </Button>
             </div>
           </div>

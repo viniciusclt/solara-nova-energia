@@ -343,25 +343,13 @@ export function ConsumptionCalculator({ currentLead }: ConsumptionCalculatorProp
     <div className="space-y-6">
       <Card className="shadow-card">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Calculator className="h-5 w-5 text-primary" />
-                Calculadora de Incremento de Consumo
-              </CardTitle>
-              <CardDescription>
-                Adicione equipamentos para calcular o aumento no consumo elétrico
-              </CardDescription>
-            </div>
-            <Dialog open={showManageModal} onOpenChange={setShowManageModal}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Gerenciar
-                </Button>
-              </DialogTrigger>
-            </Dialog>
-          </div>
+          <CardTitle className="flex items-center gap-2">
+            <Calculator className="h-5 w-5 text-primary" />
+            Calculadora de Incremento de Consumo
+          </CardTitle>
+          <CardDescription>
+            Adicione equipamentos para calcular o aumento no consumo elétrico
+          </CardDescription>
         </CardHeader>
       </Card>
 
