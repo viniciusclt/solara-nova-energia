@@ -30,6 +30,9 @@ export function ConsumptionCalculator({ currentLead }: ConsumptionCalculatorProp
   const [equipments, setEquipments] = useState<Equipment[]>([]);
   const [showManageModal, setShowManageModal] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState<Equipment | null>(null);
+  const [editingPreset, setEditingPreset] = useState<{type: string, preset: any} | null>(null);
+  const [newEquipmentType, setNewEquipmentType] = useState('');
+  const [showAddTypeModal, setShowAddTypeModal] = useState(false);
   const [newEquipment, setNewEquipment] = useState({
     type: "",
     name: "",
@@ -245,6 +248,91 @@ export function ConsumptionCalculator({ currentLead }: ConsumptionCalculatorProp
     }));
   };
 
+  const addNewEquipmentType = () => {
+    if (newEquipmentType.trim()) {
+      const newType = {
+        [newEquipmentType]: {
+          icon: "⚡",
+          presets: [
+            {
+              name: `${newEquipmentType} Padrão`,
+              power: 100,
+              hoursPerDay: 8,
+              daysPerMonth: 30,
+              monthsPerYear: 12
+            }
+          ]
+        }
+      };
+      
+      // Aqui você pode salvar no localStorage ou estado global
+      Object.assign(equipmentTypes, newType);
+      setNewEquipmentType('');
+      setShowAddTypeModal(false);
+      toast({
+        title: "Tipo adicionado",
+        description: `Tipo de equipamento "${newEquipmentType}" foi adicionado com sucesso.`
+      });
+    }
+  };
+
+  const editPreset = (type: string, presetIndex: number) => {
+    const preset = equipmentTypes[type].presets[presetIndex];
+    setEditingPreset({ type, preset: { ...preset, index: presetIndex } });
+  };
+
+  const savePreset = () => {
+    if (editingPreset) {
+      const { type, preset } = editingPreset;
+      if (preset.index !== undefined) {
+        // Editar preset existente
+        equipmentTypes[type].presets[preset.index] = {
+          name: preset.name,
+          power: preset.power,
+          hoursPerDay: preset.hoursPerDay,
+          daysPerMonth: preset.daysPerMonth,
+          monthsPerYear: preset.monthsPerYear
+        };
+      } else {
+        // Adicionar novo preset
+        equipmentTypes[type].presets.push({
+          name: preset.name,
+          power: preset.power,
+          hoursPerDay: preset.hoursPerDay,
+          daysPerMonth: preset.daysPerMonth,
+          monthsPerYear: preset.monthsPerYear
+        });
+      }
+      
+      setEditingPreset(null);
+      toast({
+        title: "Preset salvo",
+        description: "Preset foi salvo com sucesso."
+      });
+    }
+  };
+
+  const addNewPreset = (type: string) => {
+    setEditingPreset({
+      type,
+      preset: {
+        name: '',
+        power: 100,
+        hoursPerDay: 8,
+        daysPerMonth: 30,
+        monthsPerYear: 12
+      }
+    });
+  };
+
+  const deletePreset = (type: string, presetIndex: number) => {
+    equipmentTypes[type].presets.splice(presetIndex, 1);
+    toast({
+      title: "Preset removido",
+      description: "Preset foi removido com sucesso."
+    });
+  };
+
   const totalConsumptionIncrease = equipments.reduce((sum, eq) => sum + eq.consumptionKwh, 0);
   const monthlyIncrease = totalConsumptionIncrease / 12;
   const currentConsumption = currentLead?.consumoMedio || 0;
@@ -312,49 +400,6 @@ export function ConsumptionCalculator({ currentLead }: ConsumptionCalculatorProp
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>{editingEquipment ? 'Editar Equipamento' : 'Adicionar Equipamento'}</CardTitle>
-              <Dialog open={showManageModal} onOpenChange={setShowManageModal}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Gerenciar
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Gerenciar Tipos de Equipamentos</DialogTitle>
-                    <DialogDescription>
-                      Visualize e gerencie os tipos de equipamentos disponíveis na calculadora
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    {equipmentTypes.map(type => {
-                      const IconComponent = type.icon;
-                      return (
-                        <Card key={type.id} className="p-4">
-                          <div className="flex items-center gap-3 mb-3">
-                            <IconComponent className="h-5 w-5 text-primary" />
-                            <h3 className="font-semibold">{type.name}</h3>
-                          </div>
-                          <div className="space-y-2">
-                            <p className="text-sm text-muted-foreground mb-2">Presets disponíveis:</p>
-                            {type.presets.map(preset => (
-                              <div key={preset.name} className="flex justify-between items-center text-sm">
-                                <span>{preset.name}</span>
-                                <Badge variant="outline">{preset.power}W</Badge>
-                              </div>
-                            ))}
-                          </div>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                  <div className="flex justify-end mt-6">
-                    <Button onClick={() => setShowManageModal(false)}>
-                      Fechar
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -480,10 +525,81 @@ export function ConsumptionCalculator({ currentLead }: ConsumptionCalculatorProp
                 </Button>
               </div>
             ) : (
-              <Button onClick={addEquipment} className="w-full">
-                <Plus className="h-4 w-4" />
-                Adicionar Equipamento
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={addEquipment} className="flex-1">
+                  <Plus className="h-4 w-4" />
+                  Adicionar Equipamento
+                </Button>
+                <Dialog open={showManageModal} onOpenChange={setShowManageModal}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Gerenciar
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <DialogTitle>Gerenciar Tipos de Equipamentos</DialogTitle>
+                          <DialogDescription>
+                            Visualize, edite e gerencie todos os tipos de equipamento e seus presets
+                          </DialogDescription>
+                        </div>
+                        <Button onClick={() => setShowAddTypeModal(true)} size="sm">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Novo Tipo
+                        </Button>
+                      </div>
+                    </DialogHeader>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                      {equipmentTypes.map(type => {
+                        const IconComponent = type.icon;
+                        return (
+                          <Card key={type.id} className="p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-3">
+                                <IconComponent className="h-5 w-5 text-primary" />
+                                <h3 className="font-semibold">{type.name}</h3>
+                              </div>
+                              <Button onClick={() => addNewPreset(type.id)} size="sm" variant="outline">
+                                <Plus className="h-4 w-4 mr-2" />
+                                Novo Preset
+                              </Button>
+                            </div>
+                            <div className="space-y-2">
+                              <p className="text-sm text-muted-foreground mb-2">Presets disponíveis:</p>
+                              {type.presets.map((preset, index) => (
+                                <div key={preset.name} className="bg-muted/50 rounded p-3 text-sm flex items-center justify-between">
+                                  <div>
+                                    <div className="font-medium">{preset.name}</div>
+                                    <div className="text-muted-foreground mt-1">
+                                      {preset.power}W
+                                    </div>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button onClick={() => editPreset(type.id, index)} size="sm" variant="ghost">
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button onClick={() => deletePreset(type.id, index)} size="sm" variant="ghost" className="text-red-600 hover:text-red-700">
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                    <div className="flex justify-end mt-6">
+                      <Button onClick={() => setShowManageModal(false)}>
+                        Fechar
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -563,6 +679,136 @@ export function ConsumptionCalculator({ currentLead }: ConsumptionCalculatorProp
           </CardContent>
         </Card>
       </div>
+
+      {/* Modal para adicionar novo tipo de equipamento */}
+      <Dialog open={showAddTypeModal} onOpenChange={setShowAddTypeModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Adicionar Novo Tipo de Equipamento</DialogTitle>
+            <DialogDescription>
+              Crie um novo tipo de equipamento com preset padrão
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="newTypeName">Nome do Tipo</Label>
+              <Input
+                id="newTypeName"
+                value={newEquipmentType}
+                onChange={(e) => setNewEquipmentType(e.target.value)}
+                placeholder="Ex: Ar Condicionado Split"
+              />
+            </div>
+          </div>
+          
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setShowAddTypeModal(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={addNewEquipmentType} disabled={!newEquipmentType.trim()}>
+              Adicionar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal para editar preset */}
+      <Dialog open={!!editingPreset} onOpenChange={() => setEditingPreset(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editingPreset?.preset.index !== undefined ? 'Editar Preset' : 'Novo Preset'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingPreset?.preset.index !== undefined 
+                ? 'Modifique as configurações do preset'
+                : 'Configure um novo preset para este tipo de equipamento'
+              }
+            </DialogDescription>
+          </DialogHeader>
+          
+          {editingPreset && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="presetName">Nome do Preset</Label>
+                <Input
+                  id="presetName"
+                  value={editingPreset.preset.name}
+                  onChange={(e) => setEditingPreset({
+                    ...editingPreset,
+                    preset: { ...editingPreset.preset, name: e.target.value }
+                  })}
+                  placeholder="Ex: Modelo Econômico"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="presetPower">Potência (W)</Label>
+                <Input
+                  id="presetPower"
+                  type="number"
+                  value={editingPreset.preset.power}
+                  onChange={(e) => setEditingPreset({
+                    ...editingPreset,
+                    preset: { ...editingPreset.preset, power: Number(e.target.value) }
+                  })}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="presetHours">Horas por dia</Label>
+                  <Input
+                    id="presetHours"
+                    type="number"
+                    value={editingPreset.preset.hoursPerDay}
+                    onChange={(e) => setEditingPreset({
+                      ...editingPreset,
+                      preset: { ...editingPreset.preset, hoursPerDay: Number(e.target.value) }
+                    })}
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="presetDays">Dias por mês</Label>
+                  <Input
+                    id="presetDays"
+                    type="number"
+                    value={editingPreset.preset.daysPerMonth}
+                    onChange={(e) => setEditingPreset({
+                      ...editingPreset,
+                      preset: { ...editingPreset.preset, daysPerMonth: Number(e.target.value) }
+                    })}
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="presetMonths">Meses por ano</Label>
+                <Input
+                  id="presetMonths"
+                  type="number"
+                  value={editingPreset.preset.monthsPerYear}
+                  onChange={(e) => setEditingPreset({
+                    ...editingPreset,
+                    preset: { ...editingPreset.preset, monthsPerYear: Number(e.target.value) }
+                  })}
+                />
+              </div>
+            </div>
+          )}
+          
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setEditingPreset(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={savePreset} disabled={!editingPreset?.preset.name.trim()}>
+              Salvar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

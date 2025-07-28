@@ -34,6 +34,7 @@ import { FinancialAnalysis } from "./FinancialAnalysis";
 import FinancialCalculator from "./FinancialCalculator";
 import { ProposalGenerator } from "./ProposalGenerator";
 import { ProposalEditor } from "./ProposalEditor";
+import { TemplateManager } from "./TemplateManager";
 import { SettingsModal } from "./SettingsModal";
 import { SelectedLeadBreadcrumb } from "./SelectedLeadBreadcrumb";
 import { DemoDataIndicator } from "./DemoDataIndicator";
@@ -199,6 +200,13 @@ export function SolarDashboard({ onBackToMenu }: SolarDashboardProps = {}) {
       description: "Editor de propostas drag-and-drop",
       permission: "generate_proposals"
     },
+    { 
+      id: "templates", 
+      label: "Templates", 
+      icon: Settings, 
+      description: "Gerenciar templates de propostas",
+      permission: "generate_proposals"
+    },
     // Aba "Gerenciamento" removida - funcionalidades realocadas para outras abas
   ].filter(tab => !tab.permission || hasPermission(tab.permission));
 
@@ -236,7 +244,7 @@ export function SolarDashboard({ onBackToMenu }: SolarDashboardProps = {}) {
             </div>
             
             <div className="flex items-center gap-2 sm:gap-4">
-              <SidebarToggle className="lg:hidden" />
+              <SidebarToggle />
               <div className="text-right hidden sm:block">
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4" />
@@ -552,6 +560,12 @@ export function SolarDashboard({ onBackToMenu }: SolarDashboardProps = {}) {
               ) : (
                 <ProposalEditor currentLead={currentLead} />
               )}
+            </TabsContent>
+          )}
+
+          {hasPermission('generate_proposals') && (
+            <TabsContent value="templates">
+              <TemplateManager />
             </TabsContent>
           )}
 

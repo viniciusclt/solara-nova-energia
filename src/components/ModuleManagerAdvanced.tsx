@@ -10,13 +10,14 @@ import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Edit, Trash2, Save, X, FileText, Sun, Zap, Ruler, Scale, Shield, Tag, FileUp, Upload, Download } from "lucide-react";
+import { Plus, Edit, Trash2, Save, X, FileText, Sun, Zap, Ruler, Scale, Shield, Tag, FileUp, Upload, Download, WifiOff, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { SolarModule } from "@/types";
 import { FileUpload } from "@/components/ui/file-upload";
 import { DemoDataService } from "@/services/DemoDataService";
 import DatasheetAnalyzer from "@/components/DatasheetAnalyzer";
+import OfflineService from "@/services/offlineService";
 
 export function ModuleManagerAdvanced() {
   const { toast } = useToast();
@@ -30,6 +31,9 @@ export function ModuleManagerAdvanced() {
     { years: 25, percentage: 80 }
   ]);
   const [activeTab, setActiveTab] = useState('modules');
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
+  const [hasPendingSync, setHasPendingSync] = useState(false);
+  const offlineService = OfflineService.getInstance();
 
   const [currentModule, setCurrentModule] = useState<SolarModule>({
     name: "",
@@ -66,7 +70,7 @@ export function ModuleManagerAdvanced() {
     "IEC 61215", "IEC 61730", "UL 1703", "MCS", "CEC", "INMETRO", "PID Free", "Salt Mist", "Ammonia", "Fire Class 1"
   ];
 
-  const fetchModules = useCallback(async (retryCount = 0) => {
+  const fetchModules = useCallback(async () => {
     setIsLoading(true);
     try {
       const demoDataService = DemoDataService.getInstance();
@@ -76,42 +80,24 @@ export function ModuleManagerAdvanced() {
         const demoModules = demoDataService.getModules();
         setModules(demoModules);
       } else {
-        // Verificar autenticação antes de fazer a consulta
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          throw new Error('Usuário não autenticado');
+        // Usar OfflineService que gerencia fallback automático
+        const modulesData = await offlineService.getModules();
+        setModules(modulesData);
+        
+        // Atualizar estado do modo offline
+        setIsOfflineMode(offlineService.isOfflineMode());
+        setHasPendingSync(offlineService.hasPendingChanges());
+        
+        if (offlineService.isOfflineMode()) {
+          toast({
+            title: "Modo Offline",
+            description: "Usando dados salvos localmente. As alterações serão sincronizadas quando a conexão for restaurada.",
+            variant: "default"
+          });
         }
-
-        // Usar dados do Supabase em produção
-        const { data, error } = await supabase
-          .from('modules' as never)
-          .select('*')
-          .order('name');
-
-        if (error) {
-          // Tratamento específico para diferentes tipos de erro
-          if (error.code === 'PGRST116') {
-            throw new Error('Tabela de módulos não encontrada. Verifique a configuração do banco de dados.');
-          } else if (error.code === '42501') {
-            throw new Error('Permissão negada para acessar os módulos. Verifique suas credenciais.');
-          } else if (error.message?.includes('connection')) {
-            throw new Error('Erro de conexão com o banco de dados. Verifique sua conexão com a internet.');
-          }
-          throw error;
-        }
-        setModules(((data as unknown) as SolarModule[]) || []);
       }
     } catch (error) {
       console.error('Error fetching modules:', error);
-      
-      // Retry automático para erros de conexão (máximo 2 tentativas)
-      if (retryCount < 2 && (error as Error).message?.includes('connection')) {
-        console.log(`Tentando novamente carregar módulos (tentativa ${retryCount + 1})...`);
-        setTimeout(() => fetchModules(retryCount + 1), 2000);
-        return;
-      }
-      
-      // Fallback: usar dados vazios em caso de erro persistente
       setModules([]);
       
       const errorMessage = error instanceof Error ? error.message : 'Não foi possível carregar os módulos';
@@ -123,20 +109,55 @@ export function ModuleManagerAdvanced() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [toast, offlineService]);
 
   useEffect(() => {
     fetchModules();
-  }, [fetchModules]);
+    
+    // Configurar listeners para sincronização automática
+    const handleOnline = () => {
+      setIsOfflineMode(false);
+      if (offlineService.hasPendingChanges()) {
+        offlineService.syncPendingChanges().then(() => {
+          setHasPendingSync(false);
+          fetchModules();
+          toast({
+            title: "Sincronização concluída",
+            description: "Dados sincronizados com sucesso"
+          });
+        }).catch((error) => {
+          console.error('Erro na sincronização:', error);
+          toast({
+            title: "Erro na sincronização",
+            description: "Falha ao sincronizar dados",
+            variant: "destructive"
+          });
+        });
+      }
+    };
+    
+    const handleOffline = () => {
+      setIsOfflineMode(true);
+      toast({
+        title: "Modo Offline",
+        description: "Conexão perdida. Trabalhando offline.",
+        variant: "default"
+      });
+    };
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [fetchModules, toast, offlineService]);
 
   const handleSaveModule = async () => {
     try {
-      // Verificar autenticação
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('Usuário não autenticado. Faça login novamente.');
-      }
-
+      const demoDataService = DemoDataService.getInstance();
+      
       // Validar dados obrigatórios
       if (!currentModule.name || !currentModule.manufacturer || !currentModule.model) {
         throw new Error('Nome, fabricante e modelo são obrigatórios.');
@@ -154,34 +175,44 @@ export function ModuleManagerAdvanced() {
         performanceWarranty: performanceWarranties
       };
 
-      let result;
-      
-      if (isEditing && currentModule.id) {
-        // Atualizar módulo existente
-        result = await supabase
-          .from('modules' as never)
-          .update(moduleToSave as never)
-          .eq('id', currentModule.id);
-      } else {
-        // Criar novo módulo
-        result = await supabase
-          .from('modules' as never)
-          .insert(moduleToSave as never);
-      }
-
-      if (result.error) {
-        if (result.error.code === '23505') {
-          throw new Error('Já existe um módulo com este nome e modelo.');
-        } else if (result.error.code === '42501') {
-          throw new Error('Permissão negada para salvar o módulo.');
+      if (demoDataService.shouldUseDemoData()) {
+        // Em modo demo, apenas simular o salvamento
+        const newModule = { ...moduleToSave, id: Date.now().toString() };
+        if (isEditing) {
+          setModules(prev => prev.map(m => m.id === currentModule.id ? newModule : m));
+        } else {
+          setModules(prev => [...prev, newModule]);
         }
-        throw result.error;
+        
+        toast({
+          title: isEditing ? "Módulo Atualizado" : "Módulo Criado",
+          description: `${moduleToSave.name} foi ${isEditing ? 'atualizado' : 'adicionado'} com sucesso`,
+        });
+      } else {
+        // Usar OfflineService que gerencia fallback automático
+        let savedModule: SolarModule;
+        
+        if (isEditing && currentModule.id) {
+          savedModule = await offlineService.updateModule(moduleToSave);
+          setModules(prev => prev.map(m => m.id === currentModule.id ? savedModule : m));
+        } else {
+          savedModule = await offlineService.saveModule(moduleToSave);
+          setModules(prev => [...prev, savedModule]);
+        }
+        
+        // Atualizar estado do modo offline
+        setIsOfflineMode(offlineService.isOfflineMode());
+        setHasPendingSync(offlineService.hasPendingChanges());
+        
+        const statusMessage = offlineService.isOfflineMode() 
+          ? " (salvo localmente, será sincronizado quando online)"
+          : "";
+        
+        toast({
+          title: isEditing ? "Módulo Atualizado" : "Módulo Criado",
+          description: `${moduleToSave.name} foi ${isEditing ? 'atualizado' : 'adicionado'} com sucesso${statusMessage}`,
+        });
       }
-
-      toast({
-        title: isEditing ? "Módulo Atualizado" : "Módulo Criado",
-        description: `${moduleToSave.name} foi ${isEditing ? 'atualizado' : 'adicionado'} com sucesso`,
-      });
 
       setIsDialogOpen(false);
       fetchModules();
@@ -200,32 +231,33 @@ export function ModuleManagerAdvanced() {
     if (!confirm("Tem certeza que deseja excluir este módulo?")) return;
 
     try {
-      // Verificar autenticação
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('Usuário não autenticado. Faça login novamente.');
+      const demoDataService = DemoDataService.getInstance();
+      
+      if (demoDataService.shouldUseDemoData()) {
+        // Em modo demo, apenas remover da lista local
+        setModules(prev => prev.filter(m => m.id !== id));
+        toast({
+          title: "Módulo Excluído",
+          description: "O módulo foi excluído com sucesso",
+        });
+      } else {
+        // Usar OfflineService que gerencia fallback automático
+        await offlineService.deleteModule(id);
+        setModules(prev => prev.filter(m => m.id !== id));
+        
+        // Atualizar estado do modo offline
+        setIsOfflineMode(offlineService.isOfflineMode());
+        setHasPendingSync(offlineService.hasPendingChanges());
+        
+        const statusMessage = offlineService.isOfflineMode() 
+          ? " (marcado para remoção, será sincronizado quando online)"
+          : "";
+        
+        toast({
+          title: "Módulo Excluído",
+          description: "O módulo foi excluído com sucesso" + statusMessage,
+        });
       }
-
-      const { error } = await supabase
-        .from('modules' as never)
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        if (error.code === '42501') {
-          throw new Error('Permissão negada para excluir o módulo.');
-        } else if (error.code === '23503') {
-          throw new Error('Não é possível excluir este módulo pois ele está sendo usado em projetos.');
-        }
-        throw error;
-      }
-
-      toast({
-        title: "Módulo Excluído",
-        description: "O módulo foi excluído com sucesso",
-      });
-
-      fetchModules();
     } catch (error) {
       console.error('Error deleting module:', error);
       const errorMessage = error instanceof Error ? error.message : 'Não foi possível excluir o módulo';
@@ -267,13 +299,13 @@ export function ModuleManagerAdvanced() {
       area: 0,
       cellType: "Mono PERC",
       cellCount: 144,
-      technology: [],
+      technology: ["Mono PERC"],
       productWarranty: 12,
       performanceWarranty: [{ years: 25, percentage: 80 }],
       certifications: [],
       active: true
     });
-    setSelectedTechnologies([]);
+    setSelectedTechnologies(["Mono PERC"]);
     setSelectedCertifications([]);
     setPerformanceWarranties([{ years: 25, percentage: 80 }]);
     setIsEditing(false);
@@ -444,9 +476,22 @@ export function ModuleManagerAdvanced() {
               <CardTitle className="flex items-center gap-2">
                 <Sun className="h-5 w-5 text-primary" />
                 Gerenciador de Módulos Solares
+                {isOfflineMode && (
+                  <span className="text-sm bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full flex items-center gap-1">
+                    <WifiOff className="h-3 w-3" />
+                    Offline
+                  </span>
+                )}
+                {hasPendingSync && (
+                  <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded-full flex items-center gap-1">
+                    <RefreshCw className="h-3 w-3" />
+                    Sincronizando
+                  </span>
+                )}
               </CardTitle>
               <CardDescription>
                 Gerencie os módulos fotovoltaicos disponíveis para simulação
+                {isOfflineMode && " - Trabalhando offline"}
               </CardDescription>
             </div>
             <div className="flex gap-2">
@@ -626,7 +671,13 @@ export function ModuleManagerAdvanced() {
                   <Label htmlFor="cellType">Tipo de Célula</Label>
                   <Select 
                     value={currentModule.cellType} 
-                    onValueChange={(value) => setCurrentModule({ ...currentModule, cellType: value })}
+                    onValueChange={(value) => {
+                      setCurrentModule({ ...currentModule, cellType: value });
+                      // Sincronizar tecnologia com tipo de célula
+                      if (!selectedTechnologies.includes(value)) {
+                        setSelectedTechnologies([...selectedTechnologies, value]);
+                      }
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o tipo de célula" />
@@ -795,7 +846,11 @@ export function ModuleManagerAdvanced() {
                     id="length"
                     type="number"
                     value={currentModule.length}
-                    onChange={(e) => setCurrentModule({ ...currentModule, length: Number(e.target.value) })}
+                    onChange={(e) => {
+                      const length = Number(e.target.value);
+                      const area = (length * currentModule.width) / 1000000;
+                      setCurrentModule({ ...currentModule, length, area });
+                    }}
                     placeholder="Ex: 2384"
                   />
                 </div>
@@ -805,7 +860,11 @@ export function ModuleManagerAdvanced() {
                     id="width"
                     type="number"
                     value={currentModule.width}
-                    onChange={(e) => setCurrentModule({ ...currentModule, width: Number(e.target.value) })}
+                    onChange={(e) => {
+                      const width = Number(e.target.value);
+                      const area = (currentModule.length * width) / 1000000;
+                      setCurrentModule({ ...currentModule, width, area });
+                    }}
                     placeholder="Ex: 1134"
                   />
                 </div>
@@ -836,11 +895,17 @@ export function ModuleManagerAdvanced() {
               <div className="bg-muted/50 p-3 rounded-lg">
                 <div className="text-sm font-medium">Área Calculada</div>
                 <div className="text-xl font-bold text-primary">
-                  {((currentModule.length * currentModule.width) / 1000000).toFixed(2)} m²
+                  {currentModule.area ? currentModule.area.toFixed(2) : ((currentModule.length * currentModule.width) / 1000000).toFixed(2)} m²
                 </div>
                 <div className="text-xs text-muted-foreground">
                   Calculada automaticamente com base nas dimensões
                 </div>
+                {currentModule.power > 0 && currentModule.area > 0 && (
+                  <div className="mt-2 text-xs">
+                    <span className="font-medium">Densidade de potência: </span>
+                    {(currentModule.power / currentModule.area).toFixed(1)} W/m²
+                  </div>
+                )}
               </div>
             </TabsContent>
 
