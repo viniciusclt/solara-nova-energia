@@ -9,6 +9,41 @@ Este documento detalha as implementações realizadas no sistema Solara Nova Ene
 
 ---
 
+## ✅ MELHORIAS DE UX/UI ADICIONAIS - JANEIRO 2025
+
+**Status:** IMPLEMENTADO
+
+**Problema:** Necessidade de ajustes finos na interface para melhor experiência do usuário.
+
+**Soluções Implementadas:**
+
+### 1. ✅ Reposicionamento do Botão do Menu
+- Movido o botão do menu (SidebarToggle) para o canto esquerdo superior
+- Removidos botões "Configurações" e "Sair" do header (já disponíveis no menu suspenso)
+- Melhor aproveitamento do espaço no header
+
+### 2. ✅ Simplificação das Notificações
+- Removido o texto "Notificações" do botão
+- Mantido apenas o ícone de sino (Bell) com badge de contagem
+- Interface mais limpa e minimalista
+
+### 3. ✅ Remoção de Botão Duplicado
+- Removido o botão "Gerenciar" duplicado do CardHeader da Calculadora
+- Mantido apenas o botão "Gerenciar" ao lado de "Adicionar Equipamento"
+- Evita confusão na interface
+
+**Arquivos Modificados:**
+- `src/components/SolarDashboard.tsx` - Reposicionamento do menu e simplificação do header
+- `src/components/ConsumptionCalculator.tsx` - Remoção do botão duplicado
+
+**Impacto na UX:**
+- Interface mais limpa e organizada
+- Melhor posicionamento dos controles principais
+- Redução de elementos redundantes
+- Experiência mais intuitiva para o usuário
+
+---
+
 ## ✅ 1. DISPLAY RESPONSIVO PARA SUBTÍTULOS
 
 **Status:** IMPLEMENTADO E APLICADO
