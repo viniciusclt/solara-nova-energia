@@ -63,7 +63,8 @@ export function ModuleManagerAdvanced() {
   });
 
   const availableTechnologies = [
-    "Mono PERC", "Bifacial", "Half-cell", "Multi-busbar", "Shingled", "TOPCon", "HJT", "IBC"
+    "Mono PERC", "Bifacial", "Half-cell", "Multi-busbar", "Shingled", "TOPCon", "HJT", "IBC",
+    "Policristalino", "Monocristalino", "Filme Fino", "HJT (Heterojunction)"
   ];
 
   const availableCertifications = [
@@ -159,9 +160,12 @@ export function ModuleManagerAdvanced() {
       const demoDataService = DemoDataService.getInstance();
       
       // Validar dados obrigatórios
-      if (!currentModule.name || !currentModule.manufacturer || !currentModule.model) {
-        throw new Error('Nome, fabricante e modelo são obrigatórios.');
+      if (!currentModule.manufacturer || !currentModule.model) {
+        throw new Error('Fabricante e modelo são obrigatórios.');
       }
+
+      // Gerar nome automaticamente: [Fabricante] - [Modelo]
+      const generatedName = `${currentModule.manufacturer} - ${currentModule.model}`;
 
       // Calcular a área automaticamente
       const area = (currentModule.length * currentModule.width) / 1000000; // mm² para m²
@@ -169,6 +173,7 @@ export function ModuleManagerAdvanced() {
       // Preparar o módulo com os dados atualizados
       const moduleToSave: SolarModule = {
         ...currentModule,
+        name: generatedName,
         area,
         technology: selectedTechnologies,
         certifications: selectedCertifications,
@@ -631,15 +636,6 @@ export function ModuleManagerAdvanced() {
             <TabsContent value="basic" className="space-y-4 mt-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nome do Módulo</Label>
-                  <Input
-                    id="name"
-                    value={currentModule.name}
-                    onChange={(e) => setCurrentModule({ ...currentModule, name: e.target.value })}
-                    placeholder="Ex: ASTRONERGY ASTRO 6 600W"
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor="manufacturer">Fabricante</Label>
                   <Input
                     id="manufacturer"
@@ -668,31 +664,6 @@ export function ModuleManagerAdvanced() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="cellType">Tipo de Célula</Label>
-                  <Select 
-                    value={currentModule.cellType} 
-                    onValueChange={(value) => {
-                      setCurrentModule({ ...currentModule, cellType: value });
-                      // Sincronizar tecnologia com tipo de célula
-                      if (!selectedTechnologies.includes(value)) {
-                        setSelectedTechnologies([...selectedTechnologies, value]);
-                      }
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o tipo de célula" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Mono PERC">Mono PERC</SelectItem>
-                      <SelectItem value="Poly">Policristalino</SelectItem>
-                      <SelectItem value="Mono">Monocristalino</SelectItem>
-                      <SelectItem value="Thin Film">Filme Fino</SelectItem>
-                      <SelectItem value="HJT">HJT (Heterojunction)</SelectItem>
-                      <SelectItem value="TOPCon">TOPCon</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor="cellCount">Número de Células</Label>
                   <Input
                     id="cellCount"
@@ -702,6 +673,17 @@ export function ModuleManagerAdvanced() {
                     placeholder="Ex: 144"
                   />
                 </div>
+              </div>
+              
+              {/* Preview do nome gerado automaticamente */}
+              <div className="bg-muted/50 p-3 rounded-lg">
+                <Label className="text-sm font-medium text-muted-foreground">Nome do Módulo (Gerado Automaticamente)</Label>
+                <p className="text-sm font-medium mt-1">
+                  {currentModule.manufacturer && currentModule.model 
+                    ? `${currentModule.manufacturer} - ${currentModule.model}`
+                    : "Preencha fabricante e modelo para ver o nome"
+                  }
+                </p>
               </div>
 
               <div className="space-y-2">

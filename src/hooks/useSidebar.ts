@@ -27,12 +27,7 @@ export const useSidebar = create<SidebarState>()(
       
       setActiveModule: (module: string) => {
         set({ activeModule: module });
-        // Fecha o sidebar automaticamente após selecionar um módulo
-        if (module) {
-          setTimeout(() => {
-            set({ isOpen: false });
-          }, 300); // Delay para permitir animação
-        }
+        // Não fecha automaticamente o sidebar - deixa o usuário controlar via toggle
       },
     }),
     {

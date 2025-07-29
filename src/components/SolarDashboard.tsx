@@ -32,9 +32,7 @@ import { ConsumptionCalculator } from "./ConsumptionCalculator";
 import { TechnicalSimulation } from "./TechnicalSimulation";
 import { FinancialAnalysis } from "./FinancialAnalysis";
 import FinancialCalculator from "./FinancialCalculator";
-import { ProposalGenerator } from "./ProposalGenerator";
-import { ProposalEditor } from "./ProposalEditor";
-import { TemplateManager } from "./TemplateManager";
+import { ProposalWorkspace } from "./ProposalWorkspace";
 import { SettingsModal } from "./SettingsModal";
 import { SelectedLeadBreadcrumb } from "./SelectedLeadBreadcrumb";
 import { DemoDataIndicator } from "./DemoDataIndicator";
@@ -187,26 +185,12 @@ export function SolarDashboard({ onBackToMenu }: SolarDashboardProps = {}) {
       permission: null
     },
     { 
-      id: "proposal", 
-      label: "Proposta", 
+      id: "proposals", 
+      label: "Propostas", 
       icon: FileText, 
-      description: "Gerar proposta comercial",
+      description: "Workspace completo para propostas",
       permission: "generate_proposals"
-    },
-    { 
-      id: "proposal-editor", 
-      label: "Editor", 
-      icon: Database, 
-      description: "Editor de propostas drag-and-drop",
-      permission: "generate_proposals"
-    },
-    { 
-      id: "templates", 
-      label: "Templates", 
-      icon: Settings, 
-      description: "Gerenciar templates de propostas",
-      permission: "generate_proposals"
-    },
+    }
     // Aba "Gerenciamento" removida - funcionalidades realocadas para outras abas
   ].filter(tab => !tab.permission || hasPermission(tab.permission));
 
@@ -495,71 +479,8 @@ export function SolarDashboard({ onBackToMenu }: SolarDashboardProps = {}) {
           </TabsContent>
 
           {hasPermission('generate_proposals') && (
-            <TabsContent value="proposal">
-              <div className="space-y-6">
-                {/* Importação PDF - Realocada do menu Gerenciamento */}
-                {hasPermission('admin') && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <FileText className="h-6 w-6" />
-                        Importação de Datasheets PDF
-                      </CardTitle>
-                      <CardDescription>
-                        Importe datasheets de equipamentos em formato PDF
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <PDFImporter />
-                    </CardContent>
-                  </Card>
-                )}
-                
-                {/* Geração de Propostas */}
-                {!currentLead ? (
-                  <Card>
-                    <CardContent className="py-12 text-center">
-                      <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">Nenhum lead selecionado</h3>
-                      <p className="text-muted-foreground mb-4">
-                        Selecione um lead na aba "Dados do Lead" para gerar uma proposta
-                      </p>
-                      <Button onClick={() => setActiveTab("lead-data")}>
-                        Ir para Dados do Lead
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <ProposalGenerator currentLead={currentLead} />
-                )}
-              </div>
-            </TabsContent>
-          )}
-
-          {hasPermission('generate_proposals') && (
-            <TabsContent value="proposal-editor">
-              {!currentLead ? (
-                <Card>
-                  <CardContent className="py-12 text-center">
-                    <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Nenhum lead selecionado</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Selecione um lead na aba "Dados do Lead" para usar o editor de propostas
-                    </p>
-                    <Button onClick={() => setActiveTab("lead-data")}>
-                      Ir para Dados do Lead
-                    </Button>
-                  </CardContent>
-                </Card>
-              ) : (
-                <ProposalEditor currentLead={currentLead} />
-              )}
-            </TabsContent>
-          )}
-
-          {hasPermission('generate_proposals') && (
-            <TabsContent value="templates">
-              <TemplateManager />
+            <TabsContent value="proposals">
+              <ProposalWorkspace currentLead={currentLead} />
             </TabsContent>
           )}
 

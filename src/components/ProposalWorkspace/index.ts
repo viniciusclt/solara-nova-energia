@@ -1,0 +1,1 @@
+export { ProposalWorkspace } from './ProposalWorkspace';
