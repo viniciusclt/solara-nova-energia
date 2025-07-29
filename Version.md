@@ -1,5 +1,50 @@
 # SolarCalc Pro - Histórico de Versões
 
+## [5.6.0] - 2025-01-27
+### Added
+- ✅ **Calculadora Financeira Lei 14.300**: Implementação completa da nova legislação de energia solar
+  - TarifaService para gerenciamento de tarifas de concessionárias (Enel, Light, Ceral)
+  - CalculadoraSolarService com cálculos conforme Lei 14.300 e cobrança progressiva do Fio B
+  - Nova aba "Lei 14.300" no FinancialAnalysis com campos específicos
+  - Cálculo de VPL, TIR, payback simples e descontado
+  - Gestão de créditos de energia e autoconsumo
+  - Simulação de 25 anos considerando inflação e depreciação
+- ✅ **Gráficos Avançados Lei 14.300**: Visualizações específicas para análise financeira
+  - Fluxo de Caixa: Evolução do retorno financeiro ao longo de 25 anos
+  - Energia: Comparativo de geração vs consumo vs autoconsumo
+  - Impacto da Lei 14.300: Evolução da cobrança do Fio B
+  - Distribuição de Custos: Breakdown dos custos (energia da rede, Fio B, disponibilidade)
+- ✅ **Conformidade Regulatória**: Implementação precisa da legislação
+  - Cobrança progressiva do Fio B: 30% (2023-2024), 45% (2024-2025), 60% (2025-2026)
+  - Cálculo correto de TUSD, TE, PIS/COFINS, ICMS e COSIP
+  - Sistema de compensação conforme regulamentação ANEEL
+  - Custo de disponibilidade por tipo de ligação
+
+### Changed
+- FinancialAnalysis.tsx expandido com nova aba Lei 14.300 (6 abas totais)
+- Interface de gráficos atualizada com visualizações específicas da Lei 14.300
+- Sistema de cálculo financeiro aprimorado com novos serviços
+- Documentação técnica completa da implementação
+
+### Technical Implementation
+- Novos serviços: TarifaService.ts e CalculadoraSolarService.ts
+- Interfaces TypeScript robustas para parâmetros e resultados
+- Cache de tarifas para otimização de performance
+- Integração com Recharts para gráficos avançados
+- Padrão Singleton para TarifaService
+- Documentação completa em pasta implementacao-calculo-financeiro/
+
+### Fixed
+- ✅ **Cálculos Financeiros**: Implementação precisa da Lei 14.300
+- ✅ **Visualizações**: Gráficos específicos para análise de viabilidade
+- ✅ **Interface**: Nova aba integrada ao sistema existente
+
+### Closes
+- #lei-14300-implementation: Calculadora Lei 14.300 implementada
+- #financial-charts: Gráficos avançados funcionais
+- #tariff-service: Serviço de tarifas completo
+- #regulatory-compliance: Conformidade com legislação vigente
+
 ## [5.5.0] - 2025-01-27
 ### Added
 - ✅ **5 Melhorias de UX/UI e Sistema Offline**: Implementação completa das melhorias solicitadas
