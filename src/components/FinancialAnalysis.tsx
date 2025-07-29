@@ -9,10 +9,13 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { TrendingUp, DollarSign, Calculator, CreditCard, PiggyBank, Target, Settings } from "lucide-react";
+import { TrendingUp, DollarSign, Calculator, CreditCard, PiggyBank, Target, Settings, Zap, Shield, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { FinancialKitManager } from "./FinancialKitManager";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPieChart, Pie, Cell } from 'recharts';
+import { CalculadoraSolarService, ParametrosSistema, ResultadoFinanceiro } from '@/services/CalculadoraSolarService';
+import { TarifaService, TarifaConcessionaria } from '@/services/TarifaService';
 
 interface FinancialData {
   valorSistema: number;
@@ -32,6 +35,16 @@ interface FinancialData {
   vpl: number;
   economiaAnual: number;
   economia25Anos: number;
+  // Novos campos para Lei 14.300
+  potenciaSistema: number;
+  geracaoAnual: number;
+  consumoMensal: number;
+  incrementoConsumo: number;
+  fatorSimultaneidade: number;
+  concessionariaId: string;
+  tipoLigacao: 'monofasico' | 'bifasico' | 'trifasico';
+  anoInstalacao: number;
+  depreciacao: number;
 }
 
 interface FinancingOption {
@@ -48,6 +61,12 @@ interface FinancialAnalysisProps {
 
 export function FinancialAnalysis({ currentLead }: FinancialAnalysisProps) {
   const { toast } = useToast();
+  const [calculadoraService] = useState(() => new CalculadoraSolarService());
+  const [tarifaService] = useState(() => TarifaService.getInstance());
+  const [concessionarias, setConcessionarias] = useState<TarifaConcessionaria[]>([]);
+  const [resultadoFinanceiro, setResultadoFinanceiro] = useState<ResultadoFinanceiro | null>(null);
+  const [calculando, setCalculando] = useState(false);
+  
   const [financialData, setFinancialData] = useState<FinancialData>({
     valorSistema: 20150,
     valorFinal: 20150,
@@ -65,7 +84,17 @@ export function FinancialAnalysis({ currentLead }: FinancialAnalysisProps) {
     tir: 0,
     vpl: 0,
     economiaAnual: 0,
-    economia25Anos: 0
+    economia25Anos: 0,
+    // Novos campos para Lei 14.300
+    potenciaSistema: currentLead?.potenciaSistema || 7.2,
+    geracaoAnual: currentLead?.geracaoAnual || 11000,
+    consumoMensal: currentLead?.consumoMedio || 780,
+    incrementoConsumo: currentLead?.incrementoConsumo || 4.5,
+    fatorSimultaneidade: 30,
+    concessionariaId: 'enel-rj',
+    tipoLigacao: 'monofasico',
+    anoInstalacao: new Date().getFullYear(),
+    depreciacao: 0.7
   });
 
   const [financingOptions] = useState<FinancingOption[]>([
@@ -77,6 +106,24 @@ export function FinancialAnalysis({ currentLead }: FinancialAnalysisProps) {
 
   const [kitsDisponiveis, setKitsDisponiveis] = useState<unknown[]>([]);
   const [isKitManagerOpen, setIsKitManagerOpen] = useState(false);
+
+  // Carregar concessionárias disponíveis
+  useEffect(() => {
+    const carregarConcessionarias = async () => {
+      try {
+        const lista = await tarifaService.getConcessionarias();
+        setConcessionarias(lista);
+      } catch (error) {
+        console.error('Erro ao carregar concessionárias:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível carregar as concessionárias",
+          variant: "destructive"
+        });
+      }
+    };
+    carregarConcessionarias();
+  }, [tarifaService, toast]);
 
   const fetchKits = useCallback(async () => {
     try {
@@ -158,6 +205,57 @@ export function FinancialAnalysis({ currentLead }: FinancialAnalysisProps) {
       economiaAnual: economiaAnualAtual,
       economia25Anos: economiaAcumulada
     }));
+  };
+
+  // Nova função de cálculo baseada na Lei 14.300
+  const calcularViabilidadeLei14300 = async () => {
+    setCalculando(true);
+    try {
+      const parametros: ParametrosSistema = {
+        custo_sistema: financialData.valorSistema * (1 + financialData.bdi / 100),
+        potencia_sistema_kwp: financialData.potenciaSistema,
+        geracao_anual_kwh: financialData.geracaoAnual,
+        consumo_mensal_kwh: financialData.consumoMensal,
+        incremento_consumo_anual: financialData.incrementoConsumo / 100,
+        fator_simultaneidade: financialData.fatorSimultaneidade / 100,
+        concessionaria_id: financialData.concessionariaId,
+        tipo_ligacao: financialData.tipoLigacao,
+        ano_instalacao: financialData.anoInstalacao,
+        periodo_projecao_anos: 25,
+        inflacao_anual: financialData.inflacao / 100,
+        taxa_desconto_anual: 0.08,
+        depreciacao_anual_fv: financialData.depreciacao / 100,
+        custo_om_anual: (financialData.valorSistema * 0.5 / 100),
+        reajuste_tarifario_anual: financialData.reajusteTarifario / 100
+      };
+
+      const resultado = await calculadoraService.calcularEconomiaFluxoCaixa(parametros);
+      setResultadoFinanceiro(resultado);
+
+      // Atualizar dados financeiros com os resultados
+      setFinancialData(prev => ({
+        ...prev,
+        economiaAnual: resultado.economia_primeiro_ano,
+        economia25Anos: resultado.economia_total_25_anos,
+        vpl: resultado.vpl,
+        tir: resultado.tir,
+        payback: resultado.payback_simples_anos
+      }));
+
+      toast({
+        title: "Cálculo Realizado com Sucesso",
+        description: `VPL: R$ ${resultado.vpl.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} | TIR: ${resultado.tir.toFixed(1)}% | Payback: ${resultado.payback_simples_anos.toFixed(1)} anos`
+      });
+    } catch (error) {
+      console.error('Erro no cálculo:', error);
+      toast({
+        title: "Erro no Cálculo",
+        description: "Não foi possível realizar o cálculo. Verifique os dados inseridos.",
+        variant: "destructive"
+      });
+    } finally {
+      setCalculando(false);
+    }
   };
 
   const calcularFinanciamento = (opcao: FinancingOption) => {
@@ -255,9 +353,11 @@ export function FinancialAnalysis({ currentLead }: FinancialAnalysisProps) {
       </Card>
 
       <Tabs defaultValue="kits" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="kits">Kits & Preços</TabsTrigger>
           <TabsTrigger value="calculos">Cálculos</TabsTrigger>
+          <TabsTrigger value="lei14300">Lei 14.300</TabsTrigger>
+          <TabsTrigger value="graficos">Gráficos</TabsTrigger>
           <TabsTrigger value="analise">Análise ROI</TabsTrigger>
           <TabsTrigger value="financiamento">Financiamento</TabsTrigger>
         </TabsList>
@@ -526,6 +626,430 @@ export function FinancialAnalysis({ currentLead }: FinancialAnalysisProps) {
                 </div>
               </CardContent>
             </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="lei14300">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="shadow-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-primary" />
+                  Parâmetros Lei 14.300
+                </CardTitle>
+                <CardDescription>
+                  Configurações específicas para cálculo conforme Lei 14.300/2022
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="potenciaSistema">Potência do Sistema (kWp)</Label>
+                    <Input
+                      id="potenciaSistema"
+                      type="number"
+                      step="0.1"
+                      value={financialData.potenciaSistema}
+                      onChange={(e) => handleInputChange("potenciaSistema", Number(e.target.value))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="geracaoAnual">Geração Anual (kWh)</Label>
+                    <Input
+                      id="geracaoAnual"
+                      type="number"
+                      value={financialData.geracaoAnual}
+                      onChange={(e) => handleInputChange("geracaoAnual", Number(e.target.value))}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="consumoMensal">Consumo Mensal (kWh)</Label>
+                    <Input
+                      id="consumoMensal"
+                      type="number"
+                      value={financialData.consumoMensal}
+                      onChange={(e) => handleInputChange("consumoMensal", Number(e.target.value))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="incrementoConsumo">Incremento Consumo (%/ano)</Label>
+                    <Input
+                      id="incrementoConsumo"
+                      type="number"
+                      step="0.1"
+                      value={financialData.incrementoConsumo}
+                      onChange={(e) => handleInputChange("incrementoConsumo", Number(e.target.value))}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="fatorSimultaneidade">Fator Simultaneidade (%)</Label>
+                    <Input
+                      id="fatorSimultaneidade"
+                      type="number"
+                      step="1"
+                      value={financialData.fatorSimultaneidade}
+                      onChange={(e) => handleInputChange("fatorSimultaneidade", Number(e.target.value))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="depreciacao">Depreciação Anual (%)</Label>
+                    <Input
+                      id="depreciacao"
+                      type="number"
+                      step="0.1"
+                      value={financialData.depreciacao}
+                      onChange={(e) => handleInputChange("depreciacao", Number(e.target.value))}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="concessionariaId">Concessionária</Label>
+                    <Select 
+                      value={financialData.concessionariaId} 
+                      onValueChange={(value) => handleInputChange("concessionariaId", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a concessionária" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {concessionarias.map((conc) => (
+                          <SelectItem key={conc.id} value={conc.id}>
+                            {conc.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="tipoLigacao">Tipo de Ligação</Label>
+                    <Select 
+                      value={financialData.tipoLigacao} 
+                      onValueChange={(value) => handleInputChange("tipoLigacao", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="monofasico">Monofásico</SelectItem>
+                        <SelectItem value="bifasico">Bifásico</SelectItem>
+                        <SelectItem value="trifasico">Trifásico</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="anoInstalacao">Ano de Instalação</Label>
+                  <Input
+                    id="anoInstalacao"
+                    type="number"
+                    value={financialData.anoInstalacao}
+                    onChange={(e) => handleInputChange("anoInstalacao", Number(e.target.value))}
+                  />
+                </div>
+
+                <Button 
+                  onClick={calcularViabilidadeLei14300} 
+                  className="w-full"
+                  disabled={calculando}
+                >
+                  {calculando ? (
+                    <>
+                      <Zap className="h-4 w-4 mr-2 animate-spin" />
+                      Calculando...
+                    </>
+                  ) : (
+                    <>
+                      <Calculator className="h-4 w-4 mr-2" />
+                      Calcular Lei 14.300
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-card">
+              <CardHeader>
+                <CardTitle>Resultados Lei 14.300</CardTitle>
+                <CardDescription>
+                  Análise considerando as regras de compensação
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {resultadoFinanceiro ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-muted/50 p-3 rounded-lg">
+                        <div className="text-sm text-muted-foreground">Payback Simples</div>
+                        <div className="text-xl font-bold text-success">
+                          {resultadoFinanceiro.payback_simples_anos.toFixed(1)} anos
+                        </div>
+                      </div>
+                      <div className="bg-muted/50 p-3 rounded-lg">
+                        <div className="text-sm text-muted-foreground">Payback Descontado</div>
+                        <div className="text-xl font-bold text-primary">
+                          {resultadoFinanceiro.payback_descontado_anos.toFixed(1)} anos
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-muted/50 p-3 rounded-lg">
+                        <div className="text-sm text-muted-foreground">TIR</div>
+                        <div className="text-xl font-bold text-secondary">
+                          {resultadoFinanceiro.tir.toFixed(1)}%
+                        </div>
+                      </div>
+                      <div className="bg-muted/50 p-3 rounded-lg">
+                        <div className="text-sm text-muted-foreground">VPL</div>
+                        <div className="text-xl font-bold text-accent">
+                          R$ {resultadoFinanceiro.vpl.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm">Economia 1º Ano:</span>
+                        <span className="font-medium">R$ {resultadoFinanceiro.economia_primeiro_ano.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Economia 25 Anos:</span>
+                        <span className="font-medium text-success">R$ {resultadoFinanceiro.economia_total_25_anos.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Energia Injetada (Ano 1):</span>
+                        <span className="font-medium">{resultadoFinanceiro.energia_injetada_ano1.toLocaleString('pt-BR', { minimumFractionDigits: 0 })} kWh</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Energia Compensada (Ano 1):</span>
+                        <span className="font-medium">{resultadoFinanceiro.energia_compensada_ano1.toLocaleString('pt-BR', { minimumFractionDigits: 0 })} kWh</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-gradient-card p-3 rounded-lg">
+                      <div className="text-center">
+                        <div className="text-sm text-muted-foreground">Viabilidade do Projeto</div>
+                        <div className="text-lg font-bold text-primary">
+                          {resultadoFinanceiro.vpl > 0 && resultadoFinanceiro.tir > 8 ? "VIÁVEL" : "REVISAR"}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {resultadoFinanceiro.vpl > 0 ? "VPL Positivo" : "VPL Negativo"} • 
+                          {resultadoFinanceiro.tir > 8 ? "TIR > CDI" : "TIR < CDI"}
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8">
+                    <div className="text-muted-foreground mb-4">
+                      <Calculator className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      Execute o cálculo para ver os resultados
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Configure os parâmetros e clique em "Calcular Lei 14.300"
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="graficos">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {resultadoFinanceiro ? (
+              <>
+                <Card className="shadow-card">
+                  <CardHeader>
+                    <CardTitle>Fluxo de Caixa Lei 14.300</CardTitle>
+                    <CardDescription>Evolução do retorno financeiro ao longo de 25 anos</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={resultadoFinanceiro.resumo_anual}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="ano" />
+                        <YAxis />
+                        <Tooltip 
+                          formatter={(value, name) => [
+                            `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 
+                            name === 'fluxo_caixa_acumulado' ? 'Fluxo Acumulado' : 'Economia Anual'
+                          ]} 
+                        />
+                        <Legend />
+                        <Line 
+                          type="monotone" 
+                          dataKey="fluxo_caixa_acumulado" 
+                          stroke="#8884d8" 
+                          name="Fluxo Acumulado" 
+                          strokeWidth={2}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="economia_anual" 
+                          stroke="#82ca9d" 
+                          name="Economia Anual" 
+                          strokeWidth={2}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                <Card className="shadow-card">
+                  <CardHeader>
+                    <CardTitle>Energia: Geração vs Consumo</CardTitle>
+                    <CardDescription>Comparativo anual de energia gerada e consumida</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={resultadoFinanceiro.resumo_anual}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="ano" />
+                        <YAxis />
+                        <Tooltip 
+                          formatter={(value, name) => [
+                            `${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 0 })} kWh`, 
+                            name === 'geracao_total' ? 'Geração' : name === 'consumo_total' ? 'Consumo' : 'Autoconsumo'
+                          ]} 
+                        />
+                        <Legend />
+                        <Bar dataKey="geracao_total" fill="#ffc658" name="Geração" />
+                        <Bar dataKey="consumo_total" fill="#ff7300" name="Consumo" />
+                        <Bar dataKey="autoconsumo_total" fill="#00ff00" name="Autoconsumo" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                <Card className="shadow-card">
+                  <CardHeader>
+                    <CardTitle>Impacto da Lei 14.300</CardTitle>
+                    <CardDescription>Evolução da cobrança do Fio B ao longo dos anos</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={resultadoFinanceiro.resumo_anual.map((ano, index) => ({
+                        ...ano,
+                        percentual_fio_b: resultadoFinanceiro.resultados_mensais
+                          .filter(m => m.ano === ano.ano)
+                          .reduce((acc, m) => acc + m.percentual_fio_b, 0) / 12 * 100,
+                        custo_fio_b_anual: resultadoFinanceiro.resultados_mensais
+                          .filter(m => m.ano === ano.ano)
+                          .reduce((acc, m) => acc + m.custo_fio_b, 0)
+                      }))}>>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="ano" />
+                        <YAxis yAxisId="left" />
+                        <YAxis yAxisId="right" orientation="right" />
+                        <Tooltip 
+                          formatter={(value, name) => [
+                            name === 'percentual_fio_b' ? `${Number(value).toFixed(1)}%` : `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+                            name === 'percentual_fio_b' ? 'Percentual Fio B' : 'Custo Fio B Anual'
+                          ]} 
+                        />
+                        <Legend />
+                        <Line 
+                          yAxisId="left"
+                          type="monotone" 
+                          dataKey="percentual_fio_b" 
+                          stroke="#ff0000" 
+                          name="% Fio B" 
+                          strokeWidth={2}
+                        />
+                        <Line 
+                          yAxisId="right"
+                          type="monotone" 
+                          dataKey="custo_fio_b_anual" 
+                          stroke="#ff7300" 
+                          name="Custo Fio B" 
+                          strokeWidth={2}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                <Card className="shadow-card">
+                  <CardHeader>
+                    <CardTitle>Distribuição de Custos</CardTitle>
+                    <CardDescription>Breakdown dos custos no primeiro ano</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <RechartsPieChart>
+                        <Pie
+                          data={[
+                            {
+                              name: 'Energia da Rede',
+                              value: resultadoFinanceiro.resultados_mensais
+                                .filter(m => m.ano === resultadoFinanceiro.resumo_anual[0]?.ano)
+                                .reduce((acc, m) => acc + (m.custo_com_fv - m.custo_fio_b - m.custo_disponibilidade), 0),
+                              fill: '#8884d8'
+                            },
+                            {
+                              name: 'Fio B (Lei 14.300)',
+                              value: resultadoFinanceiro.resultados_mensais
+                                .filter(m => m.ano === resultadoFinanceiro.resumo_anual[0]?.ano)
+                                .reduce((acc, m) => acc + m.custo_fio_b, 0),
+                              fill: '#ff0000'
+                            },
+                            {
+                              name: 'Custo Disponibilidade',
+                              value: resultadoFinanceiro.resultados_mensais
+                                .filter(m => m.ano === resultadoFinanceiro.resumo_anual[0]?.ano)
+                                .reduce((acc, m) => acc + m.custo_disponibilidade, 0),
+                              fill: '#ffc658'
+                            }
+                          ]}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {[
+                            { fill: '#8884d8' },
+                            { fill: '#ff0000' },
+                            { fill: '#ffc658' }
+                          ].map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} />
+                      </RechartsPieChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </>
+            ) : (
+              <Card className="shadow-card col-span-2">
+                <CardContent className="pt-6">
+                  <div className="text-center py-8">
+                    <div className="text-muted-foreground mb-4">
+                       <BarChart3 className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                       Gráficos não disponíveis
+                     </div>
+                    <p className="text-sm text-muted-foreground">
+                      Execute o cálculo da Lei 14.300 para visualizar os gráficos detalhados
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </TabsContent>
 
