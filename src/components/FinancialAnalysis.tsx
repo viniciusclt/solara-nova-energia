@@ -307,60 +307,139 @@ export function FinancialAnalysis({ currentLead }: FinancialAnalysisProps) {
   };
 
   return (
-    <div className="space-y-6">
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-primary" />
-            Análise Financeira
-          </CardTitle>
-          <CardDescription>
-            Calcule retorno, payback e simulações de financiamento
-          </CardDescription>
-        </CardHeader>
-      </Card>
-
-      {/* Indicadores Principais */}
-      <Card className="shadow-card">
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary">
-                R$ {financialData.valorFinal.toLocaleString()}
-              </div>
-              <div className="text-sm text-muted-foreground">Valor Final</div>
+    <div className="space-y-8">
+      {/* Header Modernizado */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 p-8 border border-border/50">
+        <div className="relative z-10">
+          <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+                Análise Financeira
+              </h1>
+              <p className="text-lg text-muted-foreground max-w-2xl">
+                Calcule a viabilidade econômica completa do seu projeto solar com análises avançadas
+              </p>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-success">
-                {financialData.payback.toFixed(1)} anos
-              </div>
-              <div className="text-sm text-muted-foreground">Payback</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-secondary">
-                {financialData.tir.toFixed(1)}%
-              </div>
-              <div className="text-sm text-muted-foreground">TIR</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-accent">
-                R$ {(financialData.vpl / 1000).toFixed(0)}k
-              </div>
-              <div className="text-sm text-muted-foreground">VPL</div>
+            <div className="flex gap-3">
+              <Button variant="outline" className="shadow-sm hover:shadow-md transition-all duration-200">
+                <TrendingUp className="h-4 w-4 mr-2" />
+                Exportar Relatório
+              </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-primary/20 to-transparent rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-secondary/20 to-transparent rounded-full blur-2xl" />
+      </div>
 
-      <Tabs defaultValue="kits" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="kits">Kits & Preços</TabsTrigger>
-          <TabsTrigger value="calculos">Cálculos</TabsTrigger>
-          <TabsTrigger value="lei14300">Lei 14.300</TabsTrigger>
-          <TabsTrigger value="graficos">Gráficos</TabsTrigger>
-          <TabsTrigger value="analise">Análise ROI</TabsTrigger>
-          <TabsTrigger value="financiamento">Financiamento</TabsTrigger>
-        </TabsList>
+      {/* Indicadores Principais Modernizados */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-primary/5 to-primary/10">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Valor Final</p>
+                <p className="text-2xl font-bold text-primary">
+                  R$ {financialData.valorFinal.toLocaleString()}
+                </p>
+              </div>
+              <div className="p-3 bg-primary/10 rounded-full">
+                <DollarSign className="h-6 w-6 text-primary" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-green-500/5 to-green-500/10">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Payback</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {financialData.payback.toFixed(1)} anos
+                </p>
+              </div>
+              <div className="p-3 bg-green-500/10 rounded-full">
+                <Target className="h-6 w-6 text-green-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-secondary/5 to-secondary/10">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">TIR</p>
+                <p className="text-2xl font-bold text-secondary">
+                  {financialData.tir.toFixed(1)}%
+                </p>
+              </div>
+              <div className="p-3 bg-secondary/10 rounded-full">
+                <TrendingUp className="h-6 w-6 text-secondary" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-accent/5 to-accent/10">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">VPL (25 anos)</p>
+                <p className="text-2xl font-bold text-accent">
+                  R$ {(financialData.vpl / 1000).toFixed(0)}k
+                </p>
+              </div>
+              <div className="p-3 bg-accent/10 rounded-full">
+                <PiggyBank className="h-6 w-6 text-accent" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Abas Modernizadas */}
+      <Tabs defaultValue="kits" className="space-y-8">
+        <div className="flex justify-center">
+          <TabsList className="inline-flex h-12 items-center justify-center rounded-xl bg-muted/50 p-1 text-muted-foreground shadow-sm">
+            <TabsTrigger 
+              value="kits" 
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+            >
+              <DollarSign className="h-4 w-4 mr-2" />
+              Kits & Preços
+            </TabsTrigger>
+            <TabsTrigger 
+              value="calculos" 
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+            >
+              <Calculator className="h-4 w-4 mr-2" />
+              Cálculos
+            </TabsTrigger>
+            <TabsTrigger 
+              value="lei14300" 
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+            >
+              <Shield className="h-4 w-4 mr-2" />
+              Lei 14.300
+            </TabsTrigger>
+            <TabsTrigger 
+              value="graficos" 
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+            >
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Gráficos
+            </TabsTrigger>
+            <TabsTrigger 
+              value="financiamento" 
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+            >
+              <CreditCard className="h-4 w-4 mr-2" />
+              Financiamento
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="kits">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
