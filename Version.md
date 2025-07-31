@@ -1,5 +1,47 @@
 # SolarCalc Pro - Histórico de Versões
 
+## [5.7.0] - 2025-01-27
+### Added
+- ✅ **Tabela Editável PV*Sol**: Implementação completa de tabela interativa para dados de geração
+  - Substituição do textarea por tabela editável com células individuais
+  - Suporte a múltiplos inversores com adição/remoção dinâmica de colunas
+  - Funcionalidade copiar/colar diretamente do Excel ou PV*Sol
+  - Validação automática dos 12 meses de dados de geração
+  - Botão para carregar dados de exemplo pré-configurados
+  - Interface intuitiva com dicas visuais para o usuário
+- ✅ **Modernização da Interface Financeira**: Redesign completo da área de análise financeira
+  - Header com gradientes modernos e efeitos visuais avançados
+  - Indicadores principais transformados em cards individuais com ícones específicos
+  - Navegação por abas centralizada e responsiva com ícones contextuais
+  - Efeitos hover com sombras dinâmicas e transições suaves
+  - Layout otimizado com maior espaçamento e hierarquia visual clara
+  - Remoção da aba "Análise ROI" para simplificar a interface
+
+### Changed
+- PVSolImporter.tsx: Interface completamente reformulada com tabela editável
+- FinancialAnalysis.tsx: Redesign visual moderno mantendo funcionalidades existentes
+- Sistema de importação de dados PV*Sol mais intuitivo e eficiente
+- Experiência do usuário aprimorada com feedback visual imediato
+
+### Technical Implementation
+- Nova interface PVSolData com suporte a dados de inversores estruturados
+- Estados para gerenciamento de colunas de inversores e modo de tabela
+- Funções para inicialização, validação e manipulação de dados tabulares
+- Implementação de copiar/colar com parsing inteligente de dados
+- Gradientes CSS modernos com efeitos de blur e transparência
+- Cards responsivos com animações de hover e transições
+
+### Fixed
+- ✅ **Importação PV*Sol**: Interface mais intuitiva para entrada de dados de geração
+- ✅ **Experiência Visual**: Interface financeira moderna e profissional
+- ✅ **Usabilidade**: Navegação simplificada e feedback visual aprimorado
+
+### Closes
+- #pvsol-table-editor: Tabela editável PV*Sol implementada
+- #financial-ui-modernization: Interface financeira modernizada
+- #multi-inverter-support: Suporte a múltiplos inversores funcional
+- #copy-paste-functionality: Funcionalidade copiar/colar implementada
+
 ## [5.6.0] - 2025-01-27
 ### Added
 - ✅ **Calculadora Financeira Lei 14.300**: Implementação completa da nova legislação de energia solar
