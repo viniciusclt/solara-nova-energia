@@ -390,7 +390,7 @@ src/
 
 ### Variáveis de Ambiente
 ```env
-VITE_SUPABASE_URL=https://uojrrowgwlrvnjmmxlvv.supabase.co
+VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=[chave_publica_supabase]
 ```
 

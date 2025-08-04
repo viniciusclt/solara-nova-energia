@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
+import { logWarn } from '@/utils/secureLogger';
 import {
   Upload,
   FileText,
@@ -118,7 +119,13 @@ const PDFUploaderAdvanced: React.FC<PDFUploaderAdvancedProps> = ({
             processedFile.preview = images[0].toDataURL('image/jpeg', 0.8);
           }
         } catch (error) {
-          console.warn('Erro ao gerar preview:', error);
+          logWarn('Erro ao gerar preview do PDF', {
+            service: 'PDFUploaderAdvanced',
+            error: error instanceof Error ? error.message : 'Erro desconhecido',
+            fileName: file.name,
+            fileSize: file.size,
+            action: 'generatePreview'
+          });
         }
       }
 
@@ -380,7 +387,7 @@ const PDFUploaderAdvanced: React.FC<PDFUploaderAdvancedProps> = ({
                         <div className="flex-shrink-0">
                           <img
                             src={file.preview}
-                            alt="Preview"
+                            alt={`Preview do arquivo ${file.file.name}`}
                             className="w-12 h-12 object-cover rounded border"
                           />
                         </div>

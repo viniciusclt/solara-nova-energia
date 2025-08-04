@@ -9,6 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { logError } from '@/utils/secureLogger';
 
 interface PDFFile {
   file: File;
@@ -108,7 +109,16 @@ export const PDFDropzone: React.FC<PDFDropzoneProps> = ({
         f.id === fileId ? { ...f, preview: fileURL } : f
       ));
     } catch (error) {
-      console.error('Erro ao gerar preview:', error);
+      logError({
+        service: 'PDFDropzone',
+        action: 'generatePreview',
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        details: {
+          fileName: file.name,
+          fileSize: file.size,
+          fileId
+        }
+      });
     }
   };
 
@@ -289,7 +299,7 @@ export const PDFDropzone: React.FC<PDFDropzoneProps> = ({
       )}>
         <CardContent className="p-8">
           <div {...getRootProps()} className="text-center">
-            <input {...getInputProps()} />
+            <input {...getInputProps()} aria-label="Selecionar arquivos PDF para importação" />
             <Upload className={cn(
               'mx-auto h-12 w-12 mb-4',
               isDragActive && !isDragReject && 'text-blue-500',

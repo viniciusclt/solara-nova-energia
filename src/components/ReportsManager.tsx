@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { logError } from '@/utils/secureLogger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -358,7 +359,11 @@ export function ReportsManager() {
       setGeneratedReports(generateMockReports());
       setReportData(generateMockData());
     } catch (error) {
-      console.error('Erro ao carregar relatórios:', error);
+      logError('Erro ao carregar relatórios', {
+        error: error instanceof Error ? error.message : String(error),
+        userId: user?.id,
+        service: 'ReportsManager'
+      });
       toast({
         title: 'Erro',
         description: 'Não foi possível carregar os relatórios',
@@ -385,7 +390,12 @@ export function ReportsManager() {
       // Recarregar lista de relatórios
       loadData();
     } catch (error) {
-      console.error('Erro ao gerar relatório:', error);
+      logError('Erro ao gerar relatório', {
+        error: error instanceof Error ? error.message : String(error),
+        templateId,
+        userId: user?.id,
+        service: 'ReportsManager'
+      });
       toast({
         title: 'Erro',
         description: 'Não foi possível gerar o relatório',
@@ -602,6 +612,7 @@ export function ReportsManager() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
+                  aria-label="Buscar templates de relatórios"
                 />
               </div>
             </div>

@@ -226,6 +226,7 @@ Kit 20.4kWp - JA Solar	20.4	48200	JA Solar	Industrial	Kit para indústria pequen
               onChange={(e) => handleDataChange(e.target.value)}
               rows={8}
               className="font-mono text-sm"
+              aria-label="Dados dos kits financeiros para importação"
             />
             <p className="text-xs text-muted-foreground">
               Formatos aceitos: separados por tab (Excel), vírgula (CSV) ou ponto-e-vírgula

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from '../hooks/use-toast';
+import { logError } from '../utils/secureLogger';
 
 // Tipos específicos para valores de auditoria
 export type AuditValue = string | number | boolean | null | undefined | Date | AuditValue[] | { [key: string]: AuditValue };
@@ -159,7 +160,13 @@ export function useAuditLogs(): UseAuditLogsReturn {
       setLogs(data || []);
       setTotalCount(count || 0);
     } catch (err) {
-      console.error('Erro ao carregar logs de auditoria:', err);
+      logError('Erro ao carregar logs de auditoria', {
+        service: 'useAuditLogs',
+        error: err instanceof Error ? err.message : 'Erro desconhecido',
+        userId: user?.id,
+        companyId: profile?.company_id,
+        action: 'loadLogs'
+      });
       setError('Erro ao carregar logs de auditoria');
       toast({
         title: 'Erro',
@@ -187,7 +194,13 @@ export function useAuditLogs(): UseAuditLogsReturn {
 
       setStats(data);
     } catch (err) {
-      console.error('Erro ao carregar estatísticas de auditoria:', err);
+      logError('Erro ao carregar estatísticas de auditoria', {
+        service: 'useAuditLogs',
+        error: err instanceof Error ? err.message : 'Erro desconhecido',
+        userId: user?.id,
+        companyId: profile?.company_id,
+        action: 'loadStats'
+      });
     }
   }, [user, profile]);
 
@@ -295,7 +308,13 @@ export function useAuditLogs(): UseAuditLogsReturn {
         description: 'Logs exportados com sucesso',
       });
     } catch (err) {
-      console.error('Erro ao exportar logs:', err);
+      logError('Erro ao exportar logs de auditoria', {
+        service: 'useAuditLogs',
+        error: err instanceof Error ? err.message : 'Erro desconhecido',
+        userId: user?.id,
+        companyId: profile?.company_id,
+        action: 'exportLogs'
+      });
       toast({
         title: 'Erro',
         description: 'Erro ao exportar logs de auditoria',
@@ -338,7 +357,14 @@ export function useAuditLogs(): UseAuditLogsReturn {
         await refreshLogs();
       }
     } catch (err) {
-      console.error('Erro ao criar log de auditoria:', err);
+      logError('Erro ao criar log de auditoria', {
+        service: 'useAuditLogs',
+        error: err instanceof Error ? err.message : 'Erro desconhecido',
+        userId: user?.id,
+        companyId: profile?.company_id,
+        action: params.action,
+        tableName: params.table_name
+      });
     }
   }, [user, profile, currentPage, refreshLogs]);
 
@@ -364,7 +390,13 @@ export function useAuditLogs(): UseAuditLogsReturn {
         await refreshLogs();
       }
     } catch (err) {
-      console.error('Erro ao registrar evento de segurança:', err);
+      logError('Erro ao registrar evento de segurança', {
+        service: 'useAuditLogs',
+        error: err instanceof Error ? err.message : 'Erro desconhecido',
+        eventType,
+        targetUserId,
+        action: 'logSecurityEvent'
+      });
     }
   }, [currentPage, refreshLogs]);
 
@@ -434,7 +466,13 @@ export function useRecordAuditLogs(tableName: string, recordId: string) {
 
       setLogs(data || []);
     } catch (err) {
-      console.error('Erro ao carregar logs do registro:', err);
+      logError('Erro ao carregar logs do registro', {
+        service: 'useRecordAuditLogs',
+        error: err instanceof Error ? err.message : 'Erro desconhecido',
+        tableName,
+        recordId,
+        action: 'loadRecordLogs'
+      });
     } finally {
       setLoading(false);
     }

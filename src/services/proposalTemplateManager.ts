@@ -8,6 +8,7 @@ import { PrototypeReplicaTemplate } from './templates/PrototypeReplicaTemplate';
 import { ProfessionalA4Template } from './templates/ProfessionalA4Template';
 import { Presentation16x9Template } from './templates/Presentation16x9Template';
 import jsPDF from 'jspdf';
+import { logError } from '../utils/secureLogger';
 
 export class ProposalTemplateManager {
   private static instance: ProposalTemplateManager;
@@ -71,14 +72,14 @@ export class ProposalTemplateManager {
   public generatePDF(templateId: string, data: ProposalData): jsPDF | null {
     const template = this.getTemplate(templateId);
     if (!template) {
-      console.error(`Template with ID '${templateId}' not found`);
+      logError('Template não encontrado', 'ProposalTemplateManager', { templateId });
       return null;
     }
 
     try {
       return template.generatePDF(data);
     } catch (error) {
-      console.error(`Error generating PDF with template '${templateId}':`, error);
+      logError('Erro ao gerar PDF com template', 'ProposalTemplateManager', { templateId, error: error instanceof Error ? error.message : 'Erro desconhecido' });
       return null;
     }
   }

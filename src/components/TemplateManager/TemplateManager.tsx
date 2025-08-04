@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { logError } from '@/utils/secureLogger';
 
 interface Template {
   id: string;
@@ -101,7 +102,10 @@ export function TemplateManager() {
       if (error) throw error;
       setTemplates(data || []);
     } catch (error) {
-      console.error('Error loading templates:', error);
+      logError('Erro ao carregar templates', {
+        service: 'TemplateManager',
+        error: (error as Error).message || 'Erro desconhecido'
+      });
       toast({
         title: 'Erro ao carregar templates',
         description: 'Não foi possível carregar os templates.',
@@ -123,7 +127,11 @@ export function TemplateManager() {
       if (error) throw error;
       setTemplateVersions(data || []);
     } catch (error) {
-      console.error('Error loading template versions:', error);
+      logError('Erro ao carregar versões de template', {
+        service: 'TemplateManager',
+        error: (error as Error).message || 'Erro desconhecido',
+        templateId: templateId
+      });
       toast({
         title: 'Erro ao carregar versões',
         description: 'Não foi possível carregar o histórico de versões.',
@@ -183,7 +191,12 @@ export function TemplateManager() {
         description: 'Template criado com sucesso!'
       });
     } catch (error) {
-      console.error('Error creating template:', error);
+      logError('Erro ao criar template', {
+        service: 'TemplateManager',
+        error: (error as Error).message || 'Erro desconhecido',
+        templateName: newTemplate.name,
+        category: newTemplate.category
+      });
       toast({
         title: 'Erro ao criar template',
         description: 'Não foi possível criar o template.',
@@ -244,7 +257,12 @@ export function TemplateManager() {
         description: 'Template atualizado com sucesso!'
       });
     } catch (error) {
-      console.error('Error updating template:', error);
+      logError('Erro ao atualizar template', {
+        service: 'TemplateManager',
+        error: (error as Error).message || 'Erro desconhecido',
+        templateId: template.id,
+        templateName: template.name
+      });
       toast({
         title: 'Erro ao atualizar template',
         description: 'Não foi possível atualizar o template.',
@@ -272,7 +290,11 @@ export function TemplateManager() {
         description: 'Template removido com sucesso!'
       });
     } catch (error) {
-      console.error('Error deleting template:', error);
+      logError('Erro ao remover template', {
+        service: 'TemplateManager',
+        error: (error as Error).message || 'Erro desconhecido',
+        templateId: templateId
+      });
       toast({
         title: 'Erro ao remover template',
         description: 'Não foi possível remover o template.',
@@ -323,7 +345,12 @@ export function TemplateManager() {
         description: 'Template duplicado com sucesso!'
       });
     } catch (error) {
-      console.error('Error duplicating template:', error);
+      logError('Erro ao duplicar template', {
+        service: 'TemplateManager',
+        error: (error as Error).message || 'Erro desconhecido',
+        templateId: template.id,
+        templateName: template.name
+      });
       toast({
         title: 'Erro ao duplicar template',
         description: 'Não foi possível duplicar o template.',
@@ -446,6 +473,7 @@ export function TemplateManager() {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="max-w-sm"
+          aria-label="Buscar templates por nome ou descrição"
         />
       </div>
 

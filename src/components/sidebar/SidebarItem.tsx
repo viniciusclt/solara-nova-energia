@@ -1,5 +1,6 @@
 import React from 'react';
 import { LucideIcon } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { ModuleType, useSidebar } from '../../hooks/useSidebar';
 
 interface SidebarItemProps {
@@ -20,6 +21,7 @@ export const SidebarItem: React.FC<SidebarItemProps> = ({
   className = ''
 }) => {
   const { setActiveModule, activeModule } = useSidebar();
+  const navigate = useNavigate();
   
   const isCurrentModule = module && activeModule === module;
   const isItemActive = isActive || isCurrentModule;
@@ -27,6 +29,20 @@ export const SidebarItem: React.FC<SidebarItemProps> = ({
   const handleClick = () => {
     if (module) {
       setActiveModule(module);
+      
+      // Navegar para rotas específicas baseadas no módulo
+      switch (module) {
+        case 'training':
+          navigate('/training');
+          break;
+        case 'solar':
+        case 'heating-bath':
+        case 'heating-pool':
+        case 'wallbox':
+        default:
+          navigate('/');
+          break;
+      }
     }
     if (onClick) {
       onClick();

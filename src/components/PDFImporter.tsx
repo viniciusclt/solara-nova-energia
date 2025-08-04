@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { logInfo, logError } from '@/utils/secureLogger';
 import PDFUploader from './PDFUploader';
 import OCRProcessor from './OCRProcessor';
 
@@ -78,7 +79,9 @@ const PDFImporter: React.FC<PDFImporterProps> = ({
 
   // Callback quando arquivos são processados no PDFUploader
   const handleFilesProcessed = useCallback((files: PDFFile[]) => {
-    console.log('[PDFImporter] Arquivos processados:', files);
+    logInfo('Arquivos processados no PDFImporter', 'PDFImporter', { 
+      filesCount: files.length 
+    });
     setProcessedFiles(files);
     
     // Converter dados OCR dos arquivos processados
@@ -103,14 +106,18 @@ const PDFImporter: React.FC<PDFImporterProps> = ({
 
   // Callback quando produtos são processados no OCRProcessor
   const handleProductsProcessed = useCallback((products: ProcessedProduct[]) => {
-    console.log('[PDFImporter] Produtos processados:', products);
+    logInfo('Produtos processados no PDFImporter', 'PDFImporter', { 
+      productsCount: products.length 
+    });
     setFinalProducts(products);
     setCurrentTab('review');
   }, []);
 
   // Função para salvar produtos no banco de dados
   const saveProductsToDatabase = async (products: ProcessedProduct[]): Promise<void> => {
-    console.log('[PDFImporter] Salvando produtos no banco:', products);
+    logInfo('Salvando produtos no banco de dados', 'PDFImporter', { 
+      productsCount: products.length 
+    });
     
     try {
       // Obter usuário atual
@@ -162,11 +169,15 @@ const PDFImporter: React.FC<PDFImporterProps> = ({
         .select();
 
       if (error) {
-        console.error('[PDFImporter] Erro ao inserir produtos:', error);
+        logError('Erro ao inserir produtos no banco', 'PDFImporter', { 
+          error: error.message 
+        });
         throw new Error(`Erro ao salvar produtos: ${error.message}`);
       }
 
-      console.log('[PDFImporter] Produtos salvos com sucesso:', data);
+      logInfo('Produtos salvos com sucesso no banco', 'PDFImporter', { 
+        savedCount: data?.length || 0 
+      });
       
       // Notificar componente pai
       if (onProductsImported) {
@@ -175,7 +186,9 @@ const PDFImporter: React.FC<PDFImporterProps> = ({
 
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      console.error('[PDFImporter] Erro ao salvar produtos:', error);
+      logError('Erro ao salvar produtos', 'PDFImporter', { 
+        error: errorMessage 
+      });
       throw error;
     }
   };
@@ -209,7 +222,9 @@ const PDFImporter: React.FC<PDFImporterProps> = ({
 
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      console.error('[PDFImporter] Erro na importação final:', error);
+      logError('Erro na importação final', 'PDFImporter', { 
+        error: errorMessage 
+      });
       toast({
         title: "Erro na Importação",
         description: errorMessage,

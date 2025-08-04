@@ -18,6 +18,7 @@ import { SidebarSection } from './SidebarSection';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/button';
 import { SettingsModal } from '../SettingsModal';
+import { logError } from '../../utils/secureLogger';
 
 interface SidebarProps {
   onHelpClick?: () => void;
@@ -41,7 +42,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       await signOut();
       close();
     } catch (error) {
-      console.error('Erro ao fazer logout:', error);
+      logError({
+        service: 'Sidebar',
+        action: 'logout',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
     }
   };
 

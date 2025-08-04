@@ -30,7 +30,7 @@ interface PropertiesPanelProps {
   onComponentUpdate: (id: string, updates: Partial<TemplateComponent>) => void;
 }
 
-export function PropertiesPanel({ selectedComponent, onComponentUpdate }: PropertiesPanelProps) {
+export const PropertiesPanel = React.memo(function PropertiesPanel({ selectedComponent, onComponentUpdate }: PropertiesPanelProps) {
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
 
   const updateProperty = useCallback((property: keyof ComponentProperties, value: unknown) => {
@@ -106,6 +106,7 @@ export function PropertiesPanel({ selectedComponent, onComponentUpdate }: Proper
                 value={selectedComponent.properties.placeholderKey || ''}
                 onChange={(e) => updateProperty('placeholderKey', e.target.value)}
                 placeholder="ex: lead.name"
+                aria-label="Chave do placeholder"
               />
               <Select
                 value={selectedComponent.properties.placeholderType || 'text'}
@@ -205,6 +206,7 @@ export function PropertiesPanel({ selectedComponent, onComponentUpdate }: Proper
             onChange={(e) => updateProperty('color', e.target.value)}
             placeholder="#000000"
             className="flex-1"
+            aria-label="Código hexadecimal da cor do texto"
           />
         </div>
       </div>
@@ -266,6 +268,7 @@ export function PropertiesPanel({ selectedComponent, onComponentUpdate }: Proper
           type="number"
           value={selectedComponent.zIndex}
           onChange={(e) => onComponentUpdate(selectedComponent.id, { zIndex: parseInt(e.target.value) || 0 })}
+          aria-label="Valor da camada Z-Index"
         />
       </div>
 
@@ -327,6 +330,7 @@ export function PropertiesPanel({ selectedComponent, onComponentUpdate }: Proper
             onChange={(e) => updateProperty('backgroundColor', e.target.value)}
             placeholder="#ffffff"
             className="flex-1"
+            aria-label="Código hexadecimal da cor de fundo"
           />
         </div>
       </div>
@@ -342,6 +346,7 @@ export function PropertiesPanel({ selectedComponent, onComponentUpdate }: Proper
                 type="number"
                 value={selectedComponent.properties.borderWidth || 0}
                 onChange={(e) => updateProperty('borderWidth', parseInt(e.target.value) || 0)}
+                aria-label="Largura da borda em pixels"
               />
             </div>
             <div>
@@ -373,6 +378,7 @@ export function PropertiesPanel({ selectedComponent, onComponentUpdate }: Proper
               onChange={(e) => updateProperty('borderColor', e.target.value)}
               placeholder="#000000"
               className="flex-1"
+              aria-label="Código hexadecimal da cor da borda"
             />
           </div>
         </div>
@@ -513,4 +519,4 @@ export function PropertiesPanel({ selectedComponent, onComponentUpdate }: Proper
       </CardContent>
     </div>
   );
-}
+});

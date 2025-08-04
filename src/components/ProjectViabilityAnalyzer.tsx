@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { logError } from '@/utils/secureLogger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -213,7 +214,13 @@ const ProjectViabilityAnalyzer: React.FC<ProjectViabilityAnalyzerProps> = ({
       }
       
     } catch (error) {
-      console.error('Erro na análise:', error);
+      logError('Erro na análise de viabilidade', {
+        error: error instanceof Error ? error.message : String(error),
+        nomeCliente: projectData.nomeCliente,
+        tipoCliente: projectData.tipoCliente,
+        investimentoTotal: projectData.investimentoTotal,
+        service: 'ProjectViabilityAnalyzer'
+      });
       toast({
         title: 'Erro na Análise',
         description: 'Erro ao calcular viabilidade do projeto',
@@ -535,6 +542,7 @@ const ProjectViabilityAnalyzer: React.FC<ProjectViabilityAnalyzerProps> = ({
                       value={projectData.nomeCliente}
                       onChange={(e) => setProjectData(prev => ({ ...prev, nomeCliente: e.target.value }))}
                       placeholder="Nome do cliente"
+                      aria-label="Nome do cliente"
                     />
                   </div>
                   
@@ -570,6 +578,7 @@ const ProjectViabilityAnalyzer: React.FC<ProjectViabilityAnalyzerProps> = ({
                           localizacao: { ...prev.localizacao, cidade: e.target.value }
                         }))}
                         placeholder="Cidade"
+                        aria-label="Cidade do projeto"
                       />
                     </div>
                     
@@ -604,6 +613,7 @@ const ProjectViabilityAnalyzer: React.FC<ProjectViabilityAnalyzerProps> = ({
                         ...prev,
                         localizacao: { ...prev.localizacao, irradiacao: Number(e.target.value) }
                       }))}
+                      aria-label="Irradiação solar em quilowatts-hora por metro quadrado por dia"
                     />
                   </div>
                 </CardContent>
@@ -624,6 +634,7 @@ const ProjectViabilityAnalyzer: React.FC<ProjectViabilityAnalyzerProps> = ({
                       type="number"
                       value={projectData.consumoMensalKwh}
                       onChange={(e) => setProjectData(prev => ({ ...prev, consumoMensalKwh: Number(e.target.value) }))}
+                      aria-label="Consumo mensal em quilowatts-hora"
                     />
                   </div>
                   
@@ -634,6 +645,7 @@ const ProjectViabilityAnalyzer: React.FC<ProjectViabilityAnalyzerProps> = ({
                       step="0.01"
                       value={projectData.tarifaEnergia}
                       onChange={(e) => setProjectData(prev => ({ ...prev, tarifaEnergia: Number(e.target.value) }))}
+                      aria-label="Tarifa de energia em reais por quilowatt-hora"
                     />
                   </div>
                   
@@ -644,6 +656,7 @@ const ProjectViabilityAnalyzer: React.FC<ProjectViabilityAnalyzerProps> = ({
                       step="0.01"
                       value={projectData.bandeiraTarifaria}
                       onChange={(e) => setProjectData(prev => ({ ...prev, bandeiraTarifaria: Number(e.target.value) }))}
+                      aria-label="Bandeira tarifária em reais por quilowatt-hora"
                     />
                   </div>
                   
@@ -654,6 +667,7 @@ const ProjectViabilityAnalyzer: React.FC<ProjectViabilityAnalyzerProps> = ({
                       step="0.1"
                       value={projectData.aumentoAnualTarifa}
                       onChange={(e) => setProjectData(prev => ({ ...prev, aumentoAnualTarifa: Number(e.target.value) }))}
+                      aria-label="Aumento anual da tarifa em porcentagem"
                     />
                   </div>
                 </CardContent>
@@ -675,6 +689,7 @@ const ProjectViabilityAnalyzer: React.FC<ProjectViabilityAnalyzerProps> = ({
                       step="0.1"
                       value={projectData.potenciaInstalada}
                       onChange={(e) => setProjectData(prev => ({ ...prev, potenciaInstalada: Number(e.target.value) }))}
+                      aria-label="Potência instalada em quilowatts pico"
                     />
                   </div>
                   
@@ -684,6 +699,7 @@ const ProjectViabilityAnalyzer: React.FC<ProjectViabilityAnalyzerProps> = ({
                       type="number"
                       value={projectData.geracaoEstimada}
                       onChange={(e) => setProjectData(prev => ({ ...prev, geracaoEstimada: Number(e.target.value) }))}
+                      aria-label="Geração estimada em quilowatts-hora por mês"
                     />
                   </div>
                   
@@ -694,6 +710,7 @@ const ProjectViabilityAnalyzer: React.FC<ProjectViabilityAnalyzerProps> = ({
                       step="0.1"
                       value={projectData.eficienciaInversor}
                       onChange={(e) => setProjectData(prev => ({ ...prev, eficienciaInversor: Number(e.target.value) }))}
+                      aria-label="Eficiência do inversor em porcentagem"
                     />
                   </div>
                   
@@ -704,6 +721,7 @@ const ProjectViabilityAnalyzer: React.FC<ProjectViabilityAnalyzerProps> = ({
                       step="0.1"
                       value={projectData.perdaSistema}
                       onChange={(e) => setProjectData(prev => ({ ...prev, perdaSistema: Number(e.target.value) }))}
+                      aria-label="Perda do sistema em porcentagem"
                     />
                   </div>
                   
@@ -713,6 +731,7 @@ const ProjectViabilityAnalyzer: React.FC<ProjectViabilityAnalyzerProps> = ({
                       type="number"
                       value={projectData.vidaUtilSistema}
                       onChange={(e) => setProjectData(prev => ({ ...prev, vidaUtilSistema: Number(e.target.value) }))}
+                      aria-label="Vida útil do sistema em anos"
                     />
                   </div>
                 </CardContent>

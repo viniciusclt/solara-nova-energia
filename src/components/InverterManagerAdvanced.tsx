@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Inverter } from "@/types";
 import { DemoDataService } from "@/services/DemoDataService";
 import { FileUpload } from "@/components/ui/file-upload";
+import { logger } from "@/utils/secureLogger";
 
 export function InverterManagerAdvanced() {
   const { toast } = useToast();
@@ -126,11 +127,18 @@ export function InverterManagerAdvanced() {
         setInverters(data || []);
       }
     } catch (error) {
-      console.error('Error fetching inverters:', error);
+      secureLogger.logError('Erro ao carregar inversores', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        retryCount,
+        service: 'InverterManagerAdvanced'
+      });
       
       // Retry automático para erros de conexão (máximo 2 tentativas)
       if (retryCount < 2 && (error as Error).message?.includes('connection')) {
-        console.log(`Tentando novamente carregar inversores (tentativa ${retryCount + 1})...`);
+        secureLogger.logInfo('Tentando novamente carregar inversores', {
+          retryAttempt: retryCount + 1,
+          service: 'InverterManagerAdvanced'
+        });
         setTimeout(() => fetchInverters(retryCount + 1), 2000);
         return;
       }
@@ -206,7 +214,13 @@ export function InverterManagerAdvanced() {
       setIsDialogOpen(false);
       fetchInverters();
     } catch (error) {
-      console.error('Error saving inverter:', error);
+      secureLogger.logError('Erro ao salvar inversor', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        isEditing,
+        inverterId: currentInverter.id,
+        inverterName: currentInverter.name,
+        service: 'InverterManagerAdvanced'
+      });
       const errorMessage = error instanceof Error ? error.message : 'Não foi possível salvar o inversor';
       toast({
         title: "Erro ao salvar inversor",
@@ -247,7 +261,11 @@ export function InverterManagerAdvanced() {
 
       fetchInverters();
     } catch (error) {
-      console.error('Error deleting inverter:', error);
+      secureLogger.logError('Erro ao excluir inversor', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        inverterId: id,
+        service: 'InverterManagerAdvanced'
+      });
       const errorMessage = error instanceof Error ? error.message : 'Não foi possível excluir o inversor';
       toast({
         title: "Erro ao excluir inversor",

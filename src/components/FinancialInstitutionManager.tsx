@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { logInfo, logError } from '@/utils/secureLogger';
 
 interface FinancialInstitution {
   id: string;
@@ -195,7 +196,7 @@ const FinancialInstitutionManager: React.FC<FinancialInstitutionManagerProps> = 
 
   const loadInstitutions = async () => {
     try {
-      console.log('[FinancialInstitutionManager] Carregando instituições financeiras');
+      logInfo('Carregando instituições financeiras', 'FinancialInstitutionManager');
       setIsLoading(true);
 
       // Obter usuário atual
@@ -227,11 +228,15 @@ const FinancialInstitutionManager: React.FC<FinancialInstitutionManagerProps> = 
         throw new Error(`Erro ao carregar instituições: ${error.message}`);
       }
 
-      console.log('[FinancialInstitutionManager] Instituições carregadas:', data);
+      logInfo('Instituições financeiras carregadas', 'FinancialInstitutionManager', { 
+        count: data?.length || 0 
+      });
       setInstitutions(data || []);
 
     } catch (error: unknown) {
-      console.error('[FinancialInstitutionManager] Erro ao carregar instituições:', error);
+      logError('Erro ao carregar instituições financeiras', 'FinancialInstitutionManager', { 
+        error: (error as Error).message 
+      });
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: "Erro ao Carregar",
@@ -317,7 +322,11 @@ const FinancialInstitutionManager: React.FC<FinancialInstitutionManagerProps> = 
 
   const saveInstitution = async () => {
     try {
-      console.log('[FinancialInstitutionManager] Salvando instituição:', formData);
+      logInfo('Salvando instituição financeira', 'FinancialInstitutionManager', { 
+        nome: formData.nome,
+        tipo: formData.tipo,
+        isEditing: !!editingInstitution 
+      });
 
       // Validações básicas
       if (!formData.nome.trim()) {
@@ -397,7 +406,10 @@ const FinancialInstitutionManager: React.FC<FinancialInstitutionManagerProps> = 
         throw new Error(`Erro ao salvar: ${result.error.message}`);
       }
 
-      console.log('[FinancialInstitutionManager] Instituição salva:', result.data);
+      logInfo('Instituição financeira salva com sucesso', 'FinancialInstitutionManager', { 
+        id: result.data.id,
+        nome: result.data.nome 
+      });
 
       toast({
         title: editingInstitution ? "Instituição Atualizada" : "Instituição Criada",
@@ -409,7 +421,9 @@ const FinancialInstitutionManager: React.FC<FinancialInstitutionManagerProps> = 
       await loadInstitutions();
 
     } catch (error: unknown) {
-      console.error('[FinancialInstitutionManager] Erro ao salvar:', error);
+      logError('Erro ao salvar instituição financeira', 'FinancialInstitutionManager', { 
+        error: (error as Error).message 
+      });
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: "Erro ao Salvar",
@@ -425,7 +439,10 @@ const FinancialInstitutionManager: React.FC<FinancialInstitutionManagerProps> = 
     }
 
     try {
-      console.log('[FinancialInstitutionManager] Excluindo instituição:', institution.id);
+      logInfo('Excluindo instituição financeira', 'FinancialInstitutionManager', {
+        institutionId: institution.id,
+        institutionName: institution.nome
+      });
 
       const { error } = await supabase
         .from('instituicoes_financeiras')
@@ -444,7 +461,11 @@ const FinancialInstitutionManager: React.FC<FinancialInstitutionManagerProps> = 
       await loadInstitutions();
 
     } catch (error: unknown) {
-      console.error('[FinancialInstitutionManager] Erro ao excluir:', error);
+      logError('Erro ao excluir instituição financeira', 'FinancialInstitutionManager', {
+        error: (error as Error).message,
+        institutionId: institution.id,
+        institutionName: institution.nome
+      });
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: "Erro ao Excluir",
@@ -468,7 +489,11 @@ const FinancialInstitutionManager: React.FC<FinancialInstitutionManagerProps> = 
       await loadInstitutions();
 
     } catch (error: unknown) {
-      console.error('[FinancialInstitutionManager] Erro ao atualizar favorito:', error);
+      logError('Erro ao atualizar favorito da instituição', 'FinancialInstitutionManager', {
+        error: (error as Error).message,
+        institutionId: institution.id,
+        institutionName: institution.nome
+      });
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: "Erro",
@@ -492,7 +517,11 @@ const FinancialInstitutionManager: React.FC<FinancialInstitutionManagerProps> = 
       await loadInstitutions();
 
     } catch (error: unknown) {
-      console.error('[FinancialInstitutionManager] Erro ao atualizar status:', error);
+      logError('Erro ao atualizar status da instituição', 'FinancialInstitutionManager', {
+        error: (error as Error).message,
+        institutionId: institution.id,
+        institutionName: institution.nome
+      });
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: "Erro",
@@ -596,6 +625,7 @@ const FinancialInstitutionManager: React.FC<FinancialInstitutionManagerProps> = 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
+                  aria-label="Buscar instituições financeiras por nome, CNPJ ou cidade"
                 />
               </div>
             </div>
@@ -929,6 +959,7 @@ const FinancialInstitutionManager: React.FC<FinancialInstitutionManagerProps> = 
                     id="ativo"
                     checked={formData.ativo}
                     onChange={(e) => setFormData(prev => ({ ...prev, ativo: e.target.checked }))}
+                    aria-label="Marcar instituição como ativa"
                   />
                   <Label htmlFor="ativo">Instituição Ativa</Label>
                 </div>
@@ -938,6 +969,7 @@ const FinancialInstitutionManager: React.FC<FinancialInstitutionManagerProps> = 
                     id="favorito"
                     checked={formData.favorito}
                     onChange={(e) => setFormData(prev => ({ ...prev, favorito: e.target.checked }))}
+                    aria-label="Marcar instituição como favorita"
                   />
                   <Label htmlFor="favorito">Marcar como Favorito</Label>
                 </div>
@@ -1102,6 +1134,7 @@ const FinancialInstitutionManager: React.FC<FinancialInstitutionManagerProps> = 
                     id="aceita_pessoa_fisica"
                     checked={formData.aceita_pessoa_fisica}
                     onChange={(e) => setFormData(prev => ({ ...prev, aceita_pessoa_fisica: e.target.checked }))}
+                    aria-label="Instituição aceita pessoa física"
                   />
                   <Label htmlFor="aceita_pessoa_fisica">Aceita Pessoa Física</Label>
                 </div>
@@ -1111,6 +1144,7 @@ const FinancialInstitutionManager: React.FC<FinancialInstitutionManagerProps> = 
                     id="aceita_pessoa_juridica"
                     checked={formData.aceita_pessoa_juridica}
                     onChange={(e) => setFormData(prev => ({ ...prev, aceita_pessoa_juridica: e.target.checked }))}
+                    aria-label="Instituição aceita pessoa jurídica"
                   />
                   <Label htmlFor="aceita_pessoa_juridica">Aceita Pessoa Jurídica</Label>
                 </div>

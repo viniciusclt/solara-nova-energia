@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -239,7 +239,7 @@ interface DraggableComponentProps {
   item: ComponentLibraryItem;
 }
 
-function DraggableComponent({ item }: DraggableComponentProps) {
+const DraggableComponent = React.memo(function DraggableComponent({ item }: DraggableComponentProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `library-${item.type}`,
     data: {
@@ -278,26 +278,30 @@ function DraggableComponent({ item }: DraggableComponentProps) {
       </div>
     </div>
   );
-}
+});
 
 export function ComponentLibrary() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<ComponentCategory | 'all'>('all');
 
-  const filteredComponents = COMPONENT_LIBRARY.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredComponents = useMemo(() => {
+    return COMPONENT_LIBRARY.filter(item => {
+      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           item.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [searchTerm, selectedCategory]);
 
-  const componentsByCategory = filteredComponents.reduce((acc, item) => {
-    if (!acc[item.category]) {
-      acc[item.category] = [];
-    }
-    acc[item.category].push(item);
-    return acc;
-  }, {} as Record<ComponentCategory, ComponentLibraryItem[]>);
+  const componentsByCategory = useMemo(() => {
+    return filteredComponents.reduce((acc, item) => {
+      if (!acc[item.category]) {
+        acc[item.category] = [];
+      }
+      acc[item.category].push(item);
+      return acc;
+    }, {} as Record<ComponentCategory, ComponentLibraryItem[]>);
+  }, [filteredComponents]);
 
   return (
     <div className="h-full flex flex-col">

@@ -8,6 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/secureLogger';
+
+const { logInfo, logError } = logger;
 
 interface PDFFile {
   id: string;
@@ -37,8 +40,14 @@ const PDFUploader: React.FC<PDFUploaderProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
 
   const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: { file: File; errors: { code: string; message: string }[] }[]) => {
-    console.log('[PDFUploader] Arquivos aceitos:', acceptedFiles);
-    console.log('[PDFUploader] Arquivos rejeitados:', rejectedFiles);
+    logInfo('Arquivos aceitos para upload', 'PDFUploader', { 
+      acceptedCount: acceptedFiles.length 
+    });
+    if (rejectedFiles.length > 0) {
+      logInfo('Arquivos rejeitados no upload', 'PDFUploader', { 
+        rejectedCount: rejectedFiles.length 
+      });
+    }
 
     // Tratar arquivos rejeitados
     if (rejectedFiles.length > 0) {
@@ -115,7 +124,9 @@ const PDFUploader: React.FC<PDFUploaderProps> = ({
     }
 
     setIsProcessing(true);
-    console.log('[PDFUploader] Iniciando upload e processamento de', files.length, 'arquivos');
+    logInfo('Iniciando upload e processamento de arquivos', 'PDFUploader', { 
+      fileCount: files.length 
+    });
 
     try {
       const updatedFiles = [...files];
@@ -131,7 +142,10 @@ const PDFUploader: React.FC<PDFUploaderProps> = ({
           setFiles([...updatedFiles]);
 
           // Upload do arquivo para Supabase Storage
-          console.log(`[PDFUploader] Fazendo upload do arquivo: ${fileData.file.name}`);
+          logInfo('Fazendo upload de arquivo', 'PDFUploader', { 
+            fileName: fileData.file.name,
+            fileSize: fileData.file.size 
+          });
           
           const fileName = `${Date.now()}-${fileData.file.name}`;
           const { data: uploadData, error: uploadError } = await supabase.storage
@@ -166,7 +180,9 @@ const PDFUploader: React.FC<PDFUploaderProps> = ({
           setFiles([...updatedFiles]);
 
           // Simular processamento OCR (aqui você integraria com Tesseract.js)
-          console.log(`[PDFUploader] Processando OCR para: ${fileData.file.name}`);
+          logInfo('Processando OCR para arquivo', 'PDFUploader', { 
+            fileName: fileData.file.name 
+          });
           await new Promise(resolve => setTimeout(resolve, 2000));
 
           // Dados simulados do OCR
@@ -189,10 +205,15 @@ const PDFUploader: React.FC<PDFUploaderProps> = ({
           };
           setFiles([...updatedFiles]);
 
-          console.log(`[PDFUploader] Arquivo processado com sucesso: ${fileData.file.name}`);
+          logInfo('Arquivo processado com sucesso', 'PDFUploader', { 
+            fileName: fileData.file.name 
+          });
 
         } catch (error: unknown) {
-          console.error(`[PDFUploader] Erro ao processar arquivo ${fileData.file.name}:`, error);
+          logError('Erro ao processar arquivo', 'PDFUploader', { 
+            fileName: fileData.file.name,
+            error: (error as Error).message 
+          });
           
           updatedFiles[i] = { 
             ...updatedFiles[i], 
@@ -219,7 +240,9 @@ const PDFUploader: React.FC<PDFUploaderProps> = ({
       }
 
     } catch (error: unknown) {
-      console.error('[PDFUploader] Erro geral no processamento:', error);
+      logError('Erro geral no processamento de arquivos', 'PDFUploader', { 
+        error: (error as Error).message 
+      });
       toast({
         title: "Erro no Processamento",
         description: (error as Error).message || 'Erro desconhecido durante o processamento',
@@ -285,7 +308,7 @@ const PDFUploader: React.FC<PDFUploaderProps> = ({
             }
           `}
         >
-          <input {...getInputProps()} />
+          <input {...getInputProps()} aria-label="Selecionar arquivos PDF para upload" />
           <Upload className="h-12 w-12 mx-auto mb-4 text-gray-400" />
           {isDragActive ? (
             <p className="text-blue-600 font-medium">

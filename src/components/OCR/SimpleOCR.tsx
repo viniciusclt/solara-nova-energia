@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
 import { useDropzone } from 'react-dropzone';
+import { logError } from '@/utils/secureLogger';
 
 interface ExtractedData {
   cliente?: string;
@@ -288,7 +289,16 @@ export const SimpleOCR: React.FC<SimpleOCRProps> = ({
       });
       
     } catch (error) {
-      console.error('❌ Erro no OCR:', error);
+      logError({
+        service: 'SimpleOCR',
+        action: 'processFile',
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        details: {
+          fileName: file.name,
+          fileSize: file.size,
+          resultId
+        }
+      });
       
       setResults(prev => prev.map(r => 
         r.id === resultId 
@@ -408,7 +418,7 @@ export const SimpleOCR: React.FC<SimpleOCRProps> = ({
                     ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}
                   `}
                 >
-                  <input {...getInputProps()} />
+                  <input {...getInputProps()} aria-label="Selecionar arquivos para OCR" />
                   
                   {isProcessing ? (
                     <div className="space-y-2">

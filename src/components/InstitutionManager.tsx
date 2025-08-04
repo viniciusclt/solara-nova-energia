@@ -765,7 +765,7 @@ const InstitutionManager: React.FC = () => {
             </div>
             <div className="space-y-2">
               <Label>Tipo</Label>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <Select value={typeFilter} onValueChange={setTypeFilter} aria-label="Filtrar por tipo de instituição">
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -780,7 +780,7 @@ const InstitutionManager: React.FC = () => {
             </div>
             <div className="space-y-2">
               <Label>Status</Label>
-              <Select value={activeFilter} onValueChange={setActiveFilter}>
+              <Select value={activeFilter} onValueChange={setActiveFilter} aria-label="Filtrar por status da instituição">
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -793,7 +793,7 @@ const InstitutionManager: React.FC = () => {
             </div>
             <div className="space-y-2">
               <Label>Favoritos</Label>
-              <Select value={favoriteFilter} onValueChange={setFavoriteFilter}>
+              <Select value={favoriteFilter} onValueChange={setFavoriteFilter} aria-label="Filtrar por instituições favoritas">
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

@@ -32,6 +32,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { logError } from '@/utils/secureLogger';
 
 // Configurar workers
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
@@ -414,7 +415,13 @@ const PDFImporterV3: React.FC<PDFImporterV3Props> = ({
       });
 
     } catch (error: unknown) {
-      console.error('Erro no processamento:', error);
+      logError('Erro no processamento de PDF', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        service: 'PDFImporterV3',
+        action: 'processFile',
+        fileName: file.file.name,
+        fileSize: file.file.size
+      });
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       setFiles(prev => prev.map(f => 
         f.id === file.id 
@@ -610,7 +617,13 @@ const PDFImporterV3: React.FC<PDFImporterV3Props> = ({
       setCurrentTab('upload');
 
     } catch (error: unknown) {
-      console.error('Erro ao salvar produtos:', error);
+      logError('Erro ao salvar produtos importados', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        service: 'PDFImporterV3',
+        action: 'saveProducts',
+        productCount: finalProducts.length,
+        equipmentType
+      });
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: "Erro na Importação",
@@ -715,7 +728,7 @@ const PDFImporterV3: React.FC<PDFImporterV3Props> = ({
                     : 'border-gray-300 hover:border-primary'
                 }`}
               >
-                <input {...getInputProps()} ref={fileInputRef} />
+                <input {...getInputProps()} ref={fileInputRef} aria-label="Selecionar arquivos PDF para importação" />
                 <Upload className="h-12 w-12 mx-auto mb-4 text-gray-400" />
                 <p className="text-lg font-medium mb-2">
                   {isDragActive 
@@ -968,6 +981,7 @@ const PDFImporterV3: React.FC<PDFImporterV3Props> = ({
                                     value={value.toString()} 
                                     readOnly 
                                     className="text-sm"
+                                    aria-label={`Valor do campo ${key.replace(/([A-Z])/g, ' $1').trim()}`}
                                   />
                                 )}
                               </div>
@@ -1030,6 +1044,7 @@ const PDFImporterV3: React.FC<PDFImporterV3Props> = ({
                           <Input 
                             value={product.nome}
                             onChange={(e) => updateProduct(product.id, 'nome', e.target.value)}
+                            aria-label="Nome do produto"
                           />
                         </div>
                         <div>
@@ -1037,6 +1052,7 @@ const PDFImporterV3: React.FC<PDFImporterV3Props> = ({
                           <Input 
                             value={product.fabricante}
                             onChange={(e) => updateProduct(product.id, 'fabricante', e.target.value)}
+                            aria-label="Fabricante do produto"
                           />
                         </div>
                         <div>
@@ -1044,6 +1060,7 @@ const PDFImporterV3: React.FC<PDFImporterV3Props> = ({
                           <Input 
                             value={product.potencia}
                             onChange={(e) => updateProduct(product.id, 'potencia', e.target.value)}
+                            aria-label="Potência do produto"
                           />
                         </div>
                         <div>
@@ -1054,6 +1071,7 @@ const PDFImporterV3: React.FC<PDFImporterV3Props> = ({
                             value={product.preco}
                             onChange={(e) => updateProduct(product.id, 'preco', e.target.value)}
                             placeholder="0.00"
+                            aria-label="Preço do produto em reais"
                           />
                         </div>
                         <div>
@@ -1061,6 +1079,7 @@ const PDFImporterV3: React.FC<PDFImporterV3Props> = ({
                           <Input 
                             value={product.eficiencia || ''}
                             onChange={(e) => updateProduct(product.id, 'eficiencia', e.target.value)}
+                            aria-label="Eficiência do produto em porcentagem"
                           />
                         </div>
                         <div>
@@ -1068,6 +1087,7 @@ const PDFImporterV3: React.FC<PDFImporterV3Props> = ({
                           <Input 
                             value={product.garantia || ''}
                             onChange={(e) => updateProduct(product.id, 'garantia', e.target.value)}
+                            aria-label="Garantia do produto"
                           />
                         </div>
                       </div>
@@ -1078,6 +1098,7 @@ const PDFImporterV3: React.FC<PDFImporterV3Props> = ({
                           value={product.descricao}
                           onChange={(e) => updateProduct(product.id, 'descricao', e.target.value)}
                           rows={2}
+                          aria-label="Descrição do produto"
                         />
                       </div>
                     </div>

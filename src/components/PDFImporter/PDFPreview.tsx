@@ -17,6 +17,7 @@ import {
   Maximize2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { logError } from '@/utils/secureLogger';
 
 // Configurar o worker do PDF.js
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
@@ -65,8 +66,16 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
   };
 
   const onDocumentLoadError = (error: Error) => {
-    console.error('Erro ao carregar PDF:', error);
     const errorMessage = 'Erro ao carregar o PDF. Verifique se o arquivo não está corrompido.';
+    logError({
+      service: 'PDFPreview',
+      action: 'loadDocument',
+      error: error.message,
+      details: {
+        fileName: file.name,
+        fileSize: file.size
+      }
+    });
     setError(errorMessage);
     setIsLoading(false);
     onError?.(errorMessage);

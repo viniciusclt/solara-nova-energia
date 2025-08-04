@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { connectivityService } from '@/services/connectivityService';
+import { logError, logInfo, logWarn } from '@/utils/secureLogger';
 import type { Notification, NotificationType, NotificationPriority } from '@/components/NotificationCenter';
 
 interface CreateNotificationParams {
@@ -77,11 +78,16 @@ export function useNotifications() {
   // Carregar notificações com retry automático e fallback melhorado
   const loadNotifications = useCallback(async () => {
     if (!profile?.id) {
-      console.log('⚠️ Perfil não carregado, aguardando...');
+      logInfo('Perfil não carregado, aguardando', {
+        service: 'useNotifications'
+      });
       return;
     }
 
-    console.log('🔄 Carregando notificações...');
+    logInfo('Carregando notificações', {
+      service: 'useNotifications',
+      profileId: profile.id
+    });
     setIsLoading(true);
 
     try {
@@ -95,19 +101,29 @@ export function useNotifications() {
 
       // Se a tabela não existir, retornar array vazio
       if (error && error.code === 'PGRST116') {
-        console.warn('⚠️ Tabela notifications não existe ainda. Sistema de notificações desabilitado temporariamente.');
+        logWarn('Tabela notifications não existe ainda. Sistema de notificações desabilitado temporariamente', {
+          service: 'useNotifications',
+          errorCode: error.code
+        });
         setNotifications([]);
         setIsLoading(false);
         return;
       }
 
       if (error) {
-        console.error('❌ Erro na query de notificações:', error);
+        logError('Erro na query de notificações', {
+          error: error.message,
+          service: 'useNotifications',
+          code: error.code
+        });
         throw error;
       }
 
       const notifications = result || [];
-      console.log(`✅ Notificações carregadas: ${notifications.length}`);
+      logInfo('Notificações carregadas com sucesso', {
+        service: 'useNotifications',
+        quantidade: notifications.length
+      });
       setNotifications(notifications);
       
       // Salvar no cache local para fallback
@@ -118,9 +134,14 @@ export function useNotifications() {
           profileId: profile.id
         };
         localStorage.setItem('notifications_cache', JSON.stringify(cacheData));
-        console.log('💾 Notificações salvas no cache local');
+        logInfo('Notificações salvas no cache local', {
+          service: 'useNotifications'
+        });
       } catch (cacheError) {
-        console.warn('⚠️ Erro ao salvar cache:', cacheError);
+        logWarn('Erro ao salvar cache de notificações', {
+          error: cacheError instanceof Error ? cacheError.message : 'Erro desconhecido',
+          service: 'useNotifications'
+        });
       }
       
       // Calcular estatísticas
@@ -151,7 +172,10 @@ export function useNotifications() {
       setStats(newStats);
 
     } catch (error) {
-      console.error('❌ Erro ao carregar notificações após tentativas:', error);
+      logError('Erro ao carregar notificações após tentativas', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        service: 'useNotifications'
+      });
       
       // Verificar se deve usar fallback
       const shouldFallback = connectivityService.shouldUseFallback(error);
@@ -202,7 +226,9 @@ export function useNotifications() {
     try {
       const cachedData = localStorage.getItem('notifications_cache');
       if (!cachedData) {
-        console.log('📭 Nenhuma notificação em cache');
+        logInfo('Nenhuma notificação em cache', {
+          service: 'useNotifications'
+        });
         return { success: false, data: [], isStale: false };
       }
 
@@ -210,7 +236,9 @@ export function useNotifications() {
       
       // Verificar se o cache é do usuário atual
       if (parsed.profileId !== profile?.id) {
-        console.log('🔄 Cache de usuário diferente, ignorando');
+        logInfo('Cache de usuário diferente, ignorando', {
+          service: 'useNotifications'
+        });
         return { success: false, data: [], isStale: false };
       }
 
@@ -218,7 +246,11 @@ export function useNotifications() {
       const cacheAge = Date.now() - (parsed.timestamp || 0);
       const isStale = cacheAge > 5 * 60 * 1000; // 5 minutos
       
-      console.log(`📦 Carregando ${notifications.length} notificações do cache (${Math.round(cacheAge / 1000)}s atrás)`);
+      logInfo('Carregando notificações do cache local', {
+        service: 'useNotifications',
+        quantidade: notifications.length,
+        idadeCache: Math.round(cacheAge / 1000)
+      });
       
       return {
         success: true,
@@ -226,7 +258,10 @@ export function useNotifications() {
         isStale
       };
     } catch (cacheError) {
-      console.error('❌ Erro ao carregar cache:', cacheError);
+      logError('Erro ao carregar cache de notificações', {
+        error: cacheError instanceof Error ? cacheError.message : 'Erro desconhecido',
+        service: 'useNotifications'
+      });
       return { success: false, data: [], isStale: false };
     }
   }, [profile?.id]);
@@ -257,7 +292,9 @@ export function useNotifications() {
   // Solicitar permissão para notificações push
   const requestNotificationPermission = useCallback(async (): Promise<boolean> => {
     if (!('Notification' in window)) {
-      console.warn('Este navegador não suporta notificações push');
+      logWarn('Este navegador não suporta notificações push', {
+        service: 'useNotifications'
+      });
       return false;
     }
     
@@ -308,7 +345,9 @@ export function useNotifications() {
       }
       
     } catch (error) {
-      console.error('Erro ao enviar notificação push:', error);
+      logError('Erro ao enviar notificação push', 'useNotifications', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
     }
   }, [requestNotificationPermission]);
 
@@ -339,7 +378,10 @@ export function useNotifications() {
 
       // Se a tabela não existir, retornar sem erro
       if (error && error.code === 'PGRST116') {
-        console.warn('⚠️ Tabela notifications não existe - notificação não será salva');
+        logWarn('Tabela notifications não existe - notificação não será salva', {
+          service: 'useNotifications',
+          errorCode: error.code
+        });
         return null;
       }
 
@@ -370,7 +412,10 @@ export function useNotifications() {
 
       return newNotification;
     } catch (error) {
-      console.error('Erro ao criar notificação:', error);
+      logError('Erro ao criar notificação', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        service: 'useNotifications'
+      });
       toast({
         title: 'Erro',
         description: 'Não foi possível criar a notificação',
@@ -390,7 +435,11 @@ export function useNotifications() {
 
       // Se a tabela não existir, apenas atualizar localmente
       if (error && error.code === 'PGRST116') {
-        console.warn('⚠️ Tabela notifications não existe - marcando como lida apenas localmente');
+        logWarn('Tabela notifications não existe - marcando como lida apenas localmente', {
+          service: 'useNotifications',
+          notificationId,
+          errorCode: error.code
+        });
         setNotifications(prev =>
           prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
         );
@@ -409,7 +458,11 @@ export function useNotifications() {
       }));
 
     } catch (error) {
-      console.error('Erro ao marcar como lida:', error);
+      logError('Erro ao marcar como lida', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        service: 'useNotifications',
+        notificationId
+      });
     }
   }, []);
   
@@ -428,7 +481,11 @@ export function useNotifications() {
 
       // Se a tabela não existir, apenas atualizar localmente
       if (error && error.code === 'PGRST116') {
-        console.warn('⚠️ Tabela notifications não existe - marcando como não lida apenas localmente');
+        logWarn('Tabela notifications não existe - marcando como não lida apenas localmente', {
+          service: 'useNotifications',
+          notificationId,
+          errorCode: error.code
+        });
         setNotifications(prev =>
           prev.map(n => n.id === notificationId ? { ...n, read: false } : n)
         );
@@ -447,7 +504,11 @@ export function useNotifications() {
       }));
 
     } catch (error) {
-      console.error('Erro ao marcar como não lida:', error);
+      logError('Erro ao marcar como não lida', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        service: 'useNotifications',
+        notificationId
+      });
     }
   }, []);
 
@@ -464,7 +525,11 @@ export function useNotifications() {
 
       // Se a tabela não existir, apenas remover localmente
       if (error && error.code === 'PGRST116') {
-        console.warn('⚠️ Tabela notifications não existe - removendo apenas localmente');
+        logWarn('Tabela notifications não existe - removendo apenas localmente', {
+          service: 'useNotifications',
+          notificationId,
+          errorCode: error.code
+        });
         setNotifications(prev => prev.filter(n => n.id !== notificationId));
         
         setStats(prev => ({
@@ -510,7 +575,11 @@ export function useNotifications() {
       });
 
     } catch (error) {
-      console.error('Erro ao deletar notificação:', error);
+      logError('Erro ao deletar notificação', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        service: 'useNotifications',
+        notificationId
+      });
       toast({
         title: 'Erro',
         description: 'Não foi possível remover a notificação',
@@ -532,7 +601,10 @@ export function useNotifications() {
 
       // Se a tabela não existir, apenas atualizar localmente
       if (error && error.code === 'PGRST116') {
-        console.warn('⚠️ Tabela notifications não existe - marcando todas como lidas apenas localmente');
+        logWarn('Tabela notifications não existe - marcando todas como lidas apenas localmente', {
+          service: 'useNotifications',
+          errorCode: error.code
+        });
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
         setStats(prev => ({ ...prev, unread: 0 }));
         
@@ -554,7 +626,10 @@ export function useNotifications() {
       });
 
     } catch (error) {
-      console.error('Erro ao marcar todas como lidas:', error);
+      logError('Erro ao marcar todas como lidas', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        service: 'useNotifications'
+      });
       toast({
         title: 'Erro',
         description: 'Não foi possível marcar todas as notificações como lidas',
@@ -565,7 +640,12 @@ export function useNotifications() {
 
   // Limpar notificações expiradas
   const clearExpiredNotifications = useCallback(async () => {
-    if (!profile) return;
+    if (!profile?.id) {
+      logInfo('Perfil não carregado, ignorando limpeza de notificações expiradas', {
+        service: 'useNotifications'
+      });
+      return;
+    }
 
     try {
       const now = new Date().toISOString();
@@ -577,17 +657,26 @@ export function useNotifications() {
 
       // Se a tabela não existir, ignorar silenciosamente
       if (error && error.code === 'PGRST116') {
-        console.warn('⚠️ Tabela notifications não existe - ignorando limpeza de notificações expiradas');
+        logWarn('Tabela notifications não existe - ignorando limpeza de notificações expiradas', {
+          service: 'useNotifications',
+          errorCode: error.code
+        });
         return;
       }
 
       if (error) throw error;
 
-      // Recarregar notificações
-      await loadNotifications();
+      // Recarregar notificações apenas se o profile ainda estiver válido
+      if (profile?.id) {
+        await loadNotifications();
+      }
 
     } catch (error) {
-      console.error('Erro ao limpar notificações expiradas:', error);
+      logError('Erro ao limpar notificações expiradas', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        service: 'useNotifications',
+        profileId: profile?.id
+      });
     }
   }, [profile, loadNotifications]);
 
@@ -606,7 +695,10 @@ export function useNotifications() {
           filter: `user_id=eq.${profile.id}`
         },
         (payload) => {
-          console.log('Notificação em tempo real:', payload);
+          logInfo('Notificação em tempo real recebida', {
+            service: 'useNotifications',
+            event: payload.eventType
+          });
           loadNotifications();
         }
       )
@@ -710,11 +802,16 @@ export function useNotifications() {
 
   // Carregar notificações na inicialização
   useEffect(() => {
-    if (profile) {
+    if (profile?.id) {
       loadNotifications();
-      clearExpiredNotifications();
+      // Aguardar um pouco antes de limpar notificações expiradas para evitar conflitos
+      const timeoutId = setTimeout(() => {
+        clearExpiredNotifications();
+      }, 1000);
+      
+      return () => clearTimeout(timeoutId);
     }
-  }, [profile, loadNotifications, clearExpiredNotifications]);
+  }, [profile?.id, loadNotifications]);
 
   // Métodos de conveniência para criar notificações específicas
   const notifySuccess = useCallback((title: string, message: string, options?: Partial<CreateNotificationParams>) => {

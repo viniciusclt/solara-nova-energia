@@ -52,6 +52,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { logger } from '@/utils/secureLogger';
 
 interface BackupRecord {
   id: string;
@@ -185,7 +186,12 @@ export function BackupManager() {
       setBackups(mockBackups);
       setStats(mockStats);
     } catch (error) {
-      console.error('Erro ao carregar backups:', error);
+      secureLogger.logError('Erro ao carregar backups', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        userId: user?.id,
+        companyId: profile?.company_id,
+        service: 'BackupManager'
+      });
       toast({
         title: 'Erro',
         description: 'Não foi possível carregar os backups',
@@ -242,7 +248,13 @@ export function BackupManager() {
       // Recarregar lista
       await loadBackups();
     } catch (error) {
-      console.error('Erro ao criar backup:', error);
+      secureLogger.logError('Erro ao criar backup', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        backupName,
+        selectedTables,
+        userId: user?.id,
+        service: 'BackupManager'
+      });
       toast({
         title: 'Erro',
         description: 'Erro ao criar backup',
@@ -271,7 +283,13 @@ export function BackupManager() {
       setRestoreDialogOpen(false);
       setSelectedBackup(null);
     } catch (error) {
-      console.error('Erro ao restaurar backup:', error);
+      secureLogger.logError('Erro ao restaurar backup', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        backupId: backup.id,
+        backupName: backup.name,
+        userId: user?.id,
+        service: 'BackupManager'
+      });
       toast({
         title: 'Erro',
         description: 'Erro ao restaurar backup',
@@ -310,7 +328,12 @@ export function BackupManager() {
         description: 'Download do backup iniciado',
       });
     } catch (error) {
-      console.error('Erro ao fazer download:', error);
+      secureLogger.logError('Erro ao fazer download do backup', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        backupId: backup.id,
+        backupName: backup.name,
+        service: 'BackupManager'
+      });
       toast({
         title: 'Erro',
         description: 'Erro ao fazer download do backup',
@@ -332,7 +355,11 @@ export function BackupManager() {
         description: 'Backup excluído com sucesso',
       });
     } catch (error) {
-      console.error('Erro ao excluir backup:', error);
+      secureLogger.logError('Erro ao excluir backup', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        backupId,
+        service: 'BackupManager'
+      });
       toast({
         title: 'Erro',
         description: 'Erro ao excluir backup',
@@ -404,7 +431,11 @@ export function BackupManager() {
         description: `${pendingSyncs.length} backup(s) sincronizado(s) com sucesso`,
       });
     } catch (error) {
-      console.error('Erro na sincronização:', error);
+      secureLogger.logError('Erro na sincronização de backups', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        pendingSyncsCount: pendingSyncs.length,
+        service: 'BackupManager'
+      });
       toast({
         title: 'Erro na Sincronização',
         description: 'Alguns backups não puderam ser sincronizados',
@@ -439,7 +470,12 @@ export function BackupManager() {
         });
       }
     } catch (error) {
-      console.error('Erro no backup automático:', error);
+      secureLogger.logError('Erro no backup automático', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        isOnline,
+        userId: user?.id,
+        service: 'BackupManager'
+      });
     }
   }, [user, profile, isOnline, createBackupWithData]);
 
@@ -485,7 +521,11 @@ export function BackupManager() {
         description: 'As configurações de backup foram atualizadas com sucesso',
       });
     } catch (error) {
-      console.error('Erro ao salvar configurações:', error);
+      secureLogger.logError('Erro ao salvar configurações de backup', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        settings: newSettings,
+        service: 'BackupManager'
+      });
       toast({
         title: 'Erro',
         description: 'Não foi possível salvar as configurações',

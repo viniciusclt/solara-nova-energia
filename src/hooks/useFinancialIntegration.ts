@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useToast } from './useToast';
 import { supabase } from '../lib/supabase';
+import { logFinancial, logError, logInfo } from '../utils/secureLogger';
 
 interface FinancialInstitution {
   id: string;
@@ -114,7 +115,7 @@ export const useFinancialIntegration = (): UseFinancialIntegrationReturn => {
     setError(null);
     
     try {
-      console.log('🏦 Carregando instituições financeiras...');
+      logFinancial('Carregando instituições financeiras', 'useFinancialIntegration');
       
       const { data, error: supabaseError } = await supabase
         .from('financial_institutions')
@@ -149,10 +150,10 @@ export const useFinancialIntegration = (): UseFinancialIntegrationReturn => {
       // Save to localStorage as cache
       localStorage.setItem('financial_institutions_cache', JSON.stringify(transformedInstitutions));
       
-      console.log(`✅ ${transformedInstitutions.length} instituições carregadas`);
+      logFinancial(`${transformedInstitutions.length} instituições carregadas com sucesso`, 'useFinancialIntegration');
       
     } catch (err: unknown) {
-      console.error('❌ Erro ao carregar instituições:', err);
+      logError('Erro ao carregar instituições financeiras', 'useFinancialIntegration', { error: (err as Error).message });
       setError((err as Error).message);
       
       // Try to load from cache
@@ -169,8 +170,8 @@ export const useFinancialIntegration = (): UseFinancialIntegrationReturn => {
           });
         }
       } catch (cacheError) {
-        console.error('❌ Erro ao carregar cache:', cacheError);
-      }
+          logError('Erro ao carregar cache de instituições', 'useFinancialIntegration', { error: (cacheError as Error).message });
+        }
       
     } finally {
       setIsLoading(false);
@@ -213,7 +214,7 @@ export const useFinancialIntegration = (): UseFinancialIntegrationReturn => {
       });
       
     } catch (err: unknown) {
-      console.error('❌ Erro ao adicionar instituição:', err);
+      logError('Erro ao adicionar instituição financeira', 'useFinancialIntegration', { error: (err as Error).message });
       toast({
         title: "Erro",
         description: "Falha ao adicionar instituição financeira",
@@ -259,7 +260,7 @@ export const useFinancialIntegration = (): UseFinancialIntegrationReturn => {
       });
       
     } catch (err: unknown) {
-      console.error('❌ Erro ao atualizar instituição:', err);
+      logError('Erro ao atualizar instituição financeira', 'useFinancialIntegration', { error: (err as Error).message });
       toast({
         title: "Erro",
         description: "Falha ao atualizar instituição",
@@ -291,7 +292,7 @@ export const useFinancialIntegration = (): UseFinancialIntegrationReturn => {
       });
       
     } catch (err: unknown) {
-      console.error('❌ Erro ao remover instituição:', err);
+      logError('Erro ao remover instituição financeira', 'useFinancialIntegration', { error: (err as Error).message });
       toast({
         title: "Erro",
         description: "Falha ao remover instituição",
@@ -415,7 +416,10 @@ export const useFinancialIntegration = (): UseFinancialIntegrationReturn => {
       return data.id;
       
     } catch (err: unknown) {
-      console.error('❌ Erro ao criar aplicação:', err);
+      logError('Erro ao criar aplicação financeira', {
+        error: err instanceof Error ? err.message : 'Erro desconhecido',
+        service: 'useFinancialIntegration'
+      });
       toast({
         title: "Erro",
         description: "Falha ao criar aplicação de empréstimo",
@@ -447,7 +451,9 @@ export const useFinancialIntegration = (): UseFinancialIntegrationReturn => {
       });
       
     } catch (err: unknown) {
-      console.error('❌ Erro ao enviar aplicação:', err);
+      logError('Erro ao enviar aplicação financeira', 'useFinancialIntegration', {
+        error: err instanceof Error ? err.message : 'Erro desconhecido'
+      });
       toast({
         title: "Erro",
         description: "Falha ao enviar aplicação",
@@ -482,7 +488,11 @@ export const useFinancialIntegration = (): UseFinancialIntegrationReturn => {
       });
       
     } catch (err: unknown) {
-      console.error('❌ Erro ao atualizar aplicação:', err);
+      logError('Erro ao atualizar aplicação financeira', {
+        error: err instanceof Error ? err.message : 'Erro desconhecido',
+        service: 'useFinancialIntegration',
+        applicationId
+      });
       toast({
         title: "Erro",
         description: "Falha ao atualizar aplicação",
@@ -507,7 +517,11 @@ export const useFinancialIntegration = (): UseFinancialIntegrationReturn => {
       return data.status;
       
     } catch (err: unknown) {
-      console.error('❌ Erro ao verificar status:', err);
+      logError('Erro ao verificar status da aplicação', {
+        error: err instanceof Error ? err.message : 'Erro desconhecido',
+        service: 'useFinancialIntegration',
+        applicationId
+      });
       return 'draft';
     }
   }, []);
@@ -567,7 +581,9 @@ export const useFinancialIntegration = (): UseFinancialIntegrationReturn => {
       return urlData.publicUrl;
       
     } catch (err: unknown) {
-      console.error('❌ Erro ao enviar documento:', err);
+      logError('Erro ao enviar documento financeiro', 'useFinancialIntegration', {
+        error: err instanceof Error ? err.message : 'Erro desconhecido'
+      });
       toast({
         title: "Erro",
         description: "Falha ao enviar documento",
@@ -610,7 +626,10 @@ export const useFinancialIntegration = (): UseFinancialIntegrationReturn => {
       });
       
     } catch (err: unknown) {
-      console.error('❌ Erro na sincronização:', err);
+      logError('Erro na sincronização de aplicações', {
+        error: err instanceof Error ? err.message : 'Erro desconhecido',
+        service: 'useFinancialIntegration'
+      });
       toast({
         title: "Erro",
         description: "Falha na sincronização das aplicações",

@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { logError } from '@/utils/secureLogger';
 import { 
   Shield, 
   Search, 
@@ -168,7 +169,17 @@ export function AuditLogViewer({ companyId, userId, maxHeight = '600px' }: Audit
       setTotalPages(Math.ceil((count || 0) / itemsPerPage));
 
     } catch (error) {
-      console.error('Erro ao carregar logs de auditoria:', error);
+      logError('Erro ao carregar logs de auditoria no viewer', {
+        service: 'AuditLogViewer',
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        companyId,
+        userId,
+        selectedAction,
+        selectedSeverity,
+        dateRange,
+        currentPage,
+        action: 'loadAuditLogs'
+      });
       toast({
         title: 'Erro',
         description: 'Não foi possível carregar os logs de auditoria',
@@ -209,7 +220,12 @@ export function AuditLogViewer({ companyId, userId, maxHeight = '600px' }: Audit
 
       setStats(newStats);
     } catch (error) {
-      console.error('Erro ao carregar estatísticas:', error);
+      logError('Erro ao carregar estatísticas de auditoria', {
+        service: 'AuditLogViewer',
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        companyId,
+        action: 'loadStats'
+      });
     }
   }, [companyId, profile?.company_id]);
 
@@ -256,7 +272,12 @@ export function AuditLogViewer({ companyId, userId, maxHeight = '600px' }: Audit
         description: 'Logs exportados com sucesso'
       });
     } catch (error) {
-      console.error('Erro ao exportar logs:', error);
+      logError('Erro ao exportar logs de auditoria', {
+        service: 'AuditLogViewer',
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        companyId: profile?.company_id,
+        action: 'exportLogs'
+      });
       toast({
         title: 'Erro',
         description: 'Não foi possível exportar os logs',
@@ -400,6 +421,7 @@ export function AuditLogViewer({ companyId, userId, maxHeight = '600px' }: Audit
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-8"
+                  aria-label="Buscar logs de auditoria por ação, tabela ou descrição"
                 />
               </div>
             </div>

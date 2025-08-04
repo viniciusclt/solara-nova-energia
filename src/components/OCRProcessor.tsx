@@ -22,6 +22,9 @@ import {
   Download
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { logger } from '@/utils/secureLogger';
+
+const { logInfo, logError } = logger;
 
 interface ExtractedField {
   key: string;
@@ -116,14 +119,20 @@ const OCRProcessor: React.FC<OCRProcessorProps> = ({
 
     setIsProcessing(true);
     setProcessingProgress(0);
-    console.log('[OCRProcessor] Iniciando processamento de', ocrData.length, 'arquivos OCR');
+    logInfo('Iniciando processamento de arquivos OCR', 'OCRProcessor', { 
+      fileCount: ocrData.length 
+    });
 
     try {
       const products: ProcessedProduct[] = [];
 
       for (let i = 0; i < ocrData.length; i++) {
         const data = ocrData[i];
-        console.log(`[OCRProcessor] Processando arquivo: ${data.fileName}`);
+        logInfo('Processando arquivo OCR', 'OCRProcessor', { 
+          fileName: data.fileName,
+          index: i + 1,
+          total: ocrData.length 
+        });
 
         // Simular processamento inteligente
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -146,7 +155,9 @@ const OCRProcessor: React.FC<OCRProcessorProps> = ({
       });
 
     } catch (error: unknown) {
-      console.error('[OCRProcessor] Erro no processamento:', error);
+      logError('Erro no processamento OCR', 'OCRProcessor', { 
+        error: (error as Error).message 
+      });
       toast({
         title: "Erro no Processamento",
         description: (error as Error).message || 'Erro desconhecido',
@@ -256,7 +267,9 @@ const OCRProcessor: React.FC<OCRProcessorProps> = ({
     }
 
     setIsSaving(true);
-    console.log('[OCRProcessor] Salvando', processedProducts.length, 'produtos');
+    logInfo('Salvando produtos processados', 'OCRProcessor', { 
+      productCount: processedProducts.length 
+    });
 
     try {
       await onSaveProducts(processedProducts);
@@ -267,7 +280,9 @@ const OCRProcessor: React.FC<OCRProcessorProps> = ({
       });
 
     } catch (error: unknown) {
-      console.error('[OCRProcessor] Erro ao salvar produtos:', error);
+      logError('Erro ao salvar produtos processados', 'OCRProcessor', { 
+        error: (error as Error).message 
+      });
       toast({
         title: "Erro ao Salvar",
         description: error instanceof Error ? error.message : 'Erro desconhecido',

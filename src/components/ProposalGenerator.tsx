@@ -25,6 +25,9 @@ import { useToast } from "@/hooks/use-toast";
 import { proposalPDFGenerator } from "@/services/proposalPDFGenerator";
 import { proposalSharingService } from "@/services/proposalSharingService";
 import { ProposalTemplateSelector } from "./ProposalTemplateSelector";
+import { logger } from '@/utils/secureLogger';
+
+const { logError } = logger;
 
 interface ProposalData {
   tipoInvestimento: string;
@@ -140,7 +143,9 @@ export function ProposalGenerator({ currentLead }: ProposalGeneratorProps) {
         description: "PDF da proposta comercial criado com sucesso!"
       });
     } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
+      logError('Erro ao gerar PDF da proposta', 'ProposalGenerator', { 
+        error: (error as Error).message 
+      });
       toast({
         title: "Erro na Geração",
         description: "Erro ao gerar PDF. Tente novamente.",
@@ -165,7 +170,9 @@ export function ProposalGenerator({ currentLead }: ProposalGeneratorProps) {
         });
       }
     } catch (error) {
-      console.error('Erro ao visualizar PDF:', error);
+      logError('Erro ao visualizar PDF da proposta', 'ProposalGenerator', { 
+        error: (error as Error).message 
+      });
       toast({
         title: "Erro na Visualização",
         description: "Erro ao abrir preview do PDF",
@@ -192,7 +199,9 @@ export function ProposalGenerator({ currentLead }: ProposalGeneratorProps) {
         description: "PDF enviado para impressão"
       });
     } catch (error) {
-      console.error('Erro ao imprimir PDF:', error);
+      logError('Erro ao imprimir PDF da proposta', 'ProposalGenerator', { 
+        error: (error as Error).message 
+      });
       toast({
         title: "Erro na Impressão",
         description: "Erro ao enviar PDF para impressão",
@@ -256,7 +265,9 @@ export function ProposalGenerator({ currentLead }: ProposalGeneratorProps) {
         });
       }
     } catch (error) {
-      console.error('Erro ao compartilhar proposta:', error);
+      logError('Erro ao compartilhar proposta', 'ProposalGenerator', { 
+        error: (error as Error).message 
+      });
       toast({
         title: "Erro ao Compartilhar",
         description: "Não foi possível criar o link de compartilhamento",
@@ -360,6 +371,7 @@ export function ProposalGenerator({ currentLead }: ProposalGeneratorProps) {
                     type="number"
                     value={proposalData.prazoValidade}
                     onChange={(e) => setProposalData(prev => ({ ...prev, prazoValidade: Number(e.target.value) }))}
+                    aria-label="Prazo de validade da proposta em dias"
                   />
                 </div>
 

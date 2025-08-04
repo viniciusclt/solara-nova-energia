@@ -2,6 +2,8 @@
  * Serviço para busca de endereços por CEP usando a API ViaCEP
  */
 
+import { logError } from '@/utils/secureLogger';
+
 export interface CEPData {
   cep: string;
   logradouro: string;
@@ -61,7 +63,12 @@ class CEPService {
       // Converter para formato interno
       return this.convertToAddressData(data);
     } catch (error) {
-      console.error('Erro ao buscar CEP:', error);
+      logError('Erro ao buscar CEP via ViaCEP', {
+        service: 'CEPService',
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        cep: cleanCEP,
+        action: 'searchByCEP'
+      });
       throw error;
     }
   }

@@ -25,6 +25,7 @@ import {
   sanitizeInput 
 } from "@/lib/validation";
 import { useSecurityAudit } from "@/hooks/useSecurityAudit";
+import { logError } from "@/utils/secureLogger";
 import { supabase } from "@/integrations/supabase/client";
 import { DemoDataService } from "@/services/DemoDataService";
 
@@ -118,7 +119,12 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
         setShowLeadList(false);
       }
     } catch (error) {
-      console.error('Error loading lead:', error);
+      logError('Erro ao carregar dados do lead', {
+        service: 'LeadDataEntry',
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        leadId,
+        action: 'loadLeadById'
+      });
       localStorage.removeItem('selectedLeadId');
     }
   }, [onLeadUpdate]);
@@ -442,7 +448,10 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
         }
       }
     } catch (error) {
-      console.error('Import error:', error);
+      logError('Erro ao importar dados do Google Sheets', {
+        error: error instanceof Error ? error.message : String(error),
+        service: 'LeadDataEntry'
+      });
       toast({
         title: "Erro na Importação",
         description: "Erro ao importar dados. Verifique as configurações.",
@@ -520,7 +529,12 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
         description: "Dados do lead salvos com sucesso!"
       });
     } catch (error) {
-      console.error('Error saving lead:', error);
+      logError('Erro ao salvar lead', {
+        error: error instanceof Error ? error.message : String(error),
+        leadName: leadData.name,
+        leadId: leadData.id,
+        service: 'LeadDataEntry'
+      });
       toast({
         title: "Erro",
         description: "Erro ao salvar lead",
@@ -645,6 +659,7 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
                   value={leadData.name}
                   onChange={(e) => handleInputChange("name", e.target.value)}
                   placeholder="Nome do cliente"
+                  aria-label="Nome completo do cliente"
                 />
               </div>
               <div>
@@ -654,6 +669,7 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
                   value={leadData.cpfCnpj}
                   onChange={(e) => handleInputChange("cpfCnpj", e.target.value)}
                   placeholder="000.000.000-00"
+                  aria-label="CPF ou CNPJ do cliente"
                 />
               </div>
             </div>
@@ -666,6 +682,7 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
                   value={leadData.rg}
                   onChange={(e) => handleInputChange("rg", e.target.value)}
                   placeholder="00.000.000-0"
+                  aria-label="Registro Geral do cliente"
                 />
               </div>
               <div>
@@ -675,6 +692,7 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
                   type="date"
                   value={leadData.birthDate}
                   onChange={(e) => handleInputChange("birthDate", e.target.value)}
+                  aria-label="Data de nascimento do cliente"
                 />
               </div>
             </div>
@@ -688,6 +706,7 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
                   value={leadData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
                   placeholder="cliente@email.com"
+                  aria-label="Endereço de email do cliente"
                 />
               </div>
               <div>
@@ -697,6 +716,7 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
                   value={leadData.phone}
                   onChange={(e) => handleInputChange("phone", e.target.value)}
                   placeholder="(21) 99999-9999"
+                  aria-label="Número de telefone do cliente"
                 />
               </div>
             </div>
@@ -734,6 +754,7 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
                   value={leadData.address.city}
                   onChange={(e) => handleAddressChange("city", e.target.value)}
                   placeholder="Rio de Janeiro"
+                  aria-label="Cidade do endereço do cliente"
                 />
               </div>
             </div>
@@ -746,6 +767,7 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
                   value={leadData.address.neighborhood}
                   onChange={(e) => handleAddressChange("neighborhood", e.target.value)}
                   placeholder="Anil"
+                  aria-label="Bairro do endereço do cliente"
                 />
               </div>
               <div>
@@ -781,6 +803,7 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
                   value={leadData.address.street}
                   onChange={(e) => handleAddressChange("street", e.target.value)}
                   placeholder="R. Flordelice"
+                  aria-label="Nome da rua do endereço do cliente"
                 />
               </div>
               <div>
@@ -790,6 +813,7 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
                   value={leadData.address.number}
                   onChange={(e) => handleAddressChange("number", e.target.value)}
                   placeholder="467"
+                  aria-label="Número do endereço do cliente"
                 />
               </div>
             </div>
@@ -898,6 +922,7 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
                 value={leadData.consumoMedio}
                 onChange={(e) => handleInputChange("consumoMedio", Number(e.target.value))}
                 placeholder="780"
+                aria-label="Consumo médio mensal em quilowatts-hora"
               />
             </div>
             <div>
@@ -909,6 +934,7 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
                 value={leadData.incrementoConsumo}
                 onChange={(e) => handleInputChange("incrementoConsumo", Number(e.target.value))}
                 placeholder="4.5"
+                aria-label="Percentual de incremento no consumo"
               />
             </div>
           </div>
@@ -927,6 +953,7 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
                   value={leadData.consumoMensal?.[index] || 0}
                   onChange={(e) => handleConsumoMensalChange(index, Number(e.target.value))}
                   className="text-sm"
+                  aria-label={`Consumo do mês de ${mes} em quilowatts-hora`}
                 />
               </div>
             ))}
@@ -940,6 +967,7 @@ export function LeadDataEntry({ currentLead, onLeadUpdate }: LeadDataEntryProps)
               onChange={(e) => handleInputChange("comentarios", e.target.value)}
               placeholder="Observações sobre o cliente ou projeto..."
               rows={3}
+              aria-label="Comentários e observações sobre o cliente ou projeto"
             />
           </div>
         </CardContent>

@@ -122,7 +122,7 @@ export function TemplateRenderer({
             {component.properties.src ? (
               <img
                 src={component.properties.src}
-                alt={component.properties.alt || ''}
+                alt={component.properties.alt || 'Imagem do template'}
                 style={{
                   width: '100%',
                   height: '100%',

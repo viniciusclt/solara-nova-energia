@@ -34,7 +34,8 @@ export const CEPInput = forwardRef<HTMLInputElement, CEPInputProps>(
     const [lastFoundAddress, setLastFoundAddress] = useState<AddressData | null>(null);
 
     // Formatar CEP conforme o usuário digita
-    const formatCEP = (cep: string): string => {
+    const formatCEP = (cep: string | undefined): string => {
+      if (!cep || typeof cep !== 'string') return '';
       const numbers = cep.replace(/\D/g, '');
       if (numbers.length <= 5) {
         return numbers;
@@ -43,7 +44,8 @@ export const CEPInput = forwardRef<HTMLInputElement, CEPInputProps>(
     };
 
     // Limpar CEP (apenas números)
-    const cleanCEP = (cep: string): string => {
+    const cleanCEP = (cep: string | undefined): string => {
+      if (!cep || typeof cep !== 'string') return '';
       return cep.replace(/\D/g, '');
     };
 
@@ -151,6 +153,7 @@ export const CEPInput = forwardRef<HTMLInputElement, CEPInputProps>(
             )}
             disabled={disabled}
             maxLength={9} // 00000-000
+            aria-label="Campo de CEP com busca automática de endereço"
             {...props}
           />
           

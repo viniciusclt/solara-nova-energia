@@ -73,7 +73,9 @@ export function EquipmentManagementPage({ onBack, defaultTab = "modules" }: Equi
       title: "Importar Dados",
       description: "Importar equipamentos em lote",
       icon: Plus,
-      action: () => console.log("Import functionality"),
+      action: () => {
+        // TODO: Implementar funcionalidade de importação
+      },
       color: "text-purple-500",
       bgColor: "bg-purple-50"
     }

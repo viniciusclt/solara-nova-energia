@@ -20,9 +20,10 @@ interface PVSolData {
 interface PVSolImporterProps {
   onDataImported: (data: PVSolData[]) => void;
   onClose: () => void;
+  embedded?: boolean;
 }
 
-export function PVSolImporter({ onDataImported, onClose }: PVSolImporterProps) {
+export function PVSolImporter({ onDataImported, onClose, embedded = false }: PVSolImporterProps) {
   const { toast } = useToast();
   const [rawData, setRawData] = useState("");
   const [parsedData, setParsedData] = useState<PVSolData[]>([]);
@@ -302,19 +303,25 @@ Dezembro	780.1`;
   const totalGeneration = parsedData.reduce((sum, d) => sum + d.generation, 0);
   const avgMonthlyGeneration = parsedData.length > 0 ? totalGeneration / parsedData.length : 0;
 
+  const ContentWrapper = embedded ? 'div' : Card;
+  const HeaderWrapper = embedded ? 'div' : CardHeader;
+  const BodyWrapper = embedded ? 'div' : CardContent;
+
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            Importar Dados PV*Sol
-          </CardTitle>
-          <CardDescription>
-            Importe dados de simulação do PV*Sol para usar na simulação Nível 2
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <ContentWrapper>
+        {!embedded && (
+          <HeaderWrapper>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Importar Dados PV*Sol
+            </CardTitle>
+            <CardDescription>
+              Importe dados de simulação do PV*Sol para usar na simulação Nível 2
+            </CardDescription>
+          </HeaderWrapper>
+        )}
+        <BodyWrapper className={embedded ? "space-y-4" : "space-y-4"}>
           {useTableMode && inverterColumns.length > 0 && (
             <div className="mb-4">
               <h4 className="text-sm font-medium mb-2">Inversores Configurados:</h4>
@@ -342,9 +349,11 @@ Dezembro	780.1`;
                 </Button>
               </>
             )}
-            <Button variant="outline" onClick={onClose}>
-              Cancelar
-            </Button>
+            {!embedded && (
+              <Button variant="outline" onClick={onClose}>
+                Cancelar
+              </Button>
+            )}
           </div>
 
           {useTableMode ? (
@@ -390,6 +399,7 @@ Dezembro	780.1`;
                             value={row.generation}
                             onChange={(e) => updateCellValue(row.monthNumber, 'generation', parseFloat(e.target.value) || 0)}
                             className="text-right"
+                            aria-label={`Geração total em kWh para ${row.month}`}
                           />
                         </TableCell>
                         {inverterColumns.map((inverter) => (
@@ -400,6 +410,7 @@ Dezembro	780.1`;
                               value={row.inverters?.[inverter] || 0}
                               onChange={(e) => updateCellValue(row.monthNumber, inverter, parseFloat(e.target.value) || 0)}
                               className="text-right"
+                              aria-label={`Geração do ${inverter} em kWh para ${row.month}`}
                             />
                           </TableCell>
                         ))}
@@ -421,6 +432,7 @@ Dezembro	780.1`;
                  placeholder="Cole aqui os dados do PV*Sol no formato:&#10;Janeiro	850.5&#10;Fevereiro	780.2&#10;..."
                  rows={8}
                  className="font-mono text-sm"
+                 aria-label="Dados de geração mensal do PV*Sol"
                />
               <p className="text-xs text-muted-foreground">
                 Formatos aceitos: separados por tab, vírgula, ponto-e-vírgula ou espaço
@@ -443,8 +455,8 @@ Dezembro	780.1`;
               </AlertDescription>
             </Alert>
           )}
-        </CardContent>
-      </Card>
+        </BodyWrapper>
+      </ContentWrapper>
 
       {parsedData.length > 0 && (
         <Card>
@@ -495,9 +507,11 @@ Dezembro	780.1`;
             </div>
 
             <div className="flex justify-end gap-2 mt-4">
-              <Button variant="outline" onClick={onClose}>
-                Cancelar
-              </Button>
+              {!embedded && (
+                <Button variant="outline" onClick={onClose}>
+                  Cancelar
+                </Button>
+              )}
               <Button onClick={handleImport} disabled={!isValid}>
                 <Upload className="h-4 w-4 mr-2" />
                 Importar Dados

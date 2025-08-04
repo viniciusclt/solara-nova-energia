@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/useToast';
+import { logError } from '../utils/secureLogger';
 
 interface FileItem {
   id: string;
@@ -277,7 +278,7 @@ export const useFileCleanup = () => {
       });
       
     } catch (error) {
-      console.error('❌ Erro no escaneamento:', error);
+      logError('Erro no escaneamento de arquivos', 'useFileCleanup', { error: error instanceof Error ? error.message : 'Erro desconhecido' });
       toast({
         title: "Erro no Escaneamento",
         description: "Falha ao escanear arquivos",
@@ -386,7 +387,7 @@ export const useFileCleanup = () => {
       return result;
       
     } catch (error) {
-      console.error('❌ Erro na limpeza:', error);
+      logError('Erro na limpeza de arquivos', 'useFileCleanup', { error: error instanceof Error ? error.message : 'Erro desconhecido' });
       toast({
         title: "Erro na Limpeza",
         description: "Falha ao executar limpeza",

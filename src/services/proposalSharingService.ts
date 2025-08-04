@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { logError } from '../utils/secureLogger';
 
 export interface SharedProposal {
   id: string;
@@ -71,7 +72,7 @@ export class ProposalSharingService {
         shareUrl
       };
     } catch (error) {
-      console.error('Erro ao criar proposta compartilhada:', error);
+      logError('Erro ao criar proposta compartilhada', 'ProposalSharingService', { error: error instanceof Error ? error.message : 'Erro desconhecido' });
       throw new Error('Falha ao criar link de compartilhamento');
     }
   }
@@ -99,7 +100,7 @@ export class ProposalSharingService {
 
       return data;
     } catch (error) {
-      console.error('Erro ao buscar proposta compartilhada:', error);
+      logError('Erro ao buscar proposta compartilhada', 'ProposalSharingService', { error: error instanceof Error ? error.message : 'Erro desconhecido' });
       return null;
     }
   }
@@ -145,7 +146,7 @@ export class ProposalSharingService {
       if (updateError) throw updateError;
 
     } catch (error) {
-      console.error('Erro ao registrar visualização:', error);
+      logError('Erro ao registrar visualização', 'ProposalSharingService', { error: error instanceof Error ? error.message : 'Erro desconhecido' });
       // Não lança erro para não quebrar a experiência do usuário
     }
   }
@@ -172,7 +173,7 @@ export class ProposalSharingService {
       if (error) throw error;
 
     } catch (error) {
-      console.error('Erro ao atualizar duração da sessão:', error);
+      logError('Erro ao atualizar duração da sessão', 'ProposalSharingService', { error: error instanceof Error ? error.message : 'Erro desconhecido' });
     }
   }
 
@@ -190,7 +191,7 @@ export class ProposalSharingService {
 
       return data || [];
     } catch (error) {
-      console.error('Erro ao buscar propostas compartilhadas:', error);
+      logError('Erro ao buscar propostas compartilhadas', 'ProposalSharingService', { error: error instanceof Error ? error.message : 'Erro desconhecido' });
       return [];
     }
   }
@@ -213,7 +214,7 @@ export class ProposalSharingService {
 
       return data || [];
     } catch (error) {
-      console.error('Erro ao buscar visualizações:', error);
+      logError('Erro ao buscar visualizações', 'ProposalSharingService', { error: error instanceof Error ? error.message : 'Erro desconhecido' });
       return [];
     }
   }
@@ -231,7 +232,7 @@ export class ProposalSharingService {
       if (error) throw error;
 
     } catch (error) {
-      console.error('Erro ao desativar proposta:', error);
+      logError('Erro ao desativar proposta', 'ProposalSharingService', { error: error instanceof Error ? error.message : 'Erro desconhecido' });
       throw new Error('Falha ao desativar proposta compartilhada');
     }
   }
@@ -257,7 +258,7 @@ export class ProposalSharingService {
       if (error) throw error;
 
     } catch (error) {
-      console.error('Erro ao estender expiração:', error);
+      logError('Erro ao estender expiração', 'ProposalSharingService', { error: error instanceof Error ? error.message : 'Erro desconhecido' });
       throw new Error('Falha ao estender prazo da proposta');
     }
   }
@@ -318,7 +319,7 @@ export class ProposalSharingService {
       };
 
     } catch (error) {
-      console.error('Erro ao obter estatísticas:', error);
+      logError('Erro ao obter estatísticas', 'ProposalSharingService', { error: error instanceof Error ? error.message : 'Erro desconhecido' });
       return {
         totalViews: 0,
         uniqueViews: 0,
@@ -344,7 +345,7 @@ export class ProposalSharingService {
 
       return data?.length || 0;
     } catch (error) {
-      console.error('Erro ao limpar propostas expiradas:', error);
+      logError('Erro ao limpar propostas expiradas', 'ProposalSharingService', { error: error instanceof Error ? error.message : 'Erro desconhecido' });
       return 0;
     }
   }

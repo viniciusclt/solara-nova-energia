@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { logInfo, logError } from '@/utils/secureLogger';
 import * as XLSX from 'xlsx';
 
 interface ExcelFile {
@@ -110,7 +111,7 @@ const ExcelImporterV2: React.FC<ExcelImporterV2Props> = ({
   const requiredFields = ['nome', 'potencia', 'preco', 'fabricante'];
 
   const loadExcelFile = useCallback(async (file: File): Promise<void> => {
-    console.log('[ExcelImporterV2] Carregando arquivo:', file.name);
+    logInfo('Carregando arquivo Excel', 'ExcelImporterV2', { fileName: file.name });
 
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -174,11 +175,18 @@ const ExcelImporterV2: React.FC<ExcelImporterV2Props> = ({
             setSelectedFile(excelFile.id);
           }
 
-          console.log('[ExcelImporterV2] Arquivo carregado:', excelFile);
+          logInfo('Arquivo Excel carregado com sucesso', 'ExcelImporterV2', { 
+            fileId: excelFile.id, 
+            sheets: sheets.length, 
+            headers: headers.length 
+          });
           resolve();
 
         } catch (error: unknown) {
-          console.error('[ExcelImporterV2] Erro ao processar Excel:', error);
+          logError('Erro ao processar arquivo Excel', 'ExcelImporterV2', { 
+            error: (error as Error).message,
+            fileName: file.name 
+          });
           reject(new Error(`Erro ao processar arquivo: ${(error as Error).message}`));
         }
       };
@@ -194,7 +202,9 @@ const ExcelImporterV2: React.FC<ExcelImporterV2Props> = ({
   const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(event.target.files || []);
     
-    console.log('[ExcelImporterV2] Arquivos selecionados:', selectedFiles);
+    logInfo('Arquivos selecionados para importação', 'ExcelImporterV2', { 
+      count: selectedFiles.length 
+    });
 
     for (const file of selectedFiles) {
       if (files.length >= maxFiles) {
@@ -218,7 +228,10 @@ const ExcelImporterV2: React.FC<ExcelImporterV2Props> = ({
       try {
         await loadExcelFile(file);
       } catch (error: unknown) {
-        console.error('[ExcelImporterV2] Erro ao carregar arquivo:', error);
+        logError('Erro ao carregar arquivo Excel', 'ExcelImporterV2', {
+          error: (error as Error).message,
+          fileName: file.name
+        });
         toast({
           title: "Erro no Arquivo",
           description: `Erro ao carregar ${file.name}: ${(error as Error).message}`,
@@ -280,7 +293,11 @@ const ExcelImporterV2: React.FC<ExcelImporterV2Props> = ({
       };
       reader.readAsArrayBuffer(file.file);
     } catch (error: unknown) {
-      console.error('[ExcelImporterV2] Erro ao trocar planilha:', error);
+      logError('Erro ao trocar planilha', 'ExcelImporterV2', { 
+        error: (error as Error).message,
+        fileId,
+        sheetName 
+      });
       toast({
         title: "Erro",
         description: `Erro ao carregar planilha: ${(error as Error).message}`,
@@ -494,7 +511,10 @@ const ExcelImporterV2: React.FC<ExcelImporterV2Props> = ({
       });
 
     } catch (error: unknown) {
-      console.error('[ExcelImporterV2] Erro no processamento:', error);
+      logError('Erro no processamento de dados Excel', 'ExcelImporterV2', {
+        error: (error as Error).message || 'Erro desconhecido',
+        productsCount: processedProducts.length
+      });
       toast({
         title: "Erro no Processamento",
         description: (error as Error).message || 'Erro desconhecido',
@@ -584,7 +604,10 @@ const ExcelImporterV2: React.FC<ExcelImporterV2Props> = ({
       setSelectedFile(null);
 
     } catch (error: unknown) {
-      console.error('[ExcelImporterV2] Erro ao salvar:', error);
+      logError('Erro ao salvar produtos importados', 'ExcelImporterV2', {
+        error: (error as Error).message || 'Erro desconhecido',
+        validProductsCount: validProducts.length
+      });
       toast({
         title: "Erro ao Salvar",
         description: (error as Error).message || 'Erro desconhecido',
@@ -645,6 +668,7 @@ const ExcelImporterV2: React.FC<ExcelImporterV2Props> = ({
                     min="0"
                     value={skipRows}
                     onChange={(e) => setSkipRows(parseInt(e.target.value) || 0)}
+                    aria-label="Número de linhas a pular no início do arquivo"
                   />
                 </div>
                 <div>
@@ -656,6 +680,7 @@ const ExcelImporterV2: React.FC<ExcelImporterV2Props> = ({
                     max="50"
                     value={previewRows}
                     onChange={(e) => setPreviewRows(parseInt(e.target.value) || 10)}
+                    aria-label="Número de linhas para visualização prévia dos dados"
                   />
                 </div>
                 <div className="flex items-center space-x-2 pt-6">
@@ -681,6 +706,7 @@ const ExcelImporterV2: React.FC<ExcelImporterV2Props> = ({
                   multiple
                   onChange={handleFileSelect}
                   className="hidden"
+                  aria-label="Selecionar arquivos Excel para importação"
                 />
                 <Button onClick={() => fileInputRef.current?.click()}>
                   <Upload className="h-4 w-4 mr-2" />
@@ -735,6 +761,7 @@ const ExcelImporterV2: React.FC<ExcelImporterV2Props> = ({
                           <Select
                             value={file.selectedSheet}
                             onValueChange={(value) => changeSheet(file.id, value)}
+                            aria-label="Selecionar planilha do arquivo Excel"
                           >
                             <SelectTrigger className="w-full mt-1">
                               <SelectValue />
@@ -796,6 +823,7 @@ const ExcelImporterV2: React.FC<ExcelImporterV2Props> = ({
                         <Select
                           value={value as string}
                           onValueChange={(newValue) => updateColumnMapping(field, newValue)}
+                          aria-label={`Mapear coluna para o campo ${field}`}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Selecionar coluna" />

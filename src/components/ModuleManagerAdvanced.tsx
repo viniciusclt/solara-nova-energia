@@ -18,6 +18,7 @@ import { FileUpload } from "@/components/ui/file-upload";
 import { DemoDataService } from "@/services/DemoDataService";
 import DatasheetAnalyzer from "@/components/DatasheetAnalyzer";
 import OfflineService from "@/services/offlineService";
+import { logger } from "@/utils/secureLogger";
 
 export function ModuleManagerAdvanced() {
   const { toast } = useToast();
@@ -98,7 +99,10 @@ export function ModuleManagerAdvanced() {
         }
       }
     } catch (error) {
-      console.error('Error fetching modules:', error);
+      secureLogger.logError('Error fetching modules', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        service: 'ModuleManagerAdvanced'
+      });
       setModules([]);
       
       const errorMessage = error instanceof Error ? error.message : 'Não foi possível carregar os módulos';
@@ -127,7 +131,10 @@ export function ModuleManagerAdvanced() {
             description: "Dados sincronizados com sucesso"
           });
         }).catch((error) => {
-          console.error('Erro na sincronização:', error);
+          secureLogger.logError('Erro na sincronização', {
+            error: error instanceof Error ? error.message : 'Erro desconhecido',
+            service: 'ModuleManagerAdvanced'
+          });
           toast({
             title: "Erro na sincronização",
             description: "Falha ao sincronizar dados",
@@ -222,7 +229,11 @@ export function ModuleManagerAdvanced() {
       setIsDialogOpen(false);
       fetchModules();
     } catch (error) {
-      console.error('Error saving module:', error);
+      secureLogger.logError('Error saving module', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        moduleId: currentModule.id,
+        service: 'ModuleManagerAdvanced'
+      });
       const errorMessage = error instanceof Error ? error.message : 'Não foi possível salvar o módulo';
       toast({
         title: "Erro ao salvar módulo",
@@ -264,7 +275,11 @@ export function ModuleManagerAdvanced() {
         });
       }
     } catch (error) {
-      console.error('Error deleting module:', error);
+      secureLogger.logError('Error deleting module', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        moduleId: id,
+        service: 'ModuleManagerAdvanced'
+      });
       const errorMessage = error instanceof Error ? error.message : 'Não foi possível excluir o módulo';
       toast({
         title: "Erro ao excluir módulo",
@@ -431,7 +446,11 @@ export function ModuleManagerAdvanced() {
       setActiveTab('modules');
 
     } catch (error: unknown) {
-      console.error('Erro ao salvar módulos:', error);
+      secureLogger.logError('Erro ao salvar módulos importados', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        modulesCount: convertedModules.length,
+        service: 'ModuleManagerAdvanced'
+      });
       toast({
         title: "Erro ao importar",
         description: error instanceof Error ? error.message : "Erro desconhecido",
@@ -639,6 +658,7 @@ export function ModuleManagerAdvanced() {
                   <Label htmlFor="manufacturer">Fabricante</Label>
                   <Input
                     id="manufacturer"
+                    aria-label="Fabricante do módulo solar"
                     value={currentModule.manufacturer}
                     onChange={(e) => setCurrentModule({ ...currentModule, manufacturer: e.target.value })}
                     placeholder="Ex: ASTRONERGY"
@@ -648,6 +668,7 @@ export function ModuleManagerAdvanced() {
                   <Label htmlFor="model">Modelo</Label>
                   <Input
                     id="model"
+                    aria-label="Modelo do módulo solar"
                     value={currentModule.model}
                     onChange={(e) => setCurrentModule({ ...currentModule, model: e.target.value })}
                     placeholder="Ex: ASTRO 6 600W"
@@ -658,6 +679,7 @@ export function ModuleManagerAdvanced() {
                   <Input
                     id="power"
                     type="number"
+                    aria-label="Potência do módulo em watts"
                     value={currentModule.power}
                     onChange={(e) => setCurrentModule({ ...currentModule, power: Number(e.target.value) })}
                     placeholder="Ex: 600"
@@ -668,6 +690,7 @@ export function ModuleManagerAdvanced() {
                   <Input
                     id="cellCount"
                     type="number"
+                    aria-label="Número de células do módulo"
                     value={currentModule.cellCount}
                     onChange={(e) => setCurrentModule({ ...currentModule, cellCount: Number(e.target.value) })}
                     placeholder="Ex: 144"
@@ -727,6 +750,7 @@ export function ModuleManagerAdvanced() {
                     id="voc"
                     type="number"
                     step="0.01"
+                    aria-label="Tensão de circuito aberto em volts"
                     value={currentModule.voc}
                     onChange={(e) => setCurrentModule({ ...currentModule, voc: Number(e.target.value) })}
                     placeholder="Ex: 41.5"
@@ -738,6 +762,7 @@ export function ModuleManagerAdvanced() {
                     id="isc"
                     type="number"
                     step="0.01"
+                    aria-label="Corrente de curto-circuito em amperes"
                     value={currentModule.isc}
                     onChange={(e) => setCurrentModule({ ...currentModule, isc: Number(e.target.value) })}
                     placeholder="Ex: 18.35"
@@ -749,6 +774,7 @@ export function ModuleManagerAdvanced() {
                     id="vmp"
                     type="number"
                     step="0.01"
+                    aria-label="Tensão de máxima potência em volts"
                     value={currentModule.vmp}
                     onChange={(e) => setCurrentModule({ ...currentModule, vmp: Number(e.target.value) })}
                     placeholder="Ex: 34.8"
@@ -760,6 +786,7 @@ export function ModuleManagerAdvanced() {
                     id="imp"
                     type="number"
                     step="0.01"
+                    aria-label="Corrente de máxima potência em amperes"
                     value={currentModule.imp}
                     onChange={(e) => setCurrentModule({ ...currentModule, imp: Number(e.target.value) })}
                     placeholder="Ex: 17.25"
@@ -771,6 +798,7 @@ export function ModuleManagerAdvanced() {
                     id="efficiency"
                     type="number"
                     step="0.01"
+                    aria-label="Eficiência do módulo em porcentagem"
                     value={currentModule.efficiency}
                     onChange={(e) => setCurrentModule({ ...currentModule, efficiency: Number(e.target.value) })}
                     placeholder="Ex: 21.3"
@@ -789,6 +817,7 @@ export function ModuleManagerAdvanced() {
                       id="tempCoeffPmax"
                       type="number"
                       step="0.01"
+                      aria-label="Coeficiente de temperatura da potência máxima"
                       value={currentModule.tempCoeffPmax}
                       onChange={(e) => setCurrentModule({ ...currentModule, tempCoeffPmax: Number(e.target.value) })}
                       placeholder="Ex: -0.35"
@@ -800,6 +829,7 @@ export function ModuleManagerAdvanced() {
                       id="tempCoeffVoc"
                       type="number"
                       step="0.01"
+                      aria-label="Coeficiente de temperatura da tensão de circuito aberto"
                       value={currentModule.tempCoeffVoc}
                       onChange={(e) => setCurrentModule({ ...currentModule, tempCoeffVoc: Number(e.target.value) })}
                       placeholder="Ex: -0.27"
@@ -811,6 +841,7 @@ export function ModuleManagerAdvanced() {
                       id="tempCoeffIsc"
                       type="number"
                       step="0.01"
+                      aria-label="Coeficiente de temperatura da corrente de curto-circuito"
                       value={currentModule.tempCoeffIsc}
                       onChange={(e) => setCurrentModule({ ...currentModule, tempCoeffIsc: Number(e.target.value) })}
                       placeholder="Ex: 0.04"
@@ -827,6 +858,7 @@ export function ModuleManagerAdvanced() {
                   <Input
                     id="length"
                     type="number"
+                    aria-label="Comprimento do módulo em milímetros"
                     value={currentModule.length}
                     onChange={(e) => {
                       const length = Number(e.target.value);
@@ -841,6 +873,7 @@ export function ModuleManagerAdvanced() {
                   <Input
                     id="width"
                     type="number"
+                    aria-label="Largura do módulo em milímetros"
                     value={currentModule.width}
                     onChange={(e) => {
                       const width = Number(e.target.value);
@@ -856,6 +889,7 @@ export function ModuleManagerAdvanced() {
                     id="thickness"
                     type="number"
                     step="0.1"
+                    aria-label="Espessura do módulo em milímetros"
                     value={currentModule.thickness}
                     onChange={(e) => setCurrentModule({ ...currentModule, thickness: Number(e.target.value) })}
                     placeholder="Ex: 35"
@@ -867,6 +901,7 @@ export function ModuleManagerAdvanced() {
                     id="weight"
                     type="number"
                     step="0.1"
+                    aria-label="Peso do módulo em quilogramas"
                     value={currentModule.weight}
                     onChange={(e) => setCurrentModule({ ...currentModule, weight: Number(e.target.value) })}
                     placeholder="Ex: 32.6"
@@ -897,6 +932,7 @@ export function ModuleManagerAdvanced() {
                 <Input
                   id="productWarranty"
                   type="number"
+                  aria-label="Garantia do produto em anos"
                   value={currentModule.productWarranty}
                   onChange={(e) => setCurrentModule({ ...currentModule, productWarranty: Number(e.target.value) })}
                   placeholder="Ex: 12"
@@ -921,6 +957,7 @@ export function ModuleManagerAdvanced() {
                     <div key={index} className="flex items-center gap-2">
                       <Input
                         type="number"
+                        aria-label={`Anos da garantia de performance ${index + 1}`}
                         value={warranty.years}
                         onChange={(e) => updatePerformanceWarranty(index, 'years', Number(e.target.value))}
                         placeholder="Anos"
@@ -929,6 +966,7 @@ export function ModuleManagerAdvanced() {
                       <span>anos a</span>
                       <Input
                         type="number"
+                        aria-label={`Porcentagem da garantia de performance ${index + 1}`}
                         value={warranty.percentage}
                         onChange={(e) => updatePerformanceWarranty(index, 'percentage', Number(e.target.value))}
                         placeholder="%"

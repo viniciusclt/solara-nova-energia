@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { logWarn } from '@/utils/secureLogger';
 
 // Interfaces para estrutura de tarifas
 export interface TarifaConcessionaria {
@@ -147,7 +148,12 @@ export class TarifaService {
       this.tarifasCache.set(concessionariaId, data);
       return data;
     } catch (error) {
-      console.warn('Erro ao buscar tarifa, usando padrão:', error);
+      logWarn('Erro ao buscar tarifa, usando padrão', {
+        service: 'TarifaService',
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        concessionariaId,
+        action: 'getTarifa'
+      });
       return TARIFAS_PADRAO[concessionariaId] || null;
     }
   }
@@ -168,7 +174,11 @@ export class TarifaService {
 
       return data;
     } catch (error) {
-      console.warn('Erro ao buscar concessionárias, usando padrão:', error);
+      logWarn('Erro ao buscar concessionárias, usando padrão', {
+        service: 'TarifaService',
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        action: 'getConcessionarias'
+      });
       return Object.values(TARIFAS_PADRAO);
     }
   }

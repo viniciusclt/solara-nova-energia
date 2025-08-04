@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { logInfo, logError, logWarn } from '@/utils/secureLogger';
 
 interface FinancialKit {
   id: string;
@@ -34,7 +35,10 @@ export function useFinancialKitsWithRetry(): UseFinancialKitsWithRetryReturn {
 
   const loadKits = useCallback(async (retryCount = 0) => {
     try {
-      console.log(`🔄 Carregando kits financeiros, tentativa ${retryCount + 1}`);
+      logInfo('Carregando kits financeiros', {
+        service: 'useFinancialKitsWithRetry',
+        tentativa: retryCount + 1
+      });
       setIsLoading(true);
       setError(null);
       
@@ -45,28 +49,48 @@ export function useFinancialKitsWithRetry(): UseFinancialKitsWithRetryReturn {
         .order('potencia', { ascending: true });
       
       if (queryError) {
-        console.error('❌ Erro na query financial_kits:', queryError);
+        logError('Erro na query financial_kits', {
+          error: queryError.message,
+          service: 'useFinancialKitsWithRetry',
+          code: queryError.code
+        });
         throw queryError;
       }
       
-      console.log(`✅ Kits financeiros carregados: ${result?.length || 0} itens`);
+      logInfo('Kits financeiros carregados com sucesso', {
+        service: 'useFinancialKitsWithRetry',
+        quantidade: result?.length || 0
+      });
       setKits(result || []);
       setError(null);
       
       // Salvar no cache local para fallback
       try {
         localStorage.setItem('financial_kits_cache', JSON.stringify(result || []));
-        console.log('💾 Kits financeiros salvos no cache local');
+        logInfo('Kits financeiros salvos no cache local', {
+          service: 'useFinancialKitsWithRetry'
+        });
       } catch (cacheError) {
-        console.warn('⚠️ Erro ao salvar cache de kits financeiros:', cacheError);
+        logWarn('Erro ao salvar cache de kits financeiros', {
+          error: cacheError instanceof Error ? cacheError.message : 'Erro desconhecido',
+          service: 'useFinancialKitsWithRetry'
+        });
       }
       
     } catch (err) {
-      console.error('❌ Erro ao carregar kits financeiros:', err);
+      logError('Erro ao carregar kits financeiros', {
+        error: err instanceof Error ? err.message : 'Erro desconhecido',
+        service: 'useFinancialKitsWithRetry',
+        tentativa: retryCount + 1
+      });
       
       // Retry automático até 2 tentativas
       if (retryCount < 2) {
-        console.log(`🔄 Tentando novamente em 2s... (tentativa ${retryCount + 2}/3)`);
+        logInfo('Tentando novamente carregar kits financeiros', {
+          service: 'useFinancialKitsWithRetry',
+          proximaTentativa: retryCount + 2,
+          totalTentativas: 3
+        });
         setTimeout(() => loadKits(retryCount + 1), 2000);
         return;
       }
@@ -76,7 +100,10 @@ export function useFinancialKitsWithRetry(): UseFinancialKitsWithRetryReturn {
         const cachedData = localStorage.getItem('financial_kits_cache');
         if (cachedData) {
           const parsed = JSON.parse(cachedData);
-          console.log(`📦 Carregando kits financeiros do cache local: ${parsed.length} itens`);
+          logInfo('Carregando kits financeiros do cache local', {
+            service: 'useFinancialKitsWithRetry',
+            quantidade: parsed.length
+          });
           setKits(parsed);
           
           toast({
@@ -85,11 +112,16 @@ export function useFinancialKitsWithRetry(): UseFinancialKitsWithRetryReturn {
             variant: 'default'
           });
         } else {
-          console.log('📭 Nenhum kit financeiro em cache, exibindo lista vazia');
+          logInfo('Nenhum kit financeiro em cache, exibindo lista vazia', {
+            service: 'useFinancialKitsWithRetry'
+          });
           setKits([]);
         }
       } catch (cacheError) {
-        console.error('❌ Erro ao carregar cache de kits financeiros:', cacheError);
+        logError('Erro ao carregar cache de kits financeiros', {
+          error: cacheError instanceof Error ? cacheError.message : 'Erro desconhecido',
+          service: 'useFinancialKitsWithRetry'
+        });
         setKits([]);
       }
       
@@ -123,7 +155,10 @@ export function useFinancialKitsWithRetry(): UseFinancialKitsWithRetryReturn {
       
       return data;
     } catch (error) {
-      console.error('Erro ao criar kit financeiro:', error);
+      logError('Erro ao criar kit financeiro', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        service: 'useFinancialKitsWithRetry'
+      });
       toast({
         title: 'Erro',
         description: 'Não foi possível criar o kit financeiro',
@@ -151,7 +186,11 @@ export function useFinancialKitsWithRetry(): UseFinancialKitsWithRetryReturn {
       
       return true;
     } catch (error) {
-      console.error('Erro ao atualizar kit financeiro:', error);
+      logError('Erro ao atualizar kit financeiro', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        service: 'useFinancialKitsWithRetry',
+        kitId: id
+      });
       toast({
         title: 'Erro',
         description: 'Não foi possível atualizar o kit financeiro',
@@ -179,7 +218,11 @@ export function useFinancialKitsWithRetry(): UseFinancialKitsWithRetryReturn {
       
       return true;
     } catch (error) {
-      console.error('Erro ao remover kit financeiro:', error);
+      logError('Erro ao remover kit financeiro', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        service: 'useFinancialKitsWithRetry',
+        kitId: id
+      });
       toast({
         title: 'Erro',
         description: 'Não foi possível remover o kit financeiro',

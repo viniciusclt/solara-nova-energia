@@ -113,6 +113,7 @@ export function EquipmentManagementPage({ onBackToMenu }: EquipmentManagementPag
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
+                aria-label="Buscar equipamentos por nome ou modelo"
               />
             </div>
           </div>

@@ -13,6 +13,7 @@ import { Plus, Edit, Trash2, FileSpreadsheet, DollarSign } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ExcelImporter } from "./ExcelImporter";
+import { logger } from "@/utils/secureLogger";
 
 interface FinancialKit {
   id: string;
@@ -93,11 +94,19 @@ export function FinancialKitManager({ onKitsUpdated }: FinancialKitManagerProps 
       }
       setKits(data || []);
     } catch (error: unknown) {
-      console.error('Error fetching financial kits:', error);
+      secureLogger.logError('Erro ao carregar kits financeiros', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        retryCount,
+        userId: user?.id,
+        service: 'FinancialKitManager'
+      });
       
       // Retry automático para erros de conexão (máximo 2 tentativas)
       if (retryCount < 2 && (error instanceof Error && error.message?.includes('connection'))) {
-        console.log(`Tentando novamente carregar kits financeiros (tentativa ${retryCount + 1})...`);
+        secureLogger.logInfo('Tentando novamente carregar kits financeiros', {
+          retryAttempt: retryCount + 1,
+          service: 'FinancialKitManager'
+        });
         setTimeout(() => fetchKits(retryCount + 1), 2000);
         return;
       }
@@ -232,7 +241,13 @@ export function FinancialKitManager({ onKitsUpdated }: FinancialKitManagerProps 
       fetchKits();
       onKitsUpdated?.();
     } catch (error: unknown) {
-      console.error('Error saving financial kit:', error);
+      secureLogger.logError('Erro ao salvar kit financeiro', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        isEditing,
+        kitId: editingKit?.id,
+        kitName: formData.nome,
+        service: 'FinancialKitManager'
+      });
       const errorMessage = error instanceof Error ? error.message : 'Não foi possível salvar o kit';
       toast({
         title: "Erro ao salvar kit financeiro",
@@ -272,7 +287,12 @@ export function FinancialKitManager({ onKitsUpdated }: FinancialKitManagerProps 
       fetchKits();
       onKitsUpdated?.();
     } catch (error: unknown) {
-      console.error('Error deleting financial kit:', error);
+      secureLogger.logError('Erro ao remover kit financeiro', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        kitId: kit.id,
+        kitName: kit.nome,
+        service: 'FinancialKitManager'
+      });
       const errorMessage = error instanceof Error ? error.message : 'Não foi possível remover o kit';
       toast({
         title: "Erro ao remover kit financeiro",
@@ -327,7 +347,11 @@ export function FinancialKitManager({ onKitsUpdated }: FinancialKitManagerProps 
         description: `${importedData.length} kits importados com sucesso`
       });
     } catch (error: unknown) {
-      console.error('Error importing financial kits:', error);
+      secureLogger.logError('Erro ao importar kits financeiros', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        importedDataCount: importedData?.length || 0,
+        service: 'FinancialKitManager'
+      });
       const errorMessage = error instanceof Error ? error.message : 'Não foi possível importar os kits';
       toast({
         title: "Erro ao importar kits financeiros",

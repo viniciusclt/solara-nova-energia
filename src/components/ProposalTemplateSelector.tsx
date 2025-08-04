@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { logError } from '@/utils/secureLogger';
 import { 
   FileText, 
   Eye, 
@@ -113,7 +114,12 @@ export function ProposalTemplateSelector({
         });
       }
     } catch (error) {
-      console.error('Error previewing template:', error);
+      logError('Erro ao gerar visualização do template de proposta', {
+        service: 'ProposalTemplateSelector',
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        templateId,
+        action: 'handlePreview'
+      });
       toast({
         title: "Erro na visualização",
         description: "Ocorreu um erro ao gerar a visualização",
@@ -142,7 +148,12 @@ export function ProposalTemplateSelector({
         });
       }
     } catch (error) {
-      console.error('Error downloading template:', error);
+      logError('Erro ao fazer download do template de proposta', {
+        service: 'ProposalTemplateSelector',
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        templateId,
+        action: 'handleDownload'
+      });
       toast({
         title: "Erro no download",
         description: "Ocorreu um erro ao gerar o PDF",

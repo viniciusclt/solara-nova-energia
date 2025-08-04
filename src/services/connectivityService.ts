@@ -2,6 +2,7 @@
  * Serviço de Conectividade
  * Gerencia verificação de conectividade, retry automático e fallback para cache local
  */
+import { logInfo, logWarn, logError } from '@/utils/secureLogger';
 
 interface ConnectivityStatus {
   isOnline: boolean;
@@ -26,6 +27,8 @@ class ConnectivityService {
 
   private listeners: ((status: ConnectivityStatus) => void)[] = [];
   private checkInterval: NodeJS.Timeout | null = null;
+  private onlineHandler: () => void;
+  private offlineHandler: () => void;
   private retryConfig: RetryConfig = {
     maxRetries: 3,
     baseDelay: 1000,
@@ -39,16 +42,19 @@ class ConnectivityService {
   }
 
   private setupEventListeners() {
-    window.addEventListener('online', () => {
-      console.log('🌐 Conexão restaurada');
+    this.onlineHandler = () => {
+      logInfo('Conexão de rede restaurada', 'ConnectivityService');
       this.updateStatus({ isOnline: true });
       this.checkConnectivity();
-    });
+    };
 
-    window.addEventListener('offline', () => {
-      console.log('📡 Conexão perdida');
+    this.offlineHandler = () => {
+      logWarn('Conexão de rede perdida', 'ConnectivityService');
       this.updateStatus({ isOnline: false, quality: 'offline' });
-    });
+    };
+
+    window.addEventListener('online', this.onlineHandler);
+    window.addEventListener('offline', this.offlineHandler);
   }
 
   private startPeriodicCheck() {
@@ -104,7 +110,9 @@ class ConnectivityService {
       });
 
     } catch (error) {
-      console.warn('⚠️ Falha na verificação de conectividade:', error);
+      logWarn('Falha na verificação de conectividade', 'ConnectivityService', { 
+        error: (error as Error).message 
+      });
       this.updateStatus({
         isOnline: false,
         quality: 'offline'
@@ -138,7 +146,9 @@ class ConnectivityService {
         
         // Se chegou aqui, a operação foi bem-sucedida
         if (attempt > 0) {
-          console.log(`✅ Operação bem-sucedida após ${attempt} tentativas`);
+          logInfo('Operação bem-sucedida com retry', 'ConnectivityService', { 
+            attempts: attempt + 1 
+          });
         }
         
         return result;
@@ -147,7 +157,10 @@ class ConnectivityService {
         lastError = error as Error;
         
         if (attempt === config.maxRetries) {
-          console.error(`❌ Operação falhou após ${config.maxRetries + 1} tentativas:`, error);
+          logError('Operação falhou após múltiplas tentativas', 'ConnectivityService', { 
+            totalAttempts: config.maxRetries + 1,
+            error: (error as Error).message 
+          });
           break;
         }
 
@@ -157,7 +170,11 @@ class ConnectivityService {
           config.maxDelay
         );
 
-        console.warn(`⚠️ Tentativa ${attempt + 1} falhou, tentando novamente em ${delay}ms:`, error);
+        logWarn('Tentativa de operação falhou, tentando novamente', 'ConnectivityService', { 
+          attempt: attempt + 1,
+          delayMs: delay,
+          error: (error as Error).message 
+        });
         await this.sleep(delay);
       }
     }
@@ -249,6 +266,15 @@ class ConnectivityService {
       clearInterval(this.checkInterval);
       this.checkInterval = null;
     }
+    
+    // Remover event listeners
+    if (this.onlineHandler) {
+      window.removeEventListener('online', this.onlineHandler);
+    }
+    if (this.offlineHandler) {
+      window.removeEventListener('offline', this.offlineHandler);
+    }
+    
     this.listeners = [];
   }
 

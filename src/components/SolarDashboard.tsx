@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, Suspense, lazy } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { logError } from '@/utils/secureLogger';
 import { ResponsiveText } from "@/components/ui/responsive-text";
 import { useAuth } from "@/contexts/AuthContext";
 import { SecurityAlert } from "./SecurityAlert";
@@ -25,31 +26,36 @@ import {
   Upload,
   Bell,
   Monitor,
-  ArrowLeft
+  ArrowLeft,
+  Loader2
 } from "lucide-react";
 import { LeadDataEntry } from "./LeadDataEntry";
 import { ConsumptionCalculator } from "./ConsumptionCalculator";
 import { TechnicalSimulation } from "./TechnicalSimulation";
 import { FinancialAnalysis } from "./FinancialAnalysis";
 import FinancialCalculator from "./FinancialCalculator";
-import { ProposalWorkspace } from "./ProposalWorkspace";
-import { SettingsModal } from "./SettingsModal";
 import { SelectedLeadBreadcrumb } from "./SelectedLeadBreadcrumb";
 import { DemoDataIndicator } from "./DemoDataIndicator";
 import VersionDisplay from "./VersionDisplay";
-import PDFImporter from "./PDFImporter";
-import ExcelImporterV2 from "./ExcelImporterV2";
-import FinancialInstitutionManager from "./FinancialInstitutionManager";
-import { AuditLogViewer } from "./AuditLogViewer";
-import { BackupManager } from "./BackupManager";
 import NotificationCenter from "./NotificationCenter";
-import { PerformanceMonitor } from "./PerformanceMonitor";
-import { ReportsManager } from "./ReportsManager";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { SidebarToggle } from "./sidebar/SidebarToggle";
+
+// Lazy loading para componentes pesados
+const ProposalWorkspace = lazy(() => import("./ProposalWorkspace").then(module => ({ default: module.ProposalWorkspace })));
+const ExcelImporterV2 = lazy(() => import("./ExcelImporterV2"));
+const FinancialInstitutionManager = lazy(() => import("./FinancialInstitutionManager"));
+
+// Componente de loading
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center py-12">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    <span className="ml-2 text-muted-foreground">Carregando...</span>
+  </div>
+);
 
 interface SolarDashboardProps {
   onBackToMenu?: () => void;
@@ -90,7 +96,12 @@ export function SolarDashboard({ onBackToMenu }: SolarDashboardProps = {}) {
         setCurrentLead(lead);
       }
     } catch (error) {
-      console.error('Error loading selected lead:', error);
+      logError('Erro ao carregar lead selecionado', {
+        service: 'SolarDashboard',
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        leadId,
+        action: 'loadSelectedLead'
+      });
       localStorage.removeItem('selectedLeadId');
     }
   };
@@ -404,7 +415,9 @@ export function SolarDashboard({ onBackToMenu }: SolarDashboardProps = {}) {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <ExcelImporterV2 />
+                      <Suspense fallback={<LoadingSpinner />}>
+                        <ExcelImporterV2 />
+                      </Suspense>
                     </CardContent>
                   </Card>
                   
@@ -419,7 +432,9 @@ export function SolarDashboard({ onBackToMenu }: SolarDashboardProps = {}) {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <FinancialInstitutionManager />
+                      <Suspense fallback={<LoadingSpinner />}>
+                        <FinancialInstitutionManager />
+                      </Suspense>
                     </CardContent>
                   </Card>
                 </div>
@@ -480,7 +495,9 @@ export function SolarDashboard({ onBackToMenu }: SolarDashboardProps = {}) {
 
           {hasPermission('generate_proposals') && (
             <TabsContent value="proposals">
-              <ProposalWorkspace currentLead={currentLead} />
+              <Suspense fallback={<LoadingSpinner />}>
+                <ProposalWorkspace currentLead={currentLead} />
+              </Suspense>
             </TabsContent>
           )}
 

@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { logError } from '@/utils/secureLogger';
 import { 
   FileText, 
   Download, 
@@ -66,7 +67,12 @@ export function SharedProposalView() {
 
       setProposal(data);
     } catch (err) {
-      console.error('Erro ao carregar proposta:', err);
+      logError('Erro ao carregar proposta compartilhada', {
+        service: 'SharedProposalView',
+        error: err instanceof Error ? err.message : 'Erro desconhecido',
+        shareToken,
+        action: 'loadProposal'
+      });
       setError('Erro ao carregar proposta');
     } finally {
       setLoading(false);
@@ -87,7 +93,12 @@ export function SharedProposalView() {
         referrer
       );
     } catch (err) {
-      console.error('Erro ao registrar visualização:', err);
+      logError('Erro ao registrar visualização da proposta compartilhada', {
+        service: 'SharedProposalView',
+        error: err instanceof Error ? err.message : 'Erro desconhecido',
+        shareToken,
+        action: 'recordView'
+      });
     }
   };
 
@@ -103,7 +114,13 @@ export function SharedProposalView() {
         description: "O PDF da proposta está sendo baixado"
       });
     } catch (error) {
-      console.error('Erro ao baixar PDF:', error);
+      logError('Erro ao baixar PDF da proposta compartilhada', {
+        service: 'SharedProposalView',
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        shareToken,
+        leadName: proposal.lead_name,
+        action: 'downloadPDF'
+      });
       toast({
         title: "Erro no Download",
         description: "Não foi possível baixar o PDF",

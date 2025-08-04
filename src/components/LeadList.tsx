@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { DemoDataService } from "@/services/DemoDataService";
+import { logError } from "@/utils/secureLogger";
 
 interface Lead {
   id: string;
@@ -31,7 +32,7 @@ interface LeadListProps {
   onNewLead: () => void;
 }
 
-export function LeadList({ onLeadSelect, selectedLeadId, onNewLead }: LeadListProps) {
+export const LeadList = memo(function LeadList({ onLeadSelect, selectedLeadId, onNewLead }: LeadListProps) {
   const { toast } = useToast();
   const { profile } = useAuth();
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -96,7 +97,10 @@ export function LeadList({ onLeadSelect, selectedLeadId, onNewLead }: LeadListPr
       setAllConcessionarias(concessionarias);
       setAllGrupos(grupos);
     } catch (error) {
-      console.error('Error fetching filter options:', error);
+      logError('Erro ao carregar opções de filtro', {
+        error: error instanceof Error ? error.message : String(error),
+        service: 'LeadList'
+      });
     }
   };
 
@@ -188,7 +192,14 @@ export function LeadList({ onLeadSelect, selectedLeadId, onNewLead }: LeadListPr
       setTotalCount(count || 0);
       setTotalPages(Math.ceil((count || 0) / pageSize));
     } catch (error) {
-      console.error('Error fetching leads:', error);
+      logError('Erro ao carregar leads', {
+        error: error instanceof Error ? error.message : String(error),
+        searchTerm,
+        filterConcessionaria,
+        filterGrupo,
+        currentPage,
+        service: 'LeadList'
+      });
       toast({
         title: "Erro",
         description: "Erro ao carregar leads",
@@ -251,7 +262,12 @@ export function LeadList({ onLeadSelect, selectedLeadId, onNewLead }: LeadListPr
 
       fetchLeads();
     } catch (error) {
-      console.error('Error duplicating lead:', error);
+      logError('Erro ao duplicar lead', {
+        error: error instanceof Error ? error.message : String(error),
+        leadId: lead.id,
+        leadName: lead.name,
+        service: 'LeadList'
+      });
       toast({
         title: "Erro",
         description: "Erro ao duplicar lead",
@@ -278,7 +294,11 @@ export function LeadList({ onLeadSelect, selectedLeadId, onNewLead }: LeadListPr
 
       fetchLeads();
     } catch (error) {
-      console.error('Error deleting lead:', error);
+      logError('Erro ao excluir lead', {
+        error: error instanceof Error ? error.message : String(error),
+        leadId,
+        service: 'LeadList'
+      });
       toast({
         title: "Erro",
         description: "Erro ao excluir lead",
@@ -291,14 +311,14 @@ export function LeadList({ onLeadSelect, selectedLeadId, onNewLead }: LeadListPr
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
-  const getFilterCount = () => {
+  const getFilterCount = useMemo(() => {
     const hasFilters = searchTerm || filterConcessionaria || filterGrupo;
     if (!hasFilters) return `Total: ${totalCount} leads`;
     
     const start = (currentPage - 1) * pageSize + 1;
     const end = Math.min(currentPage * pageSize, totalCount);
     return `Mostrando ${start}-${end} de ${totalCount} leads`;
-  };
+  }, [searchTerm, filterConcessionaria, filterGrupo, totalCount, currentPage, pageSize]);
 
   if (loading) {
     return (
@@ -318,7 +338,7 @@ export function LeadList({ onLeadSelect, selectedLeadId, onNewLead }: LeadListPr
           Selecionar Lead
         </CardTitle>
         <CardDescription>
-          {getFilterCount()}
+          {getFilterCount}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -334,6 +354,7 @@ export function LeadList({ onLeadSelect, selectedLeadId, onNewLead }: LeadListPr
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
+                aria-label="Buscar leads por nome, email ou telefone"
               />
             </div>
           </div>
@@ -475,4 +496,4 @@ export function LeadList({ onLeadSelect, selectedLeadId, onNewLead }: LeadListPr
       </CardContent>
     </Card>
   );
-}
+});

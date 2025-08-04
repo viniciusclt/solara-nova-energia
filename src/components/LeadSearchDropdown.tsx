@@ -7,6 +7,7 @@ import { Search, User, Plus, Table } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useDebounce } from "@/hooks/useDebounce";
+import { logError } from '@/utils/secureLogger';
 
 interface Lead {
   id: string;
@@ -65,7 +66,13 @@ export function LeadSearchDropdown({
       setLeads(data || []);
       setShowDropdown(true);
     } catch (error) {
-      console.error('Error fetching leads:', error);
+      logError('Erro ao buscar leads no dropdown', {
+        service: 'LeadSearchDropdown',
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        searchTerm: term,
+        maxResults,
+        action: 'fetchLeads'
+      });
       toast({
         title: "Erro",
         description: "Erro ao buscar leads",
@@ -125,7 +132,12 @@ export function LeadSearchDropdown({
         setSearchTerm(lead.name);
       }
     } catch (error) {
-      console.error('Error loading selected lead:', error);
+      logError('Erro ao carregar lead selecionado', {
+        service: 'LeadSearchDropdown',
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        leadId,
+        action: 'loadSelectedLead'
+      });
     }
   };
 
@@ -184,6 +196,7 @@ export function LeadSearchDropdown({
             onChange={(e) => handleInputChange(e.target.value)}
             onFocus={handleInputFocus}
             className="pl-10 pr-4"
+            aria-label="Buscar leads por nome, email ou telefone"
           />
           {loading && (
             <div className="absolute right-3 top-3">

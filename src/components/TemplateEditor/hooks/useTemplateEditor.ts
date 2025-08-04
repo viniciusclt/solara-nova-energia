@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { TemplateComponent, EditorState, TemplateData, ComponentProperties } from '../types';
+import { logError, logInfo } from '@/utils/secureLogger';
 
 const MAX_HISTORY_SIZE = 50;
 
@@ -208,7 +209,11 @@ export function useTemplateEditor(templateId?: string) {
 
   const selectAll = useCallback(() => {
     // Implementation for selecting all components
-    console.log('Select all components');
+    logInfo('Selecionando todos os componentes do template', {
+      service: 'TemplateEditor',
+      componentCount: stateRef.current.components.length,
+      action: 'selectAll'
+    });
   }, []);
 
   const deleteSelected = useCallback(() => {
@@ -266,7 +271,12 @@ export function useTemplateEditor(templateId?: string) {
         }));
       }
     } catch (error) {
-      console.error('Error loading template:', error);
+      logError('Erro ao carregar template', {
+        service: 'TemplateEditor',
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        templateId: id,
+        action: 'loadTemplate'
+      });
     }
   }, []);
 
@@ -293,11 +303,21 @@ export function useTemplateEditor(templateId?: string) {
       }
       case 'pdf':
         // Implementation for PDF export
-        console.log('PDF export not implemented yet');
+        logInfo('Exportação PDF ainda não implementada', {
+          service: 'TemplateEditor',
+          templateId: template.id,
+          format: 'pdf',
+          action: 'exportTemplate'
+        });
         break;
       case 'png':
         // Implementation for PNG export
-        console.log('PNG export not implemented yet');
+        logInfo('Exportação PNG ainda não implementada', {
+          service: 'TemplateEditor',
+          templateId: template.id,
+          format: 'png',
+          action: 'exportTemplate'
+        });
         break;
     }
   }, [saveTemplate]);

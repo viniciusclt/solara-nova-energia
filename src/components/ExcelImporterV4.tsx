@@ -15,6 +15,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useDropzone } from 'react-dropzone';
 import * as XLSX from 'xlsx';
 import { z } from 'zod';
+import { logError } from '@/utils/secureLogger';
 import {
   Upload,
   FileSpreadsheet,
@@ -300,7 +301,12 @@ const ExcelImporterV4: React.FC<ExcelImporterV4Props> = ({
       });
       
     } catch (error) {
-      console.error('Erro ao processar arquivo:', error);
+      logError('Erro ao processar arquivo Excel', {
+        service: 'ExcelImporterV4',
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        template: selectedTemplate,
+        action: 'processFile'
+      });
       toast({
         title: 'Erro ao processar arquivo',
         description: error instanceof Error ? error.message : 'Erro desconhecido',
@@ -459,7 +465,13 @@ const ExcelImporterV4: React.FC<ExcelImporterV4Props> = ({
       setCurrentTab('upload');
       
     } catch (error) {
-      console.error('Erro ao importar dados:', error);
+      logError('Erro ao importar dados para o sistema', {
+        service: 'ExcelImporterV4',
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        template: selectedTemplate,
+        recordCount: gridData.length,
+        action: 'finalizeImport'
+      });
       toast({
         title: 'Erro ao importar dados',
         description: error instanceof Error ? error.message : 'Erro desconhecido',
@@ -487,6 +499,7 @@ const ExcelImporterV4: React.FC<ExcelImporterV4Props> = ({
               value={value || ''}
               onChange={(e) => updateCellValue(row.original.id, column.id, e.target.value)}
               className="border-0 p-1 h-8 text-sm"
+              aria-label={`Editar célula ${column.id} da linha ${row.index + 1}`}
             />
           );
         },
@@ -553,7 +566,7 @@ const ExcelImporterV4: React.FC<ExcelImporterV4Props> = ({
                   isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
                 }`}
               >
-                <input {...getInputProps()} ref={fileInputRef} />
+                <input {...getInputProps()} ref={fileInputRef} aria-label="Selecionar arquivos Excel para importação" />
                 <Upload className="h-12 w-12 mx-auto mb-4 text-gray-400" />
                 <p className="text-lg font-medium mb-2">
                   {isDragActive ? 'Solte o arquivo aqui' : 'Arraste um arquivo ou clique para selecionar'}

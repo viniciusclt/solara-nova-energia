@@ -3,6 +3,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { motion } from 'framer-motion';
 import { TemplateComponent, Position, EditorState } from './types';
 import { TemplateRenderer } from './TemplateRenderer';
+import { logInfo } from '@/utils/secureLogger';
 // Removed SelectionBox and ResizeHandles imports - functionality will be implemented inline
 
 interface EditorCanvasProps {
@@ -185,7 +186,12 @@ export function EditorCanvas({
                 onSelect={onComponentSelect}
                 onDoubleClick={(id) => {
                   // Handle double click for editing
-                  console.log('Double click on component:', id);
+                  logInfo({
+                    service: 'EditorCanvas',
+                    action: 'componentDoubleClick',
+                    message: 'Componente clicado duas vezes para edição',
+                    details: { componentId: id }
+                  });
                 }}
                 scale={zoom}
               />

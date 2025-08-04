@@ -317,6 +317,7 @@ const FinancialCalculator: React.FC = () => {
                       }
                     }}
                     className="rounded border-gray-300"
+                    aria-label={`Selecionar instituição ${institution.nome} para comparação`}
                   />
                   <label htmlFor={`inst-${institution.id}`} className="flex items-center gap-2 text-sm">
                     {institution.nome}

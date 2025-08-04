@@ -51,6 +51,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { logError } from '@/utils/secureLogger';
 
 interface PerformanceMetric {
   id: string;
@@ -249,7 +250,12 @@ export function PerformanceMonitor() {
       setPerformanceData(generateMockData());
       setErrorLogs(generateMockErrors());
     } catch (error) {
-      console.error('Erro ao carregar dados de performance:', error);
+      logError('Erro ao carregar dados de performance', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        service: 'PerformanceMonitor',
+        action: 'loadData',
+        userId: user?.id
+      });
       toast({
         title: 'Erro',
         description: 'Não foi possível carregar os dados de performance',

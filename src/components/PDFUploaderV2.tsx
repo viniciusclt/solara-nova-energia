@@ -28,6 +28,7 @@ import { useDropzone } from 'react-dropzone';
 import Tesseract from 'tesseract.js';
 import { PDFDocument } from 'pdf-lib';
 import { Document, Page, pdfjs } from 'react-pdf';
+import { logError, logInfo } from '@/utils/secureLogger';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 
@@ -212,7 +213,13 @@ const PDFUploaderV2: React.FC<PDFUploaderV2Props> = ({
         await processImage(fileId);
       }
     } catch (error: unknown) {
-      console.error('Erro ao processar arquivo:', error);
+      logError('Erro ao processar arquivo', {
+        error: error instanceof Error ? error.message : String(error),
+        fileId,
+        fileName: file.name,
+        fileType: file.type,
+        service: 'PDFUploaderV2'
+      });
       setUploadedFiles(prev => prev.map(f => 
         f.id === fileId ? { 
           ...f, 
@@ -428,7 +435,11 @@ const PDFUploaderV2: React.FC<PDFUploaderV2Props> = ({
       logger: m => {
         // Log do progresso interno do Tesseract
         if (m.status === 'recognizing text') {
-          console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
+          logInfo('Progresso do OCR', {
+            progress: Math.round(m.progress * 100),
+            pageNumber,
+            service: 'PDFUploaderV2'
+          });
         }
       }
     });
@@ -574,7 +585,7 @@ const PDFUploaderV2: React.FC<PDFUploaderV2Props> = ({
               isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
             }`}
           >
-            <input {...getInputProps()} />
+            <input {...getInputProps()} aria-label="Selecionar arquivos PDF para upload" />
             <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
             <p className="text-lg font-medium mb-2">
               {isDragActive ? 'Solte os arquivos aqui' : 'Arraste arquivos ou clique para selecionar'}

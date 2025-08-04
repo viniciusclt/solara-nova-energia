@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Eye, Download, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { logError } from '@/utils/secureLogger';
 
 // Configurar o worker do PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
@@ -291,8 +292,18 @@ export const OCRProcessor: React.FC<OCRProcessorProps> = ({
       });
       
     } catch (error: unknown) {
-      console.error('Erro no processamento OCR:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      logError({
+        service: 'OCRProcessor',
+        action: 'processFile',
+        error: errorMessage,
+        details: {
+          fileName: file.name,
+          fileSize: file.size,
+          equipmentType,
+          currentStep
+        }
+      });
       onError(`Erro no processamento: ${errorMessage}`);
       
       toast({

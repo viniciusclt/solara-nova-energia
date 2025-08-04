@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { logError } from '@/utils/secureLogger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -101,7 +102,10 @@ export function TemplateManager() {
       if (error) throw error;
       setTemplates(data || []);
     } catch (error) {
-      console.error('Error loading templates:', error);
+      logError('Erro ao carregar templates', {
+        error: error instanceof Error ? error.message : String(error),
+        service: 'TemplateManager'
+      });
       toast({
         title: 'Erro ao carregar templates',
         description: 'Não foi possível carregar os templates.',
@@ -123,7 +127,11 @@ export function TemplateManager() {
       if (error) throw error;
       setTemplateVersions(data || []);
     } catch (error) {
-      console.error('Error loading template versions:', error);
+      logError('Erro ao carregar versões do template', {
+        error: error instanceof Error ? error.message : String(error),
+        templateId,
+        service: 'TemplateManager'
+      });
       toast({
         title: 'Erro ao carregar versões',
         description: 'Não foi possível carregar o histórico de versões.',
@@ -183,7 +191,12 @@ export function TemplateManager() {
         description: 'Template criado com sucesso!'
       });
     } catch (error) {
-      console.error('Error creating template:', error);
+      logError('Erro ao criar template', {
+        error: error instanceof Error ? error.message : String(error),
+        templateName: newTemplate.name,
+        templateCategory: newTemplate.category,
+        service: 'TemplateManager'
+      });
       toast({
         title: 'Erro ao criar template',
         description: 'Não foi possível criar o template.',
@@ -244,7 +257,13 @@ export function TemplateManager() {
         description: 'Template atualizado com sucesso!'
       });
     } catch (error) {
-      console.error('Error updating template:', error);
+      logError('Erro ao atualizar template', {
+        error: error instanceof Error ? error.message : String(error),
+        templateId: template.id,
+        templateName: template.name,
+        templateVersion: template.version,
+        service: 'TemplateManager'
+      });
       toast({
         title: 'Erro ao atualizar template',
         description: 'Não foi possível atualizar o template.',
@@ -272,7 +291,11 @@ export function TemplateManager() {
         description: 'Template removido com sucesso!'
       });
     } catch (error) {
-      console.error('Error deleting template:', error);
+      logError('Erro ao remover template', {
+        error: error instanceof Error ? error.message : String(error),
+        templateId,
+        service: 'TemplateManager'
+      });
       toast({
         title: 'Erro ao remover template',
         description: 'Não foi possível remover o template.',
@@ -323,7 +346,12 @@ export function TemplateManager() {
         description: 'Template duplicado com sucesso!'
       });
     } catch (error) {
-      console.error('Error duplicating template:', error);
+      logError('Erro ao duplicar template', {
+        error: error instanceof Error ? error.message : String(error),
+        templateId: template.id,
+        templateName: template.name,
+        service: 'TemplateManager'
+      });
       toast({
         title: 'Erro ao duplicar template',
         description: 'Não foi possível duplicar o template.',

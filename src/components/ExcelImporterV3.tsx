@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { logError } from '@/utils/secureLogger';
 import * as XLSX from 'xlsx';
 import { useDropzone } from 'react-dropzone';
 import {
@@ -171,8 +172,17 @@ const ExcelImporterV3: React.FC<ExcelImporterV3Props> = ({
       });
       
     } catch (error: unknown) {
-      console.error('Erro ao processar arquivo:', error);
       const errorMessage = error instanceof Error ? error.message : "Erro ao processar o arquivo.";
+      logError({
+        service: 'ExcelImporterV3',
+        action: 'processFile',
+        error: errorMessage,
+        details: {
+          fileName: file.name,
+          fileSize: file.size,
+          selectedTemplate
+        }
+      });
       toast({
         title: "Erro na Importação",
         description: errorMessage,
@@ -287,6 +297,7 @@ const ExcelImporterV3: React.FC<ExcelImporterV3Props> = ({
                 }}
                 autoFocus
                 className="h-8"
+                aria-label={`Editar célula ${column.id} da linha ${row.index + 1}`}
               />
             );
           }
@@ -464,7 +475,7 @@ const ExcelImporterV3: React.FC<ExcelImporterV3Props> = ({
                   isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
                 }`}
               >
-                <input {...getInputProps()} />
+                <input {...getInputProps()} aria-label="Selecionar arquivos Excel para importação" />
                 <Upload className="h-12 w-12 mx-auto mb-4 text-gray-400" />
                 <p className="text-lg font-medium mb-2">
                   {isDragActive ? 'Solte o arquivo aqui' : 'Arraste um arquivo ou clique para selecionar'}

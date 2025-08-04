@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Upload, Palette, Type, Save, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { logError } from '@/utils/secureLogger';
 
 interface TemplateCustomization {
   primaryColor: string;
@@ -122,7 +123,12 @@ export function TemplateCustomizer({
       };
       reader.readAsDataURL(file);
     } catch (error) {
-      console.error('Error uploading logo:', error);
+      logError('Erro ao fazer upload do logo', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        service: 'TemplateCustomizer',
+        templateId,
+        templateName
+      });
       setIsUploading(false);
       toast({
         title: 'Erro no upload',
@@ -215,6 +221,7 @@ export function TemplateCustomizer({
                     value={customization.primaryColor}
                     onChange={(e) => handleCustomizationChange({ primaryColor: e.target.value })}
                     className="w-12 h-10 p-1 border rounded"
+                    aria-label="Seletor de cor primária"
                   />
                   <Input
                     type="text"
@@ -222,6 +229,7 @@ export function TemplateCustomizer({
                     onChange={(e) => handleCustomizationChange({ primaryColor: e.target.value })}
                     className="flex-1"
                     placeholder="#2980b9"
+                    aria-label="Código hexadecimal da cor primária"
                   />
                 </div>
               </div>
@@ -234,6 +242,7 @@ export function TemplateCustomizer({
                     value={customization.secondaryColor}
                     onChange={(e) => handleCustomizationChange({ secondaryColor: e.target.value })}
                     className="w-12 h-10 p-1 border rounded"
+                    aria-label="Seletor de cor secundária"
                   />
                   <Input
                     type="text"
@@ -241,6 +250,7 @@ export function TemplateCustomizer({
                     onChange={(e) => handleCustomizationChange({ secondaryColor: e.target.value })}
                     className="flex-1"
                     placeholder="#3498db"
+                    aria-label="Código hexadecimal da cor secundária"
                   />
                 </div>
               </div>
@@ -271,12 +281,13 @@ export function TemplateCustomizer({
                   onChange={handleLogoUpload}
                   disabled={isUploading}
                   className="mb-2"
+                  aria-label="Upload do logo da empresa"
                 />
                 {customization.logoUrl && (
                   <div className="flex items-center gap-2 p-2 border rounded">
                     <img 
                       src={customization.logoUrl} 
-                      alt="Logo preview" 
+                      alt="Preview do logo da empresa carregado" 
                       className="w-8 h-8 object-contain"
                     />
                     <span className="text-sm text-muted-foreground">Logo carregado</span>
@@ -293,6 +304,7 @@ export function TemplateCustomizer({
                 value={customization.companyName}
                 onChange={(e) => handleCustomizationChange({ companyName: e.target.value })}
                 placeholder="SolarCalc Pro"
+                aria-label="Nome da empresa"
               />
             </div>
 
@@ -304,6 +316,7 @@ export function TemplateCustomizer({
                 value={customization.companySubtitle}
                 onChange={(e) => handleCustomizationChange({ companySubtitle: e.target.value })}
                 placeholder="Soluções em Energia Solar"
+                aria-label="Subtítulo da empresa"
               />
             </div>
           </CardContent>
@@ -329,6 +342,7 @@ export function TemplateCustomizer({
                   contactInfo: { ...customization.contactInfo, phone: e.target.value }
                 })}
                 placeholder="(11) 9999-9999"
+                aria-label="Telefone de contato da empresa"
               />
             </div>
             <div>
@@ -341,6 +355,7 @@ export function TemplateCustomizer({
                   contactInfo: { ...customization.contactInfo, email: e.target.value }
                 })}
                 placeholder="contato@empresa.com.br"
+                aria-label="Email de contato da empresa"
               />
             </div>
             <div>
@@ -352,6 +367,7 @@ export function TemplateCustomizer({
                   contactInfo: { ...customization.contactInfo, website: e.target.value }
                 })}
                 placeholder="www.empresa.com.br"
+                aria-label="Website da empresa"
               />
             </div>
           </div>

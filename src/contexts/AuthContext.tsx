@@ -3,6 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
 import { PERMISSIONS, validateEmail, validatePassword, sanitizeEmail } from './authUtils';
+import { logWarn, logError } from '@/utils/secureLogger';
 
 
 export type UserAccessType = 'vendedor' | 'engenheiro' | 'admin' | 'super_admin';
@@ -69,7 +70,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (profileError) throw profileError;
       
       if (!profileData) {
-        console.warn('Perfil não encontrado para o usuário');
+        logWarn('Perfil não encontrado para o usuário', {
+          service: 'AuthContext',
+          userId,
+          action: 'fetchProfile'
+        });
         setProfile(null);
         setLoading(false);
         return;
@@ -119,7 +124,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
 
     } catch (error) {
-      console.error('Erro ao buscar perfil:', error);
+      logError('Erro ao buscar perfil do usuário', {
+        service: 'AuthContext',
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        userId,
+        action: 'fetchProfile'
+      });
       // Se falhar, ainda assim define loading como false para evitar tela branca
       setProfile(null);
       setCompany(null);

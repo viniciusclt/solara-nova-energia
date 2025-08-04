@@ -42,6 +42,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { logInfo, logError } from '@/utils/secureLogger';
 // Temporary simplified drag-drop components to avoid compilation errors
 const DragDropProvider = ({ children }: { children: React.ReactNode }) => <div>{children}</div>;
 const DragDropContainer = ({ children, className }: { children: React.ReactNode; className?: string }) => <div className={className}>{children}</div>;
@@ -56,18 +57,24 @@ const DragDropToolbar = ({ onAddSection }: { onAddSection?: () => void }) => (
 // Temporary simplified services to avoid compilation errors
 const proposalPDFGenerator = {
   generatePDF: (data: unknown) => {
-    console.log('PDF generation:', data);
+    logInfo('Gerando PDF da proposta', 'ProposalEditor', { hasData: !!data });
     return null;
   },
   downloadPDF: (data: unknown, filename?: string) => {
-    console.log('PDF download:', data, filename);
+    logInfo('Download de PDF da proposta', 'ProposalEditor', { 
+      hasData: !!data, 
+      filename: filename || 'proposta.pdf' 
+    });
     return true;
   }
 };
 
 const proposalSharingService = {
   createSharedProposal: async (data: unknown, leadName: string) => {
-    console.log('Share proposal:', data, leadName);
+    logInfo('Criando proposta compartilhada', 'ProposalEditor', { 
+      leadName,
+      hasData: !!data 
+    });
     return { shareToken: 'demo-token', shareUrl: 'demo-url' };
   }
 };
@@ -405,7 +412,17 @@ export function ProposalEditor({ currentLead, onSave, initialTemplate }: Proposa
         description: 'Proposta personalizada gerada com sucesso!'
       });
     } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
+      logError({
+        service: 'ProposalEditor',
+        action: 'generatePDF',
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        details: {
+          templateId: currentTemplate.id,
+          templateName: currentTemplate.name,
+          sectionsCount: currentTemplate.sections.length,
+          leadName: currentLead ? String(currentLead.name || 'N/A') : 'N/A'
+        }
+      });
       toast({
         title: 'Erro na Geração',
         description: 'Erro ao gerar PDF personalizado.',
@@ -705,6 +722,7 @@ export function ProposalEditor({ currentLead, onSave, initialTemplate }: Proposa
                             layout: value
                           })
                         }
+                        aria-label="Selecionar layout da proposta"
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -732,6 +750,7 @@ export function ProposalEditor({ currentLead, onSave, initialTemplate }: Proposa
                             }
                           })
                         }
+                        aria-label="Selecionar formato da página"
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -764,6 +783,7 @@ export function ProposalEditor({ currentLead, onSave, initialTemplate }: Proposa
                             orientation: value
                           })
                         }
+                        aria-label="Selecionar orientação da página"
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -815,6 +835,7 @@ export function ProposalEditor({ currentLead, onSave, initialTemplate }: Proposa
                                   }
                                 })
                               }
+                              aria-label="Selecionar tipo de animação"
                             >
                               <SelectTrigger>
                                 <SelectValue />

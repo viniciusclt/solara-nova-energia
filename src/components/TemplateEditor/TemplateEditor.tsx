@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, memo } from 'react';
 import { DndContext, DragEndEvent, DragStartEvent, DragOverlay } from '@dnd-kit/core';
 import { Card } from '@/components/ui/card';
 import { useTemplateEditor } from './hooks/useTemplateEditor';
@@ -7,6 +7,7 @@ import { EditorCanvas } from './EditorCanvas';
 import { PropertiesPanel } from './PropertiesPanel';
 import { Toolbar } from './Toolbar';
 import { TemplateRenderer } from './TemplateRenderer';
+import { logError } from '@/utils/secureLogger';
 export interface TemplateComponent {
   id: string;
   type: ComponentType;
@@ -32,7 +33,7 @@ interface TemplateEditorProps {
   onExport?: (template: unknown) => void;
 }
 
-export function TemplateEditor({ initialTemplate, onSave, onExport }: TemplateEditorProps) {
+export const TemplateEditor = memo(function TemplateEditor({ initialTemplate, onSave, onExport }: TemplateEditorProps) {
   const [draggedComponent, setDraggedComponent] = useState<ComponentType | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
@@ -58,8 +59,10 @@ export function TemplateEditor({ initialTemplate, onSave, onExport }: TemplateEd
     previewTemplate
   } = useTemplateEditor(initialTemplate?.id);
 
-  const selectedComponent = editorState.components.find(
-    comp => comp.id === editorState.selectedComponentId
+  const selectedComponent = useMemo(() => 
+    editorState.components.find(
+      comp => comp.id === editorState.selectedComponentId
+    ), [editorState.components, editorState.selectedComponentId]
   );
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
@@ -95,7 +98,15 @@ addComponent({ type: componentType as ComponentType, position });
       const template = await saveTemplate();
       onSave?.(template);
     } catch (error) {
-      console.error('Erro ao salvar template:', error);
+      logError({
+        service: 'TemplateEditor',
+        action: 'saveTemplate',
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        details: {
+          templateId: initialTemplate?.id,
+          componentCount: editorState.components.length
+        }
+      });
     }
   }, [saveTemplate, onSave]);
 
@@ -104,7 +115,15 @@ addComponent({ type: componentType as ComponentType, position });
       const exportData = await exportTemplate(editorState);
       onExport?.(exportData);
     } catch (error) {
-      console.error('Erro ao exportar template:', error);
+      logError({
+        service: 'TemplateEditor',
+        action: 'exportTemplate',
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        details: {
+          templateId: initialTemplate?.id,
+          componentCount: editorState.components.length
+        }
+      });
     }
   }, [exportTemplate, onExport]);
 
@@ -269,4 +288,4 @@ addComponent({ type: componentType as ComponentType, position });
       </DragOverlay>
     </DndContext>
   );
-}
+});

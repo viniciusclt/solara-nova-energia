@@ -8,6 +8,7 @@ import {
   itemTemplates,
   layoutPresets
 } from './index';
+import { logInfo } from '@/utils/secureLogger';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -71,7 +72,12 @@ export const DragDropExample: React.FC<DragDropExampleProps> = ({ className }) =
     };
     
     // This would be handled by the DragDropProvider in a real implementation
-    console.log('Adding item:', newItem, 'to container:', containerId);
+    logInfo('Adicionando item ao container', {
+      service: 'DragDropExample',
+      itemType,
+      containerId,
+      itemId: newItem.id
+    });
   };
 
   const addContainer = () => {
@@ -80,19 +86,31 @@ export const DragDropExample: React.FC<DragDropExampleProps> = ({ className }) =
       id: `container-${Date.now()}`
     };
     
-    console.log('Adding container:', newContainer);
+    logInfo('Adicionando novo container', {
+      service: 'DragDropExample',
+      layout: selectedLayout,
+      containerId: newContainer.id
+    });
   };
 
   const handleSave = () => {
-    console.log('Saving layout...');
+    logInfo('Salvando layout', {
+      service: 'DragDropExample',
+      layout: selectedLayout
+    });
   };
 
   const handleExport = () => {
-    console.log('Exporting layout...');
+    logInfo('Exportando layout', {
+      service: 'DragDropExample',
+      layout: selectedLayout
+    });
   };
 
   const handleImport = () => {
-    console.log('Importing layout...');
+    logInfo('Importando layout', {
+      service: 'DragDropExample'
+    });
   };
 
   return (
@@ -222,7 +240,11 @@ export const DragDropExample: React.FC<DragDropExampleProps> = ({ className }) =
                       className="w-full justify-start"
                       onClick={() => {
                         setSelectedLayout(preset.layout);
-                        console.log('Applying preset:', key, preset);
+                        logInfo('Aplicando preset de layout', {
+                          service: 'DragDropExample',
+                          presetKey: key,
+                          layout: preset.layout
+                        });
                       }}
                     >
                       <Badge variant="outline" className="mr-2 text-xs">

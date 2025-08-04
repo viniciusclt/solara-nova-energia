@@ -23,6 +23,7 @@ import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
 import { toast } from './ui/use-toast';
 import { Plus, Building2, Percent, Calendar, AlertCircle } from 'lucide-react';
+import { logError } from '../utils/secureLogger';
 
 interface FinancialInstitution {
   id: string;
@@ -112,7 +113,11 @@ export function FinancialInstitutionSelector({
 
       setInstitutions(data || []);
     } catch (error) {
-      console.error('Erro ao carregar instituições financeiras:', error);
+      logError({
+        service: 'FinancialInstitutionSelector',
+        action: 'loadInstitutions',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
       toast({
         title: "Erro",
         description: "Erro ao carregar instituições financeiras.",
@@ -182,7 +187,15 @@ export function FinancialInstitutionSelector({
         description: "Instituição financeira adicionada com sucesso."
       });
     } catch (error) {
-      console.error('Erro ao adicionar instituição:', error);
+      logError({
+        service: 'FinancialInstitutionSelector',
+        action: 'addInstitution',
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        details: {
+          institutionName: newInstitution.name,
+          institutionType: newInstitution.type
+        }
+      });
       toast({
         title: "Erro",
         description: "Erro ao adicionar instituição financeira.",

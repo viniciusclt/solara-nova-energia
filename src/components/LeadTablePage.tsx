@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDebounce } from "@/hooks/useDebounce";
+import { logError } from "@/utils/secureLogger";
 
 interface Lead {
   id: string;
@@ -166,7 +167,10 @@ export function LeadTablePage({
       setAllGrupos(grupos);
       setAllCities(cities);
     } catch (error) {
-      console.error('Error fetching filter options:', error);
+      logError('Erro ao carregar opções de filtro de leads', {
+        service: 'LeadTablePage',
+        error: (error as Error).message || 'Erro desconhecido'
+      });
     }
   };
 
@@ -227,7 +231,16 @@ export function LeadTablePage({
       setTotalCount(count || 0);
       setTotalPages(Math.ceil((count || 0) / pageSize));
     } catch (error) {
-      console.error('Error fetching leads:', error);
+      logError('Erro ao carregar leads', {
+        service: 'LeadTablePage',
+        error: (error as Error).message || 'Erro desconhecido',
+        filters: {
+          searchTerm: debouncedSearchTerm,
+          concessionaria: filterConcessionaria,
+          grupo: filterGrupo,
+          city: filterCity
+        }
+      });
       toast({
         title: "Erro",
         description: "Erro ao carregar leads",
@@ -298,7 +311,12 @@ export function LeadTablePage({
 
       fetchLeads();
     } catch (error) {
-      console.error('Error duplicating lead:', error);
+      logError('Erro ao duplicar lead', {
+        service: 'LeadTablePage',
+        error: (error as Error).message || 'Erro desconhecido',
+        leadId: lead.id,
+        leadName: lead.name
+      });
       toast({
         title: "Erro",
         description: "Erro ao duplicar lead",
@@ -325,7 +343,11 @@ export function LeadTablePage({
 
       fetchLeads();
     } catch (error) {
-      console.error('Error deleting lead:', error);
+      logError('Erro ao excluir lead', {
+        service: 'LeadTablePage',
+        error: (error as Error).message || 'Erro desconhecido',
+        leadId: leadId
+      });
       toast({
         title: "Erro",
         description: "Erro ao excluir lead",
@@ -468,6 +490,7 @@ export function LeadTablePage({
                 type="date"
                 value={filterDateStart}
                 onChange={(e) => setFilterDateStart(e.target.value)}
+                aria-label="Data de início para filtrar leads"
               />
             </div>
 
@@ -478,6 +501,7 @@ export function LeadTablePage({
                 type="date"
                 value={filterDateEnd}
                 onChange={(e) => setFilterDateEnd(e.target.value)}
+                aria-label="Data de fim para filtrar leads"
               />
             </div>
 
@@ -489,6 +513,7 @@ export function LeadTablePage({
                 placeholder="0"
                 value={filterConsumoMin}
                 onChange={(e) => setFilterConsumoMin(e.target.value)}
+                aria-label="Consumo mínimo em kWh para filtrar leads"
               />
             </div>
 
@@ -500,6 +525,7 @@ export function LeadTablePage({
                 placeholder="10000"
                 value={filterConsumoMax}
                 onChange={(e) => setFilterConsumoMax(e.target.value)}
+                aria-label="Consumo máximo em kWh para filtrar leads"
               />
             </div>
           </div>

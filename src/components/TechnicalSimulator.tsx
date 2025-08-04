@@ -8,6 +8,7 @@ import { Separator } from './ui/separator';
 import { Badge } from './ui/badge';
 import { Alert, AlertDescription } from './ui/alert';
 import { toast } from './ui/use-toast';
+import { logError } from '@/utils/secureLogger';
 import {
   Calculator,
   Zap,
@@ -237,7 +238,15 @@ export function TechnicalSimulator({
       });
       
     } catch (error) {
-      console.error('Erro na simulação:', error);
+      logError('Erro na simulação técnica do sistema fotovoltaico', {
+        service: 'TechnicalSimulator',
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        systemPower: (configuration.panels.quantity * configuration.panels.power) / 1000,
+        panelQuantity: configuration.panels.quantity,
+        inverterPower: configuration.inverter.power,
+        location: configuration.installation.location.city,
+        action: 'calculateSystemPerformance'
+      });
       toast({
         title: "Erro na Simulação",
         description: "Erro ao calcular o sistema. Verifique os dados inseridos.",
@@ -342,6 +351,7 @@ export function TechnicalSimulator({
                       ...prev,
                       panels: { ...prev.panels, quantity: parseInt(e.target.value) || 0 }
                     }))}
+                    aria-label="Quantidade de painéis solares"
                   />
                 </div>
                 <div className="space-y-2">
@@ -353,6 +363,7 @@ export function TechnicalSimulator({
                       ...prev,
                       panels: { ...prev.panels, power: parseInt(e.target.value) || 0 }
                     }))}
+                    aria-label="Potência dos painéis solares em watts"
                   />
                 </div>
                 <div className="space-y-2">
@@ -365,6 +376,7 @@ export function TechnicalSimulator({
                       ...prev,
                       panels: { ...prev.panels, efficiency: parseFloat(e.target.value) || 0 }
                     }))}
+                    aria-label="Eficiência dos painéis solares em porcentagem"
                   />
                 </div>
               </div>
@@ -388,6 +400,7 @@ export function TechnicalSimulator({
                       ...prev,
                       inverter: { ...prev.inverter, power: parseInt(e.target.value) || 0 }
                     }))}
+                    aria-label="Potência do inversor em watts"
                   />
                 </div>
                 <div className="space-y-2">
@@ -400,6 +413,7 @@ export function TechnicalSimulator({
                       ...prev,
                       inverter: { ...prev.inverter, efficiency: parseFloat(e.target.value) || 0 }
                     }))}
+                    aria-label="Eficiência do inversor em porcentagem"
                   />
                 </div>
                 <div className="space-y-2">
@@ -411,7 +425,7 @@ export function TechnicalSimulator({
                       inverter: { ...prev.inverter, type: value }
                     }))}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger aria-label="Tipo de inversor">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -440,6 +454,7 @@ export function TechnicalSimulator({
                       installation: { ...prev.installation, orientation: parseInt(e.target.value) || 0 }
                     }))}
                     placeholder="180 (Sul)"
+                    aria-label="Orientação da instalação em graus"
                   />
                 </div>
                 <div className="space-y-2">
@@ -451,6 +466,7 @@ export function TechnicalSimulator({
                       ...prev,
                       installation: { ...prev.installation, tilt: parseInt(e.target.value) || 0 }
                     }))}
+                    aria-label="Inclinação da instalação em graus"
                   />
                 </div>
                 <div className="space-y-2">
@@ -462,6 +478,7 @@ export function TechnicalSimulator({
                       ...prev,
                       installation: { ...prev.installation, shading: parseInt(e.target.value) || 0 }
                     }))}
+                    aria-label="Sombreamento da instalação em porcentagem"
                   />
                 </div>
                 <div className="space-y-2">
@@ -476,7 +493,7 @@ export function TechnicalSimulator({
                       }
                     }))}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger aria-label="Estado da instalação">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

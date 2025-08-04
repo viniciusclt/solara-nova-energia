@@ -311,13 +311,39 @@ export function TechnicalSimulation({ currentLead }: TechnicalSimulationProps) {
         </Card>
       )}
 
-      <Tabs defaultValue="orientacao" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs defaultValue={simulationLevel === "preciso" ? "pvsol" : "orientacao"} className="space-y-4">
+        <TabsList className={`grid w-full ${simulationLevel === "preciso" ? "grid-cols-5" : "grid-cols-4"}`}>
+          {simulationLevel === "preciso" && (
+            <TabsTrigger value="pvsol">PV*Sol</TabsTrigger>
+          )}
           <TabsTrigger value="orientacao">Orientação</TabsTrigger>
           <TabsTrigger value="equipamentos">Equipamentos</TabsTrigger>
           <TabsTrigger value="perdas">Perdas</TabsTrigger>
           <TabsTrigger value="resultados">Resultados</TabsTrigger>
         </TabsList>
+
+        {simulationLevel === "preciso" && (
+          <TabsContent value="pvsol">
+            <Card className="shadow-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-primary" />
+                  Dados PV*Sol
+                </CardTitle>
+                <CardDescription>
+                  Importe e edite dados precisos de simulação do PV*Sol
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <PVSolImporter 
+                  onDataImported={handlePVSolDataImported}
+                  onClose={() => {}}
+                  embedded={true}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
 
         <TabsContent value="orientacao">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

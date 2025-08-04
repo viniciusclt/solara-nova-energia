@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { SolarModule } from '@/types';
+import { logInfo, logWarn, logError } from '@/utils/secureLogger';
 
 interface OfflineData {
   modules: SolarModule[];
@@ -20,6 +21,8 @@ class OfflineService {
   private readonly STORAGE_KEY = 'solara_offline_data';
   private readonly SYNC_INTERVAL = 30000; // 30 segundos
   private syncTimer: NodeJS.Timeout | null = null;
+  private onlineHandler: () => void;
+  private offlineHandler: () => void;
 
   private constructor() {
     this.setupOnlineListener();
@@ -34,16 +37,19 @@ class OfflineService {
   }
 
   private setupOnlineListener() {
-    window.addEventListener('online', () => {
+    this.onlineHandler = () => {
       this.isOnline = true;
-      console.log('Conexão restaurada - iniciando sincronização...');
+      logInfo('Conexão restaurada - iniciando sincronização', 'OfflineService');
       this.syncPendingChanges();
-    });
+    };
 
-    window.addEventListener('offline', () => {
+    this.offlineHandler = () => {
       this.isOnline = false;
-      console.log('Conexão perdida - modo offline ativado');
-    });
+      logInfo('Conexão perdida - modo offline ativado', 'OfflineService');
+    };
+
+    window.addEventListener('online', this.onlineHandler);
+    window.addEventListener('offline', this.offlineHandler);
   }
 
   private startPeriodicSync() {
@@ -60,7 +66,9 @@ class OfflineService {
       try {
         return JSON.parse(stored);
       } catch (error) {
-        console.error('Erro ao carregar dados offline:', error);
+        logError('Erro ao carregar dados offline', 'OfflineService', { 
+          error: (error as Error).message 
+        });
       }
     }
     
@@ -81,7 +89,9 @@ class OfflineService {
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
     } catch (error) {
-      console.error('Erro ao salvar dados offline:', error);
+      logError('Erro ao salvar dados offline', 'OfflineService', { 
+        error: (error as Error).message 
+      });
     }
   }
 
@@ -102,7 +112,9 @@ class OfflineService {
           return data as SolarModule[];
         }
       } catch (error) {
-        console.warn('Erro ao buscar módulos online, usando cache:', error);
+        logWarn('Erro ao buscar módulos online, usando cache', 'OfflineService', { 
+          error: (error as Error).message 
+        });
       }
     }
 
@@ -142,7 +154,9 @@ class OfflineService {
           return true;
         }
       } catch (error) {
-        console.warn('Erro ao salvar online, salvando offline:', error);
+        logWarn('Erro ao salvar online, salvando offline', 'OfflineService', { 
+          error: (error as Error).message 
+        });
       }
     }
 
@@ -190,7 +204,9 @@ class OfflineService {
           return true;
         }
       } catch (error) {
-        console.warn('Erro ao deletar online, salvando para sincronização:', error);
+        logWarn('Erro ao deletar online, salvando para sincronização', 'OfflineService', { 
+          error: (error as Error).message 
+        });
       }
     }
 
@@ -242,7 +258,9 @@ class OfflineService {
             hasChanges = true;
           }
         } catch (error) {
-          console.error('Erro ao sincronizar criação de módulo:', error);
+          logError('Erro ao sincronizar criação de módulo', 'OfflineService', { 
+            error: (error as Error).message 
+          });
         }
       }
 
@@ -258,7 +276,9 @@ class OfflineService {
             hasChanges = true;
           }
         } catch (error) {
-          console.error('Erro ao sincronizar atualização de módulo:', error);
+          logError('Erro ao sincronizar atualização de módulo', 'OfflineService', { 
+            error: (error as Error).message 
+          });
         }
       }
 
@@ -274,7 +294,9 @@ class OfflineService {
             hasChanges = true;
           }
         } catch (error) {
-          console.error('Erro ao sincronizar exclusão de módulo:', error);
+          logError('Erro ao sincronizar exclusão de módulo', 'OfflineService', { 
+            error: (error as Error).message 
+          });
         }
       }
 
@@ -290,13 +312,15 @@ class OfflineService {
         offlineData.lastSync = Date.now();
         this.saveOfflineData(offlineData);
         
-        console.log('Sincronização concluída com sucesso');
+        logInfo('Sincronização concluída com sucesso', 'OfflineService');
         
         // Disparar evento customizado para notificar componentes
         window.dispatchEvent(new CustomEvent('offline-sync-complete'));
       }
     } catch (error) {
-      console.error('Erro durante sincronização:', error);
+      logError('Erro durante sincronização', 'OfflineService', { 
+        error: (error as Error).message 
+      });
     } finally {
       this.syncInProgress = false;
     }
@@ -319,6 +343,15 @@ class OfflineService {
   destroy() {
     if (this.syncTimer) {
       clearInterval(this.syncTimer);
+      this.syncTimer = null;
+    }
+    
+    // Remover event listeners
+    if (this.onlineHandler) {
+      window.removeEventListener('online', this.onlineHandler);
+    }
+    if (this.offlineHandler) {
+      window.removeEventListener('offline', this.offlineHandler);
     }
   }
 }

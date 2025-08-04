@@ -5,9 +5,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import EnvironmentAlert from "@/components/EnvironmentAlert";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import { TrainingRoutes } from "@/features/training/routes";
 
 
 const queryClient = new QueryClient();
@@ -17,6 +19,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <EnvironmentAlert />
       <BrowserRouter>
         <AuthProvider>
           <Routes>
@@ -34,6 +37,16 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Index />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Training Module Routes */}
+            <Route 
+              path="/training/*" 
+              element={
+                <ProtectedRoute>
+                  <TrainingRoutes />
                 </ProtectedRoute>
               } 
             />

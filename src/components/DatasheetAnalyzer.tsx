@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { logError } from '@/utils/secureLogger';
 import {
   FileText,
   CheckCircle,
@@ -316,7 +317,12 @@ const DatasheetAnalyzer: React.FC<DatasheetAnalyzerProps> = ({
       setActiveTab('upload');
 
     } catch (error: unknown) {
-      console.error('Erro ao salvar produtos:', error);
+      logError('Erro ao salvar produtos extraídos no banco de dados', {
+        service: 'DatasheetAnalyzer',
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        productCount: validProducts.length,
+        action: 'saveProducts'
+      });
       toast({
         title: "Erro ao salvar",
         description: error instanceof Error ? error.message : "Erro desconhecido",
@@ -381,6 +387,7 @@ const DatasheetAnalyzer: React.FC<DatasheetAnalyzerProps> = ({
             value={currentValue}
             onChange={(e) => updateEditedData(product.id, field, e.target.value)}
             className="mt-1"
+            aria-label={`Editar ${label.toLowerCase()}`}
           />
         </div>
       );
@@ -394,6 +401,7 @@ const DatasheetAnalyzer: React.FC<DatasheetAnalyzerProps> = ({
           value={currentValue}
           onChange={(e) => updateEditedData(product.id, field, e.target.value)}
           className="mt-1"
+          aria-label={`Editar ${label.toLowerCase()}`}
         />
       </div>
     );

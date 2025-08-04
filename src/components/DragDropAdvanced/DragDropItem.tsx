@@ -178,7 +178,7 @@ export const DragDropItem: React.FC<DragDropItemProps> = ({
               {item.content?.url ? (
                 <img 
                   src={item.content.url} 
-                  alt={item.content.alt || 'Imagem'}
+                  alt={item.content.alt || `Imagem do item ${item.content?.title || 'sem título'}`}
                   className="max-w-full max-h-full object-contain"
                 />
               ) : (

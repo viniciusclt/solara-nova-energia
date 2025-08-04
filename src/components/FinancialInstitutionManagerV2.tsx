@@ -14,6 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { createClient } from '@/utils/supabase/client';
+import { logError } from '@/lib/secureLogger';
 import {
   Building2,
   Plus,
@@ -218,7 +219,11 @@ const FinancialInstitutionManagerV2: React.FC<FinancialInstitutionManagerV2Props
       setInstitutions(data || []);
       
     } catch (error: unknown) {
-      console.error('Erro ao carregar instituições:', error);
+      logError('Erro ao carregar instituições financeiras', {
+        service: 'FinancialInstitutionManagerV2',
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        action: 'loadInstitutions'
+      });
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: 'Erro ao Carregar',
@@ -433,7 +438,14 @@ const FinancialInstitutionManagerV2: React.FC<FinancialInstitutionManagerV2Props
       setCurrentTab('simulation');
       
     } catch (error) {
-      console.error('Erro na simulação:', error);
+      logError('Erro na simulação de financiamento', {
+        service: 'FinancialInstitutionManagerV2',
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        action: 'runSimulation',
+        valorFinanciamento: simulationParams.valorFinanciamento,
+        prazoMeses: simulationParams.prazoMeses,
+        tipoCliente: simulationParams.tipoCliente
+      });
       toast({
         title: 'Erro na Simulação',
         description: 'Erro ao executar simulação de financiamento',
@@ -602,9 +614,10 @@ const FinancialInstitutionManagerV2: React.FC<FinancialInstitutionManagerV2Props
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-8 w-64"
+                    aria-label="Buscar instituições financeiras"
                   />
                 </div>
-                <Select value={filterType} onValueChange={setFilterType}>
+                <Select value={filterType} onValueChange={setFilterType} aria-label="Filtrar por tipo de instituição">
                   <SelectTrigger className="w-40">
                     <SelectValue />
                   </SelectTrigger>
@@ -617,7 +630,7 @@ const FinancialInstitutionManagerV2: React.FC<FinancialInstitutionManagerV2Props
                     ))}
                   </SelectContent>
                 </Select>
-                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <Select value={filterStatus} onValueChange={setFilterStatus} aria-label="Filtrar por status da instituição">
                   <SelectTrigger className="w-32">
                     <SelectValue />
                   </SelectTrigger>
@@ -631,7 +644,7 @@ const FinancialInstitutionManagerV2: React.FC<FinancialInstitutionManagerV2Props
               </div>
               
               <div className="flex items-center gap-2">
-                <Select value={sortBy} onValueChange={setSortBy}>
+                <Select value={sortBy} onValueChange={setSortBy} aria-label="Ordenar instituições por">
                   <SelectTrigger className="w-40">
                     <SelectValue />
                   </SelectTrigger>
@@ -918,6 +931,7 @@ const FinancialInstitutionManagerV2: React.FC<FinancialInstitutionManagerV2Props
                         ...prev,
                         valorFinanciamento: Number(e.target.value)
                       }))}
+                      aria-label="Valor do financiamento"
                     />
                   </div>
                   
@@ -930,6 +944,7 @@ const FinancialInstitutionManagerV2: React.FC<FinancialInstitutionManagerV2Props
                         ...prev,
                         prazoMeses: Number(e.target.value)
                       }))}
+                      aria-label="Prazo do financiamento em meses"
                     />
                   </div>
                   
@@ -941,6 +956,7 @@ const FinancialInstitutionManagerV2: React.FC<FinancialInstitutionManagerV2Props
                         ...prev,
                         tipoCliente: value
                       }))}
+                      aria-label="Tipo de cliente para financiamento"
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -961,6 +977,7 @@ const FinancialInstitutionManagerV2: React.FC<FinancialInstitutionManagerV2Props
                         ...prev,
                         valorEntrada: Number(e.target.value) || 0
                       }))}
+                      aria-label="Valor de entrada para financiamento"
                     />
                   </div>
                   
@@ -973,6 +990,7 @@ const FinancialInstitutionManagerV2: React.FC<FinancialInstitutionManagerV2Props
                         ...prev,
                         rendaMensal: Number(e.target.value) || 0
                       }))}
+                      aria-label="Renda mensal do cliente"
                     />
                   </div>
                   

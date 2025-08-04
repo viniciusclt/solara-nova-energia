@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { logInfo, logError, logWarn } from '@/utils/secureLogger';
 
 type EquipmentType = 'modules' | 'inverters';
 
@@ -19,7 +20,11 @@ export function useEquipmentWithRetry(type: EquipmentType): UseEquipmentWithRetr
 
   const loadData = useCallback(async (retryCount = 0) => {
     try {
-      console.log(`🔄 Carregando ${type}, tentativa ${retryCount + 1}`);
+      logInfo(`Carregando ${type}`, {
+        service: 'useEquipmentWithRetry',
+        type: type,
+        attempt: retryCount + 1
+      });
       setIsLoading(true);
       setError(null);
       
@@ -31,28 +36,53 @@ export function useEquipmentWithRetry(type: EquipmentType): UseEquipmentWithRetr
         .order('name', { ascending: true });
       
       if (queryError) {
-        console.error(`❌ Erro na query ${type}:`, queryError);
+        logError(`Erro na query ${type}`, {
+          service: 'useEquipmentWithRetry',
+          type: type,
+          error: queryError.message || 'Erro desconhecido'
+        });
         throw queryError;
       }
       
-      console.log(`✅ ${type} carregados: ${result?.length || 0} itens`);
+      logInfo(`${type} carregados com sucesso`, {
+        service: 'useEquipmentWithRetry',
+        type: type,
+        itemCount: result?.length || 0
+      });
       setData(result || []);
       setError(null);
       
       // Salvar no cache local para fallback
       try {
         localStorage.setItem(`${type}_cache`, JSON.stringify(result || []));
-        console.log(`💾 ${type} salvos no cache local`);
+        logInfo(`${type} salvos no cache local`, {
+          service: 'useEquipmentWithRetry',
+          type: type
+        });
       } catch (cacheError) {
-        console.warn(`⚠️ Erro ao salvar cache de ${type}:`, cacheError);
+        logWarn(`Erro ao salvar cache de ${type}`, {
+          service: 'useEquipmentWithRetry',
+          type: type,
+          error: (cacheError as Error).message || 'Erro desconhecido'
+        });
       }
       
     } catch (err) {
-      console.error(`❌ Erro ao carregar ${type}:`, err);
+      logError(`Erro ao carregar ${type}`, {
+        service: 'useEquipmentWithRetry',
+        type: type,
+        error: (err as Error).message || 'Erro desconhecido',
+        attempt: retryCount + 1
+      });
       
       // Retry automático até 2 tentativas
       if (retryCount < 2) {
-        console.log(`🔄 Tentando novamente em 2s... (tentativa ${retryCount + 2}/3)`);
+        logInfo(`Tentando novamente carregar ${type}`, {
+          service: 'useEquipmentWithRetry',
+          type: type,
+          nextAttempt: retryCount + 2,
+          maxAttempts: 3
+        });
         setTimeout(() => loadData(retryCount + 1), 2000);
         return;
       }
@@ -62,7 +92,11 @@ export function useEquipmentWithRetry(type: EquipmentType): UseEquipmentWithRetr
         const cachedData = localStorage.getItem(`${type}_cache`);
         if (cachedData) {
           const parsed = JSON.parse(cachedData);
-          console.log(`📦 Carregando ${type} do cache local: ${parsed.length} itens`);
+          logInfo(`Carregando ${type} do cache local`, {
+            service: 'useEquipmentWithRetry',
+            type: type,
+            itemCount: parsed.length
+          });
           setData(parsed);
           
           toast({
@@ -71,11 +105,18 @@ export function useEquipmentWithRetry(type: EquipmentType): UseEquipmentWithRetr
             variant: 'default'
           });
         } else {
-          console.log(`📭 Nenhum ${type} em cache, exibindo lista vazia`);
+          logInfo(`Nenhum ${type} em cache`, {
+            service: 'useEquipmentWithRetry',
+            type: type
+          });
           setData([]);
         }
       } catch (cacheError) {
-        console.error(`❌ Erro ao carregar cache de ${type}:`, cacheError);
+        logError(`Erro ao carregar cache de ${type}`, {
+          service: 'useEquipmentWithRetry',
+          type: type,
+          error: (cacheError as Error).message || 'Erro desconhecido'
+        });
         setData([]);
       }
       
