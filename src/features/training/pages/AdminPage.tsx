@@ -228,7 +228,7 @@ function SystemStatusCard() {
 // ABA: VISÃO GERAL
 // =====================================================
 
-function OverviewTab({ reports }: { reports: any }) {
+function OverviewTab({ reports }: { reports: Record<string, unknown> }) {
   const stats = [
     {
       title: 'Total de Usuários',

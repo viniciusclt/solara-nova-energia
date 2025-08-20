@@ -202,18 +202,42 @@ const FinancialInstitutionManager: React.FC<FinancialInstitutionManagerProps> = 
       // Obter usuário atual
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
-        throw new Error('Usuário não autenticado');
+        logInfo('Usuário não autenticado, carregando instituições padrão', 'FinancialInstitutionManager');
+        setInstitutions([]);
+        return;
       }
 
-      // Obter perfil do usuário
+      // Obter perfil do usuário com tratamento de erro melhorado
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('empresa_id')
         .eq('id', user.id)
         .single();
 
-      if (profileError || !profile) {
-        throw new Error('Perfil do usuário não encontrado');
+      if (profileError || !profile || !profile.empresa_id) {
+        logInfo('Perfil do usuário não encontrado ou sem empresa_id, carregando instituições padrão', 'FinancialInstitutionManager', {
+          profileError: profileError?.message,
+          hasProfile: !!profile,
+          hasEmpresaId: !!profile?.empresa_id
+        });
+        
+        // Carregar instituições padrão/públicas se disponíveis
+        const { data: defaultData, error: defaultError } = await supabase
+          .from('instituicoes_financeiras')
+          .select('*')
+          .is('empresa_id', null)
+          .order('favorito', { ascending: false })
+          .order('nome', { ascending: true });
+
+        if (!defaultError && defaultData) {
+          logInfo('Instituições padrão carregadas', 'FinancialInstitutionManager', { 
+            count: defaultData.length 
+          });
+          setInstitutions(defaultData);
+        } else {
+          setInstitutions([]);
+        }
+        return;
       }
 
       // Carregar instituições da empresa
@@ -229,7 +253,8 @@ const FinancialInstitutionManager: React.FC<FinancialInstitutionManagerProps> = 
       }
 
       logInfo('Instituições financeiras carregadas', 'FinancialInstitutionManager', { 
-        count: data?.length || 0 
+        count: data?.length || 0,
+        empresa_id: profile.empresa_id
       });
       setInstitutions(data || []);
 
@@ -238,11 +263,18 @@ const FinancialInstitutionManager: React.FC<FinancialInstitutionManagerProps> = 
         error: (error as Error).message 
       });
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      toast({
-        title: "Erro ao Carregar",
-        description: errorMessage,
-        variant: "destructive"
-      });
+      
+      // Não mostrar toast para erros de perfil não encontrado
+      if (!errorMessage.includes('Perfil do usuário não encontrado')) {
+        toast({
+          title: "Erro ao Carregar",
+          description: errorMessage,
+          variant: "destructive"
+        });
+      }
+      
+      // Garantir que sempre temos um array vazio em caso de erro
+      setInstitutions([]);
     } finally {
       setIsLoading(false);
     }
@@ -339,15 +371,20 @@ const FinancialInstitutionManager: React.FC<FinancialInstitutionManagerProps> = 
         throw new Error('Usuário não autenticado');
       }
 
-      // Obter perfil do usuário
+      // Obter perfil do usuário com verificação melhorada
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('empresa_id')
         .eq('id', user.id)
         .single();
 
-      if (profileError || !profile) {
-        throw new Error('Perfil do usuário não encontrado');
+      if (profileError || !profile || !profile.empresa_id) {
+        logError('Perfil do usuário não encontrado ou sem empresa_id', 'FinancialInstitutionManager', {
+          profileError: profileError?.message,
+          hasProfile: !!profile,
+          hasEmpresaId: !!profile?.empresa_id
+        });
+        throw new Error('Perfil do usuário não encontrado ou empresa não configurada');
       }
 
       // Preparar dados para salvamento

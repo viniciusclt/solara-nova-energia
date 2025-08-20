@@ -532,15 +532,22 @@ export function useTrainingReports() {
 // =====================================================
 
 export function useTrainingFilters() {
-  const [filters, setFilters] = useState<TrainingFilters>({
+  const [filters, setFilters] = useState<TrainingFilters>(() => ({
     category: undefined,
     difficulty: undefined,
     tags: [],
     search_term: '',
     date_range: undefined
-  });
+  }));
 
-  const updateFilter = useCallback((key: keyof TrainingFilters, value: any) => {
+  const updateFilters = useCallback((newFilters: Partial<TrainingFilters>) => {
+    setFilters(prev => ({
+      ...prev,
+      ...newFilters
+    }));
+  }, []);
+
+  const updateFilter = useCallback((key: keyof TrainingFilters, value: string | string[] | undefined) => {
     setFilters(prev => ({
       ...prev,
       [key]: value
@@ -563,13 +570,197 @@ export function useTrainingFilters() {
              filters.tags?.length || 
              filters.search_term || 
              filters.date_range);
-  }, [filters]);
+  }, [filters.category, filters.difficulty, filters.tags?.length, filters.search_term, filters.date_range]);
 
   return {
     filters,
+    updateFilters,
     updateFilter,
     clearFilters,
     hasActiveFilters
+  };
+}
+
+// =====================================================
+// HOOK PARA AVALIAÇÕES
+// =====================================================
+
+export function useTrainingAssessment(assessmentId: string) {
+  const queryClient = useQueryClient();
+
+  const {
+    data: assessment,
+    isLoading,
+    error
+  } = useQuery({
+    queryKey: ['training-assessment', assessmentId],
+    queryFn: () => trainingService.getAssessmentById(assessmentId),
+    enabled: !!assessmentId,
+    staleTime: 5 * 60 * 1000
+  });
+
+  // Mutation para submeter respostas
+  const submitAssessmentMutation = useMutation({
+    mutationFn: (answers: UserAnswer[]) => {
+      return trainingService.submitAssessment(assessmentId, answers);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-progress'] });
+      toast.success('Avaliação enviada com sucesso!');
+    },
+    onError: (error) => {
+      console.error('Erro ao enviar avaliação:', error);
+      toast.error('Erro ao enviar avaliação. Tente novamente.');
+    }
+  });
+
+  return {
+    data: assessment,
+    isLoading,
+    error,
+    submitAssessment: submitAssessmentMutation.mutate,
+    isSubmitting: submitAssessmentMutation.isPending
+  };
+}
+
+// =====================================================
+// HOOK PARA CERTIFICADOS
+// =====================================================
+
+export function useUserCertificate(certificateId: string) {
+  const queryClient = useQueryClient();
+
+  const {
+    data: certificate,
+    isLoading,
+    error
+  } = useQuery({
+    queryKey: ['user-certificate', certificateId],
+    queryFn: () => trainingService.getCertificateById(certificateId),
+    enabled: !!certificateId,
+    staleTime: 5 * 60 * 1000
+  });
+
+  return {
+    certificate,
+    isLoading,
+    error
+  };
+}
+
+// =====================================================
+// HOOK PARA CONQUISTAS DO USUÁRIO
+// =====================================================
+
+export function useUserAchievements() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const {
+    data: achievements,
+    isLoading,
+    error
+  } = useQuery({
+    queryKey: ['user-achievements', user?.id],
+    queryFn: () => {
+      if (!user?.id) throw new Error('User ID não encontrado');
+      return trainingService.getUserAchievements(user.id);
+    },
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000
+  });
+
+  return {
+    achievements: achievements || [],
+    isLoading,
+    error
+  };
+}
+
+// =====================================================
+// HOOK PARA ESTATÍSTICAS DO USUÁRIO
+// =====================================================
+
+export function useUserStats() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const {
+    data: stats,
+    isLoading,
+    error
+  } = useQuery({
+    queryKey: ['user-stats', user?.id],
+    queryFn: () => {
+      if (!user?.id) throw new Error('User ID não encontrado');
+      return trainingService.getUserStats(user.id);
+    },
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000
+  });
+
+  return {
+    stats,
+    isLoading,
+    error
+  };
+}
+
+// =====================================================
+// HOOK PARA ESTATÍSTICAS ADMINISTRATIVAS
+// =====================================================
+
+export function useAdminStats() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const {
+    data: adminStats,
+    isLoading,
+    error
+  } = useQuery({
+    queryKey: ['admin-stats', user?.company_id],
+    queryFn: () => {
+      if (!user?.company_id) throw new Error('Company ID não encontrado');
+      return trainingService.getAdminStats(user.company_id);
+    },
+    enabled: !!user?.company_id,
+    staleTime: 5 * 60 * 1000
+  });
+
+  return {
+    adminStats,
+    isLoading,
+    error
+  };
+}
+
+// =====================================================
+// HOOK PARA RELATÓRIOS ADMINISTRATIVOS
+// =====================================================
+
+export function useAdminReports() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const {
+    data: adminReports,
+    isLoading,
+    error
+  } = useQuery({
+    queryKey: ['admin-reports', user?.company_id],
+    queryFn: () => {
+      if (!user?.company_id) throw new Error('Company ID não encontrado');
+      return trainingService.getAdminReports(user.company_id);
+    },
+    enabled: !!user?.company_id,
+    staleTime: 5 * 60 * 1000
+  });
+
+  return {
+    adminReports,
+    isLoading,
+    error
   };
 }
 

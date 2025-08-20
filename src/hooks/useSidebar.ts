@@ -1,8 +1,9 @@
-import React from 'react';
+import { useEffect, useRef } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { useLocation } from 'react-router-dom';
 
-export type ModuleType = 'solar' | 'heating' | 'training' | 'equipment-management' | null;
+export type ModuleType = 'home' | 'solar' | 'heating-bath' | 'heating-pool' | 'wallbox' | 'training' | 'equipment-management' | null;
 
 interface SidebarState {
   isOpen: boolean;
@@ -13,11 +14,23 @@ interface SidebarState {
   setActiveModule: (module: string) => void;
 }
 
+// Função para detectar o módulo ativo baseado na rota
+const getModuleFromPath = (pathname: string): string => {
+  if (pathname === '/' || pathname === '/home') return 'home';
+  if (pathname.startsWith('/fv') || pathname.startsWith('/solar')) return 'solar';
+  if (pathname.startsWith('/training')) return 'training';
+  if (pathname.startsWith('/heating-bath')) return 'heating-bath';
+  if (pathname.startsWith('/heating-pool')) return 'heating-pool';
+  if (pathname.startsWith('/wallbox')) return 'wallbox';
+  if (pathname.startsWith('/equipment')) return 'equipment-management';
+  return 'home'; // fallback
+};
+
 export const useSidebar = create<SidebarState>()(
   persist(
     (set, get) => ({
       isOpen: false,
-      activeModule: 'lead-data', // Configuração da rota padrão para "Dados do Lead"
+      activeModule: 'home',
       
       toggle: () => set((state) => ({ isOpen: !state.isOpen })),
       
@@ -27,19 +40,24 @@ export const useSidebar = create<SidebarState>()(
       
       setActiveModule: (module: string) => {
         set({ activeModule: module });
-        // Não fecha automaticamente o sidebar - deixa o usuário controlar via toggle
       },
     }),
     {
       name: 'sidebar-storage',
-      partialize: (state) => ({ activeModule: state.activeModule }), // Persiste apenas o módulo ativo
+      partialize: (state) => ({ activeModule: state.activeModule }),
+      // Forçar que isOpen sempre inicie como false
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.isOpen = false;
+        }
+      },
     }
   )
 );
 
 // Hook para detectar cliques fora do sidebar
 export const useClickOutside = (ref: React.RefObject<HTMLElement>, callback: () => void) => {
-  React.useEffect(() => {
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (ref.current && !ref.current.contains(event.target as Node)) {
         callback();
@@ -57,7 +75,7 @@ export const useClickOutside = (ref: React.RefObject<HTMLElement>, callback: () 
 export const useSidebarKeyboard = () => {
   const { toggle, close } = useSidebar();
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       // Ctrl/Cmd + B para toggle do sidebar
       if ((event.ctrlKey || event.metaKey) && event.key === 'b') {
@@ -76,4 +94,17 @@ export const useSidebarKeyboard = () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [toggle, close]);
+};
+
+// Hook para detectar automaticamente o módulo ativo baseado na rota
+export const useSidebarAutoDetect = () => {
+  const location = useLocation();
+  const { setActiveModule, activeModule } = useSidebar();
+
+  useEffect(() => {
+    const currentModule = getModuleFromPath(location.pathname);
+    if (currentModule !== activeModule) {
+      setActiveModule(currentModule);
+    }
+  }, [location.pathname, activeModule, setActiveModule]);
 };

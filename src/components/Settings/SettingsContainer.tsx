@@ -13,12 +13,15 @@ import {
   Shield,
   Bell,
   Palette,
-  Globe
+  Globe,
+  DollarSign
 } from "lucide-react";
 import { GoogleSheetsSettings } from "./GoogleSheetsSettings";
 import { BackupSettings } from "./BackupSettings";
 import { AuditSettings } from "./AuditSettings";
 import { PerformanceSettings } from "./PerformanceSettings";
+import { FinancialSettings } from "./FinancialSettings";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface SettingsContainerProps {
   isOpen: boolean;
@@ -41,6 +44,10 @@ export const SettingsContainer: React.FC<SettingsContainerProps> = ({
   defaultTab = "general" 
 }) => {
   const [activeTab, setActiveTab] = useState(defaultTab);
+  const { profile } = useAuth();
+  
+  // Verificar se o usuário tem acesso às configurações financeiras
+  const hasFinancialAccess = profile?.access_type === 'admin' || profile?.access_type === 'super_admin';
 
   const settingsTabs: SettingsTab[] = [
     {
@@ -58,6 +65,14 @@ export const SettingsContainer: React.FC<SettingsContainerProps> = ({
         </div>
       )
     },
+    ...(hasFinancialAccess ? [{
+      id: "financial",
+      label: "Financeiro",
+      icon: <DollarSign className="h-4 w-4" />,
+      badge: "Admin",
+      description: "Configurações de parâmetros financeiros",
+      component: <FinancialSettings />
+    }] : []),
     {
       id: "integrations",
       label: "Integrações",

@@ -25,7 +25,7 @@ import {
   SortDesc,
   Settings
 } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { logError } from '@/utils/secureLogger';
 import * as XLSX from 'xlsx';
@@ -82,6 +82,7 @@ const ExcelImporterV3: React.FC<ExcelImporterV3Props> = ({
   maxFileSize = 10,
   allowedFileTypes = ['.xlsx', '.xls', '.csv']
 }) => {
+  const { toast } = useToast();
   const [currentTab, setCurrentTab] = useState('upload');
   const [isLoading, setIsLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -191,7 +192,7 @@ const ExcelImporterV3: React.FC<ExcelImporterV3Props> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [setGridData]);
+  }, [setGridData, selectedTemplate, toast]);
   
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,

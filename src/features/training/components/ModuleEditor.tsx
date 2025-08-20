@@ -71,7 +71,7 @@ const contentSchema = z.object({
   content_type: z.enum(['video', 'document', 'quiz', 'interactive']),
   content_order: z.number().min(1),
   description: z.string().optional(),
-  content_data: z.record(z.any()).optional(),
+  content_data: z.record(z.unknown()).optional(),
   is_mandatory: z.boolean().default(true),
   estimated_duration: z.number().min(1).optional()
 });
@@ -435,7 +435,7 @@ export function ModuleEditor({ moduleId, onSave, onCancel, isOpen }: ModuleEdito
 // ABA: INFORMAÇÕES BÁSICAS
 // =====================================================
 
-function BasicInfoTab({ form }: { form: any }) {
+function BasicInfoTab({ form }: { form: ReturnType<typeof useForm> }) {
   return (
     <div className="space-y-6">
       <Card>
@@ -559,7 +559,14 @@ function BasicInfoTab({ form }: { form: any }) {
 // ABA: CONTEÚDO
 // =====================================================
 
-function ContentTab({ moduleId, content }: { moduleId?: string; content: any[] }) {
+interface ContentItem {
+  id: string;
+  title: string;
+  content_type: 'video' | 'document' | 'quiz';
+  estimated_duration?: number;
+}
+
+function ContentTab({ moduleId, content }: { moduleId?: string; content: ContentItem[] }) {
   const [showContentForm, setShowContentForm] = useState(false);
   
   return (
@@ -639,7 +646,7 @@ function ContentTab({ moduleId, content }: { moduleId?: string; content: any[] }
 // ABA: CONFIGURAÇÕES
 // =====================================================
 
-function SettingsTab({ form }: { form: any }) {
+function SettingsTab({ form }: { form: ReturnType<typeof useForm> }) {
   return (
     <div className="space-y-6">
       <Card>
@@ -730,7 +737,7 @@ function SettingsTab({ form }: { form: any }) {
 // ABA: VISUALIZAR
 // =====================================================
 
-function PreviewTab({ form }: { form: any }) {
+function PreviewTab({ form }: { form: ReturnType<typeof useForm> }) {
   const formData = form.watch();
   
   return (

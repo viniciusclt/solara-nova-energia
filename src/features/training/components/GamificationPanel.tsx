@@ -79,7 +79,7 @@ interface BadgeCategory {
   id: string;
   name: string;
   description: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   color: string;
 }
 
@@ -87,7 +87,7 @@ interface Achievement {
   id: string;
   title: string;
   description: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   rarity: 'common' | 'rare' | 'epic' | 'legendary';
   progress: number;
   maxProgress: number;
@@ -386,7 +386,7 @@ function GamificationStatsCard({
 }: {
   title: string;
   value: number;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   color: 'purple' | 'blue' | 'yellow' | 'orange';
   trend?: string;
   progress?: number;
@@ -914,7 +914,11 @@ function LeaderboardSection({
   currentUser 
 }: {
   ranking: UserRanking[];
-  currentUser: any;
+  currentUser: {
+    id: string;
+    name?: string;
+    avatar_url?: string;
+  } | null;
 }) {
   const [period, setPeriod] = useState<'week' | 'month' | 'all'>('month');
   

@@ -108,7 +108,7 @@ addComponent({ type: componentType as ComponentType, position });
         }
       });
     }
-  }, [saveTemplate, onSave]);
+  }, [saveTemplate, onSave, initialTemplate?.id, editorState.components.length]);
 
   const handleExport = useCallback(async () => {
     try {
@@ -125,7 +125,7 @@ addComponent({ type: componentType as ComponentType, position });
         }
       });
     }
-  }, [exportTemplate, onExport]);
+  }, [exportTemplate, onExport, editorState, initialTemplate?.id]);
 
   const handlePreview = useCallback(() => {
     setIsPreviewMode(!isPreviewMode);

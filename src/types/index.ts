@@ -122,4 +122,75 @@ export interface Inverter {
   active: boolean;
 }
 
+// Interface para endereço estruturado
+export interface Address {
+  street?: string;
+  number?: string;
+  complement?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
+  cep?: string;
+}
+
+// Interface Lead padronizada (unificação entre ILead e Lead)
+export interface Lead {
+  id?: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  cpf_cnpj?: string;
+  rg?: string;
+  birth_date?: string;
+  
+  // Endereço estruturado para novas implementações, string para compatibilidade
+  address?: Address | string;
+  
+  // Dados de energia 
+  tipo_fornecimento?: string;
+  cdd?: string;
+  tensao_alimentacao?: string;
+  modalidade_tarifaria?: string;
+  numero_cliente?: string;
+  numero_instalacao?: string;
+  consumo_mensal?: number[];
+  consumo_medio?: number; // Campo do banco de dados
+  incremento_consumo?: number;
+  
+  // Outros
+  comentarios?: string;
+  status?: string;
+  user_id?: string;
+  
+  // Timestamps
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Legacy interface mantida para compatibilidade gradual
+export interface ILead {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  cpf?: string;
+  cep?: string;
+  address?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
+  concessionaria?: string;
+  grupo?: string;
+  subgrupo?: string;
+  consumoMedio?: number;
+  consumoMensal?: number[];
+  tarifaEnergia?: number;
+  status?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Exportar tipos do roadmap
+export * from './roadmap';
+
 // Outros tipos e interfaces podem ser adicionados aqui

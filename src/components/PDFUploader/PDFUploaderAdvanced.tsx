@@ -78,6 +78,36 @@ const PDFUploaderAdvanced: React.FC<PDFUploaderAdvancedProps> = ({
   });
   const processingRef = useRef<boolean>(false);
 
+  const processFiles = useCallback(async (filesToProcess?: ProcessedFile[]) => {
+    const targetFiles = filesToProcess || files.filter(f => f.status === 'pending');
+    if (processingRef.current || targetFiles.length === 0) return;
+    
+    processingRef.current = true;
+    setIsProcessing(true);
+
+    try {
+      if (batchSettings.parallelProcessing) {
+        // Processamento paralelo
+        const chunks = [];
+        for (let i = 0; i < targetFiles.length; i += batchSettings.maxConcurrent) {
+          chunks.push(targetFiles.slice(i, i + batchSettings.maxConcurrent));
+        }
+
+        for (const chunk of chunks) {
+          await Promise.all(chunk.map(file => processFile(file)));
+        }
+      } else {
+        // Processamento sequencial
+        for (const file of targetFiles) {
+          await processFile(file);
+        }
+      }
+    } finally {
+      processingRef.current = false;
+      setIsProcessing(false);
+    }
+  }, [files, batchSettings.parallelProcessing, batchSettings.maxConcurrent, processFile]);
+
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (files.length + acceptedFiles.length > maxFiles) {
       toast({
@@ -137,7 +167,7 @@ const PDFUploaderAdvanced: React.FC<PDFUploaderAdvancedProps> = ({
     if (autoProcess && newFiles.length > 0) {
       processFiles(newFiles);
     }
-  }, [files.length, maxFiles, autoProcess, showPreview, toast]);
+  }, [files.length, maxFiles, autoProcess, showPreview, toast, processFiles, detectEquipmentType]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -148,7 +178,7 @@ const PDFUploaderAdvanced: React.FC<PDFUploaderAdvancedProps> = ({
     disabled: isProcessing
   });
 
-  const detectEquipmentType = (filename: string): 'module' | 'inverter' | 'battery' => {
+  const detectEquipmentType = useCallback((filename: string): 'module' | 'inverter' | 'battery' => {
     const name = filename.toLowerCase();
     
     if (name.includes('inverter') || name.includes('inversor')) {
@@ -158,38 +188,11 @@ const PDFUploaderAdvanced: React.FC<PDFUploaderAdvancedProps> = ({
       return 'battery';
     }
     return 'module'; // Default
-  };
+  }, []);
 
-  const processFiles = async (filesToProcess: ProcessedFile[] = files.filter(f => f.status === 'pending')) => {
-    if (processingRef.current || filesToProcess.length === 0) return;
-    
-    processingRef.current = true;
-    setIsProcessing(true);
 
-    try {
-      if (batchSettings.parallelProcessing) {
-        // Processamento paralelo
-        const chunks = [];
-        for (let i = 0; i < filesToProcess.length; i += batchSettings.maxConcurrent) {
-          chunks.push(filesToProcess.slice(i, i + batchSettings.maxConcurrent));
-        }
 
-        for (const chunk of chunks) {
-          await Promise.all(chunk.map(file => processFile(file)));
-        }
-      } else {
-        // Processamento sequencial
-        for (const file of filesToProcess) {
-          await processFile(file);
-        }
-      }
-    } finally {
-      processingRef.current = false;
-      setIsProcessing(false);
-    }
-  };
-
-  const processFile = async (fileToProcess: ProcessedFile) => {
+  const processFile = useCallback(async (fileToProcess: ProcessedFile) => {
     const updateFile = (updates: Partial<ProcessedFile>) => {
       setFiles(prev => prev.map(f => 
         f.id === fileToProcess.id ? { ...f, ...updates } : f
@@ -235,20 +238,20 @@ const PDFUploaderAdvanced: React.FC<PDFUploaderAdvancedProps> = ({
         variant: "destructive"
       });
     }
-  };
+  }, [ocrSettings, toast]);
 
-  const removeFile = (fileId: string) => {
+  const removeFile = useCallback((fileId: string) => {
     setFiles(prev => prev.filter(f => f.id !== fileId));
-  };
+  }, []);
 
-  const retryFile = (fileId: string) => {
+  const retryFile = useCallback((fileId: string) => {
     const file = files.find(f => f.id === fileId);
     if (file) {
       const updatedFile = { ...file, status: 'pending' as const, error: undefined };
       setFiles(prev => prev.map(f => f.id === fileId ? updatedFile : f));
       processFiles([updatedFile]);
     }
-  };
+  }, [files, processFiles]);
 
   const exportResults = () => {
     const completedFiles = files.filter(f => f.status === 'completed' && f.ocrResult);

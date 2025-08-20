@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/secureLogger';
 
@@ -38,6 +38,7 @@ const PDFUploader: React.FC<PDFUploaderProps> = ({
 }) => {
   const [files, setFiles] = useState<PDFFile[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const { toast } = useToast();
 
   const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: { file: File; errors: { code: string; message: string }[] }[]) => {
     logInfo('Arquivos aceitos para upload', 'PDFUploader', { 
@@ -97,7 +98,7 @@ const PDFUploader: React.FC<PDFUploaderProps> = ({
       }
       return updated;
     });
-  }, [maxFiles, maxFileSize]);
+  }, [maxFiles, maxFileSize, toast]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,

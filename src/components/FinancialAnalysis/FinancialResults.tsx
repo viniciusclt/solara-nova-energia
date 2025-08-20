@@ -1,214 +1,295 @@
+/**
+ * Componente de Resultados da Análise Financeira
+ * Carregado de forma lazy para otimizar performance
+ */
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { TrendingUp, DollarSign, Calculator, PiggyBank, Target } from 'lucide-react';
-import { FinancialData } from './types';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { 
+  TrendingUp, 
+  DollarSign, 
+  Calendar, 
+  Zap, 
+  Target, 
+  PiggyBank, 
+  Shield,
+  Info,
+  CheckCircle,
+  AlertTriangle
+} from 'lucide-react';
+import { ResultadoFinanceiroEnhanced, ParametrosSistemaEnhanced } from '@/services/CalculadoraSolarServiceEnhanced';
+import { FinancialCardSkeleton } from '@/components/ui/LoadingBoundary';
 
 interface FinancialResultsProps {
-  financialData: FinancialData;
+  resultado: ResultadoFinanceiroEnhanced | null;
+  parametros: ParametrosSistemaEnhanced;
+  loading: boolean;
 }
 
-export const FinancialResults: React.FC<FinancialResultsProps> = ({ financialData }) => {
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
-  };
+export const FinancialResults: React.FC<FinancialResultsProps> = ({
+  resultado,
+  parametros,
+  loading
+}) => {
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <FinancialCardSkeleton key={i} />
+        ))}
+      </div>
+    );
+  }
 
-  const formatNumber = (value: number, decimals = 1) => {
-    return new Intl.NumberFormat('pt-BR', {
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals
-    }).format(value);
-  };
+  if (!resultado) {
+    return (
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertDescription>
+          Configure os parâmetros e execute a análise para visualizar os resultados.
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
-  const getPaybackStatus = (payback: number) => {
-    if (payback <= 4) return { color: 'bg-green-500', text: 'Excelente', variant: 'default' as const };
-    if (payback <= 6) return { color: 'bg-blue-500', text: 'Muito Bom', variant: 'secondary' as const };
-    if (payback <= 8) return { color: 'bg-yellow-500', text: 'Bom', variant: 'outline' as const };
-    return { color: 'bg-red-500', text: 'Atenção', variant: 'destructive' as const };
-  };
-
-  const getTirStatus = (tir: number) => {
-    if (tir >= 20) return { color: 'bg-green-500', text: 'Excelente', variant: 'default' as const };
-    if (tir >= 15) return { color: 'bg-blue-500', text: 'Muito Bom', variant: 'secondary' as const };
-    if (tir >= 10) return { color: 'bg-yellow-500', text: 'Bom', variant: 'outline' as const };
-    return { color: 'bg-red-500', text: 'Baixo', variant: 'destructive' as const };
-  };
-
-  const paybackStatus = getPaybackStatus(financialData.payback);
-  const tirStatus = getTirStatus(financialData.tir);
+  // Determinar viabilidade do projeto
+  const isViable = resultado.vpl > 0 && resultado.tir > parametros.taxa_desconto_anual;
+  const paybackYears = resultado.payback_simples_anos;
+  const roiPercentage = ((resultado.economia_total_25_anos - parametros.custo_sistema) / parametros.custo_sistema) * 100;
 
   return (
     <div className="space-y-6">
-      {/* Métricas Principais */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Payback */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Payback</p>
-                <div className="flex items-center gap-2">
-                  <p className="text-2xl font-bold">{formatNumber(financialData.payback)}</p>
-                  <span className="text-sm text-muted-foreground">anos</span>
-                </div>
-                <Badge variant={paybackStatus.variant} className="mt-2">
-                  {paybackStatus.text}
-                </Badge>
-              </div>
-              <Target className="h-8 w-8 text-muted-foreground" />
+      {/* Indicador de Viabilidade */}
+      <Alert className={isViable ? 'border-green-200 bg-green-50' : 'border-yellow-200 bg-yellow-50'}>
+        {isViable ? (
+          <CheckCircle className="h-4 w-4 text-green-600" />
+        ) : (
+          <AlertTriangle className="h-4 w-4 text-yellow-600" />
+        )}
+        <AlertDescription className={isViable ? 'text-green-800' : 'text-yellow-800'}>
+          <strong>
+            {isViable 
+              ? 'Projeto Viável: ' 
+              : 'Atenção: '
+            }
+          </strong>
+          {isViable 
+            ? `VPL positivo de R$ ${resultado.vpl.toLocaleString('pt-BR')} e TIR de ${(resultado.tir * 100).toFixed(2)}%`
+            : `VPL de R$ ${resultado.vpl.toLocaleString('pt-BR')} e TIR de ${(resultado.tir * 100).toFixed(2)}% - Revisar parâmetros`
+          }
+        </AlertDescription>
+      </Alert>
+
+      {/* Indicadores Principais */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* VPL */}
+        <Card className={resultado.vpl > 0 ? 'border-green-200' : 'border-red-200'}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Valor Presente Líquido</CardTitle>
+            <TrendingUp className={`h-4 w-4 ${resultado.vpl > 0 ? 'text-green-600' : 'text-red-600'}`} />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              R$ {resultado.vpl.toLocaleString('pt-BR')}
             </div>
-            <Progress 
-              value={Math.min((8 / financialData.payback) * 100, 100)} 
-              className="mt-3" 
-            />
+            <Badge variant={resultado.vpl > 0 ? 'default' : 'destructive'} className="mt-2">
+              {resultado.vpl > 0 ? 'Positivo' : 'Negativo'}
+            </Badge>
           </CardContent>
         </Card>
 
         {/* TIR */}
+        <Card className={resultado.tir > parametros.taxa_desconto_anual ? 'border-green-200' : 'border-yellow-200'}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Taxa Interna de Retorno</CardTitle>
+            <Target className={`h-4 w-4 ${
+              resultado.tir > parametros.taxa_desconto_anual ? 'text-green-600' : 'text-yellow-600'
+            }`} />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {(resultado.tir * 100).toFixed(2)}%
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Taxa de desconto: {(parametros.taxa_desconto_anual * 100).toFixed(2)}%
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Payback */}
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">TIR</p>
-                <div className="flex items-center gap-2">
-                  <p className="text-2xl font-bold">{formatNumber(financialData.tir)}</p>
-                  <span className="text-sm text-muted-foreground">%</span>
-                </div>
-                <Badge variant={tirStatus.variant} className="mt-2">
-                  {tirStatus.text}
-                </Badge>
-              </div>
-              <TrendingUp className="h-8 w-8 text-muted-foreground" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Payback Simples</CardTitle>
+            <Calendar className="h-4 w-4 text-orange-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">
+              {paybackYears.toFixed(1)} anos
             </div>
             <Progress 
-              value={Math.min((financialData.tir / 25) * 100, 100)} 
-              className="mt-3" 
+              value={Math.min((paybackYears / 10) * 100, 100)} 
+              className="mt-2"
             />
           </CardContent>
         </Card>
 
-        {/* VPL */}
+        {/* ROI */}
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">VPL</p>
-                <p className="text-2xl font-bold text-green-600">
-                  {formatCurrency(financialData.vpl)}
-                </p>
-                <Badge variant={financialData.vpl > 0 ? 'default' : 'destructive'} className="mt-2">
-                  {financialData.vpl > 0 ? 'Positivo' : 'Negativo'}
-                </Badge>
-              </div>
-              <DollarSign className="h-8 w-8 text-muted-foreground" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">ROI (25 anos)</CardTitle>
+            <PiggyBank className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              {roiPercentage.toFixed(1)}%
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Economia Anual */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Economia Anual</p>
-                <p className="text-2xl font-bold text-green-600">
-                  {formatCurrency(financialData.economiaAnual)}
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {formatCurrency(financialData.economiaAnual / 12)}/mês
-                </p>
-              </div>
-              <PiggyBank className="h-8 w-8 text-muted-foreground" />
-            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Retorno sobre investimento
+            </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Resumo Financeiro */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              Resumo Financeiro
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium">Investimento Inicial:</span>
+              <span className="font-bold">R$ {parametros.custo_sistema.toLocaleString('pt-BR')}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium">Economia Total (25 anos):</span>
+              <span className="font-bold text-green-600">
+                R$ {resultado.economia_total_25_anos.toLocaleString('pt-BR')}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium">Economia Anual Média:</span>
+              <span className="font-bold">
+                R$ {(resultado.economia_total_25_anos / 25).toLocaleString('pt-BR')}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium">Lucro Líquido:</span>
+              <span className={`font-bold ${
+                resultado.economia_total_25_anos > parametros.custo_sistema 
+                  ? 'text-green-600' 
+                  : 'text-red-600'
+              }`}>
+                R$ {(resultado.economia_total_25_anos - parametros.custo_sistema).toLocaleString('pt-BR')}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5" />
+              Resumo Energético
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium">Geração Total (25 anos):</span>
+              <span className="font-bold">
+                {(resultado.geracao_total_25_anos / 1000).toFixed(1)} MWh
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium">Autoconsumo Total:</span>
+              <span className="font-bold text-green-600">
+                {(resultado.autoconsumo_total_25_anos / 1000).toFixed(1)} MWh
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium">Energia Injetada:</span>
+              <span className="font-bold text-blue-600">
+                {(resultado.energia_injetada_total_25_anos / 1000).toFixed(1)} MWh
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium">Taxa de Autoconsumo:</span>
+              <span className="font-bold">
+                {((resultado.autoconsumo_total_25_anos / resultado.geracao_total_25_anos) * 100).toFixed(1)}%
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Impacto Ambiental */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Calculator className="h-5 w-5" />
-            Resumo Financeiro
+            <Shield className="h-5 w-5" />
+            Impacto Ambiental
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Investimento */}
-            <div className="space-y-4">
-              <h4 className="font-semibold text-lg">Investimento</h4>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Valor do Sistema:</span>
-                  <span className="font-medium">{formatCurrency(financialData.valorSistema)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Valor Final:</span>
-                  <span className="font-medium">{formatCurrency(financialData.valorFinal)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Custo por Wp:</span>
-                  <span className="font-medium">R$ {formatNumber(financialData.custoWp, 2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Potência:</span>
-                  <span className="font-medium">{formatNumber(financialData.potenciaSistema)} kWp</span>
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">
+                {(resultado.reducao_co2_25_anos / 1000).toFixed(1)}
               </div>
+              <p className="text-sm text-muted-foreground">Toneladas de CO₂ evitadas</p>
             </div>
-
-            {/* Retorno */}
-            <div className="space-y-4">
-              <h4 className="font-semibold text-lg">Retorno</h4>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Economia em 25 anos:</span>
-                  <span className="font-medium text-green-600">{formatCurrency(financialData.economia25Anos)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Geração Anual:</span>
-                  <span className="font-medium">{formatNumber(financialData.geracaoAnual, 0)} kWh</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Tarifa Elétrica:</span>
-                  <span className="font-medium">R$ {formatNumber(financialData.tarifaEletrica, 3)}/kWh</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Reajuste Anual:</span>
-                  <span className="font-medium">{formatNumber(financialData.reajusteTarifario)}%</span>
-                </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">
+                {Math.round(resultado.reducao_co2_25_anos / 2.3)}
               </div>
+              <p className="text-sm text-muted-foreground">Árvores equivalentes plantadas</p>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-600">
+                {Math.round(resultado.geracao_total_25_anos / 1000 / 8.5)}
+              </div>
+              <p className="text-sm text-muted-foreground">Carros elétricos abastecidos/ano</p>
             </div>
           </div>
+        </CardContent>
+      </Card>
 
-          {/* Indicadores de Performance */}
-          <div className="mt-6 pt-6 border-t">
-            <h4 className="font-semibold text-lg mb-4">Indicadores de Performance</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-center p-4 bg-muted/50 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">
-                  {formatNumber((financialData.economia25Anos / financialData.valorFinal) * 100)}%
-                </div>
-                <div className="text-sm text-muted-foreground">Retorno Total</div>
+      {/* Análise de Sensibilidade */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Análise de Sensibilidade</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium">Sensibilidade ao Custo (+10%):</span>
+                <span className="text-sm">
+                  VPL: R$ {(resultado.vpl - parametros.custo_sistema * 0.1).toLocaleString('pt-BR')}
+                </span>
               </div>
-              
-              <div className="text-center p-4 bg-muted/50 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">
-                  {formatNumber(financialData.geracaoAnual / financialData.potenciaSistema, 0)}
-                </div>
-                <div className="text-sm text-muted-foreground">kWh/kWp/ano</div>
+              <Progress 
+                value={Math.max(0, Math.min(100, ((resultado.vpl - parametros.custo_sistema * 0.1) / resultado.vpl) * 100))}
+                className="h-2"
+              />
+            </div>
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium">Sensibilidade à Geração (-10%):</span>
+                <span className="text-sm">
+                  Economia: R$ {(resultado.economia_total_25_anos * 0.9).toLocaleString('pt-BR')}
+                </span>
               </div>
-              
-              <div className="text-center p-4 bg-muted/50 rounded-lg">
-                <div className="text-2xl font-bold text-purple-600">
-                  {formatNumber((financialData.geracaoAnual * 12) / (financialData.consumoMensal * 12) * 100)}%
-                </div>
-                <div className="text-sm text-muted-foreground">Offset Energético</div>
-              </div>
+              <Progress 
+                value={90}
+                className="h-2"
+              />
             </div>
           </div>
         </CardContent>
@@ -216,3 +297,5 @@ export const FinancialResults: React.FC<FinancialResultsProps> = ({ financialDat
     </div>
   );
 };
+
+export default FinancialResults;

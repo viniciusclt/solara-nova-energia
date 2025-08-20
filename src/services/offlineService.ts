@@ -356,4 +356,5 @@ class OfflineService {
   }
 }
 
+export { OfflineService };
 export default OfflineService;

@@ -200,7 +200,7 @@ export function BackupManager() {
     } finally {
       setLoading(false);
     }
-  }, [user, profile, isOnline, pendingSyncs.length, syncSettings.auto_backup_enabled]);
+  }, [user, profile?.company_id, isOnline, pendingSyncs.length, syncSettings.auto_backup_enabled]);
 
   // Criar backup
   const createBackup = useCallback(async () => {
@@ -263,7 +263,7 @@ export function BackupManager() {
     } finally {
       setLoading(false);
     }
-  }, [user, profile, selectedTables, loadBackups]);
+  }, [user, profile?.company_id, selectedTables, backupName, loadBackups]);
 
   // Restaurar backup
   const restoreBackup = useCallback(async (backup: BackupRecord) => {

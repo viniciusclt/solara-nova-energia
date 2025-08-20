@@ -172,21 +172,21 @@ const FinancialInstitutionManagerV2: React.FC<FinancialInstitutionManagerV2Props
   // Carregar instituições
   useEffect(() => {
     loadInstitutions();
-  }, []);
+  }, [loadInstitutions]);
   
   // Filtrar instituições
   useEffect(() => {
     filterAndSortInstitutions();
-  }, [institutions, searchTerm, filterType, filterStatus, sortBy, sortOrder]);
+  }, [filterAndSortInstitutions]);
   
   // Calcular métricas de comparação
   useEffect(() => {
     if (filteredInstitutions.length > 0) {
       calculateComparisonMetrics();
     }
-  }, [filteredInstitutions]);
+  }, [filteredInstitutions, calculateComparisonMetrics]);
   
-  const loadInstitutions = async () => {
+  const loadInstitutions = useCallback(async () => {
     try {
       setIsLoading(true);
       
@@ -233,7 +233,7 @@ const FinancialInstitutionManagerV2: React.FC<FinancialInstitutionManagerV2Props
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast, supabase]);
   
   const filterAndSortInstitutions = useCallback(() => {
     let filtered = [...institutions];

@@ -6,10 +6,11 @@
 // =====================================================
 
 import React, { Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
+import { logInfo } from '../../../utils/secureLogger';
 
 // =====================================================
 // LAZY LOADING DOS COMPONENTES
@@ -29,6 +30,7 @@ const TrainingReports = React.lazy(() => import('../components/TrainingReports')
 // Páginas específicas
 const ModuleDetailPage = React.lazy(() => import('../pages/ModuleDetailPage'));
 const ContentViewPage = React.lazy(() => import('../pages/ContentViewPage'));
+const TrainingTestPage = React.lazy(() => import('../../../pages/TrainingPage'));
 const AssessmentPage = React.lazy(() => import('../pages/AssessmentPage'));
 const CertificatePage = React.lazy(() => import('../pages/CertificatePage'));
 const UserProgressPage = React.lazy(() => import('../pages/UserProgressPage'));
@@ -101,6 +103,10 @@ function ProtectedRoute({
 }
 
 // =====================================================
+// LAYOUT REMOVIDO - AGORA USA O LAYOUT GLOBAL
+// =====================================================
+
+// =====================================================
 // COMPONENTE PRINCIPAL DE ROTAS
 // =====================================================
 
@@ -108,244 +114,255 @@ export function TrainingRoutes() {
   return (
     <Suspense fallback={<LoadingSpinner />}>
       <Routes>
-        {/* Dashboard Principal */}
-        <Route 
-          path="/" 
-          element={
-            <ProtectedRoute>
-              <TrainingDashboard />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Módulos */}
-        <Route 
-          path="/modules" 
-          element={
-            <ProtectedRoute>
-              <TrainingDashboard />
-            </ProtectedRoute>
-          } 
-        />
-        
-        <Route 
-          path="/modules/new" 
-          element={
-            <ProtectedRoute requiredRole="admin">
-              <ModuleEditor />
-            </ProtectedRoute>
-          } 
-        />
-        
-        <Route 
-          path="/modules/:moduleId" 
-          element={
-            <ProtectedRoute>
-              <ModuleDetailPage />
-            </ProtectedRoute>
-          } 
-        />
-        
-        <Route 
-          path="/modules/:moduleId/edit" 
-          element={
-            <ProtectedRoute requiredRole="admin">
-              <ModuleEditor />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Conteúdo */}
-        <Route 
-          path="/modules/:moduleId/content/new" 
-          element={
-            <ProtectedRoute requiredRole="admin">
-              <ContentEditor />
-            </ProtectedRoute>
-          } 
-        />
-        
-        <Route 
-          path="/modules/:moduleId/content/:contentId" 
-          element={
-            <ProtectedRoute>
-              <ContentViewPage />
-            </ProtectedRoute>
-          } 
-        />
-        
-        <Route 
-          path="/modules/:moduleId/content/:contentId/edit" 
-          element={
-            <ProtectedRoute requiredRole="admin">
-              <ContentEditor />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Vídeos */}
-        <Route 
-          path="/videos/:videoId" 
-          element={
-            <ProtectedRoute>
-              <VideoPlayer videoId="" />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Avaliações */}
-        <Route 
-          path="/modules/:moduleId/assessment" 
-          element={
-            <ProtectedRoute>
-              <AssessmentPage />
-            </ProtectedRoute>
-          } 
-        />
-        
-        <Route 
-          path="/assessments/:assessmentId" 
-          element={
-            <ProtectedRoute>
-              <AssessmentViewer assessmentId="" />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Progresso */}
-        <Route 
-          path="/progress" 
-          element={
-            <ProtectedRoute>
-              <UserProgressPage />
-            </ProtectedRoute>
-          } 
-        />
-        
-        <Route 
-          path="/progress/:userId" 
-          element={
-            <ProtectedRoute requiredRole="manager">
-              <UserProgressPage />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Gamificação */}
-        <Route 
-          path="/gamification" 
-          element={
-            <ProtectedRoute>
-              <GamificationPanel />
-            </ProtectedRoute>
-          } 
-        />
-        
-        <Route 
-          path="/ranking" 
-          element={
-            <ProtectedRoute>
-              <GamificationPanel />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Certificados */}
-        <Route 
-          path="/certificates" 
-          element={
-            <ProtectedRoute>
-              <CertificatePage />
-            </ProtectedRoute>
-          } 
-        />
-        
-        <Route 
-          path="/certificates/:certificateId" 
-          element={
-            <ProtectedRoute>
-              <CertificatePage />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Notificações */}
-        <Route 
-          path="/notifications" 
-          element={
-            <ProtectedRoute>
-              <NotificationCenter />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Relatórios */}
-        <Route 
-          path="/reports" 
-          element={
-            <ProtectedRoute requiredRole="manager">
-              <TrainingReports />
-            </ProtectedRoute>
-          } 
-        />
-        
-        <Route 
-          path="/reports/modules/:moduleId" 
-          element={
-            <ProtectedRoute requiredRole="manager">
-              <TrainingReports />
-            </ProtectedRoute>
-          } 
-        />
-        
-        <Route 
-          path="/reports/users/:userId" 
-          element={
-            <ProtectedRoute requiredRole="manager">
-              <TrainingReports />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Administração */}
-        <Route 
-          path="/admin" 
-          element={
-            <ProtectedRoute requiredRole="admin">
-              <AdminDashboardPage />
-            </ProtectedRoute>
-          } 
-        />
-        
-        <Route 
-          path="/admin/modules" 
-          element={
-            <ProtectedRoute requiredRole="admin">
-              <AdminDashboardPage />
-            </ProtectedRoute>
-          } 
-        />
-        
-        <Route 
-          path="/admin/users" 
-          element={
-            <ProtectedRoute requiredRole="admin">
-              <AdminDashboardPage />
-            </ProtectedRoute>
-          } 
-        />
-        
-        <Route 
-          path="/admin/settings" 
-          element={
-            <ProtectedRoute requiredRole="admin">
-              <AdminDashboardPage />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Rota de fallback */}
-        <Route path="*" element={<Navigate to="/training" replace />} />
+          {/* Todas as rotas de treinamento agora usam o layout com sidebar */}
+          {/* Dashboard Principal */}
+          <Route 
+            index 
+            element={
+              <ProtectedRoute>
+                <TrainingDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Página de Teste da Integração */}
+          <Route 
+            path="test" 
+            element={
+              <ProtectedRoute>
+                <TrainingTestPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Módulos */}
+          <Route 
+            path="modules" 
+            element={
+              <ProtectedRoute>
+                <TrainingDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="modules/new" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <ModuleEditor />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="modules/:moduleId" 
+            element={
+              <ProtectedRoute>
+                <ModuleDetailPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="modules/:moduleId/edit" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <ModuleEditor />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Conteúdo */}
+          <Route 
+            path="modules/:moduleId/content/new" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <ContentEditor />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="modules/:moduleId/content/:contentId" 
+            element={
+              <ProtectedRoute>
+                <ContentViewPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="modules/:moduleId/content/:contentId/edit" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <ContentEditor />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Vídeos */}
+          <Route 
+            path="videos/:videoId" 
+            element={
+              <ProtectedRoute>
+                <VideoPlayer videoId="" />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Avaliações */}
+          <Route 
+            path="modules/:moduleId/assessment" 
+            element={
+              <ProtectedRoute>
+                <AssessmentPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="assessments/:assessmentId" 
+            element={
+              <ProtectedRoute>
+                <AssessmentViewer assessmentId="" />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Progresso */}
+          <Route 
+            path="progress" 
+            element={
+              <ProtectedRoute>
+                <UserProgressPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="progress/:userId" 
+            element={
+              <ProtectedRoute requiredRole="manager">
+                <UserProgressPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Gamificação */}
+          <Route 
+            path="gamification" 
+            element={
+              <ProtectedRoute>
+                <GamificationPanel />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="ranking" 
+            element={
+              <ProtectedRoute>
+                <GamificationPanel />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Certificados */}
+          <Route 
+            path="certificates" 
+            element={
+              <ProtectedRoute>
+                <CertificatePage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="certificates/:certificateId" 
+            element={
+              <ProtectedRoute>
+                <CertificatePage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Notificações */}
+          <Route 
+            path="notifications" 
+            element={
+              <ProtectedRoute>
+                <NotificationCenter />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Relatórios */}
+          <Route 
+            path="reports" 
+            element={
+              <ProtectedRoute requiredRole="manager">
+                <TrainingReports />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="reports/modules/:moduleId" 
+            element={
+              <ProtectedRoute requiredRole="manager">
+                <TrainingReports />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="reports/users/:userId" 
+            element={
+              <ProtectedRoute requiredRole="manager">
+                <TrainingReports />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Administração */}
+          <Route 
+            path="admin" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminDashboardPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="admin/modules" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminDashboardPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="admin/users" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminDashboardPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="admin/settings" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminDashboardPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Rota de fallback */}
+          <Route path="*" element={<Navigate to="/training" replace />} />
       </Routes>
     </Suspense>
   );
@@ -395,23 +412,24 @@ export function PublicTrainingRoutes() {
 // =====================================================
 
 export function useTrainingNavigation() {
-  const navigate = (path: string) => {
-    // Implementar navegação com prefixo /training
-    window.location.href = `/training${path}`;
+  const navigate = useNavigate();
+  
+  const goToTrainingPath = (path: string) => {
+    navigate(`/training${path}`);
   };
   
   return {
-    goToDashboard: () => navigate('/'),
-    goToModules: () => navigate('/modules'),
-    goToModule: (moduleId: string) => navigate(`/modules/${moduleId}`),
+    goToDashboard: () => goToTrainingPath('/'),
+    goToModules: () => goToTrainingPath('/modules'),
+    goToModule: (moduleId: string) => goToTrainingPath(`/modules/${moduleId}`),
     goToContent: (moduleId: string, contentId: string) => 
-      navigate(`/modules/${moduleId}/content/${contentId}`),
-    goToAssessment: (moduleId: string) => navigate(`/modules/${moduleId}/assessment`),
-    goToProgress: () => navigate('/progress'),
-    goToGamification: () => navigate('/gamification'),
-    goToReports: () => navigate('/reports'),
-    goToNotifications: () => navigate('/notifications'),
-    goToAdmin: () => navigate('/admin')
+      goToTrainingPath(`/modules/${moduleId}/content/${contentId}`),
+    goToAssessment: (moduleId: string) => goToTrainingPath(`/modules/${moduleId}/assessment`),
+    goToProgress: () => goToTrainingPath('/progress'),
+    goToGamification: () => goToTrainingPath('/gamification'),
+    goToReports: () => goToTrainingPath('/reports'),
+    goToNotifications: () => goToTrainingPath('/notifications'),
+    goToAdmin: () => goToTrainingPath('/admin')
   };
 }
 

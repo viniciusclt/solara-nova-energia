@@ -1,201 +1,179 @@
-import React, { useState, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Progress } from '@/components/ui/progress';
-import { FileText, X, Upload, Check, AlertCircle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+"use client"
+
+import * as React from "react"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Upload, X } from "lucide-react"
 
 interface FileUploadProps {
-  bucketName: string;
-  folderPath?: string;
-  fileTypes?: string[];
-  maxSize?: number; // in MB
-  onUploadComplete: (url: string) => void;
-  onError?: (error: string) => void;
-  currentFileUrl?: string;
+  onFileSelect: (files: FileList | null) => void
+  accept?: string
+  multiple?: boolean
+  maxSize?: number
+  className?: string
+  disabled?: boolean
 }
 
 export function FileUpload({
-  bucketName,
-  folderPath = '',
-  fileTypes = ['application/pdf'],
-  maxSize = 10, // Default 10MB
-  onUploadComplete,
-  onError,
-  currentFileUrl
+  onFileSelect,
+  accept,
+  multiple = false,
+  maxSize,
+  className,
+  disabled = false,
+  ...props
 }: FileUploadProps) {
-  const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const [fileUrl, setFileUrl] = useState<string | null>(currentFileUrl || null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [dragActive, setDragActive] = React.useState(false)
+  const [selectedFiles, setSelectedFiles] = React.useState<File[]>([])
+  const inputRef = React.useRef<HTMLInputElement>(null)
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) {
-      setFile(null);
-      return;
+  const handleDrag = React.useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true)
+    } else if (e.type === "dragleave") {
+      setDragActive(false)
     }
+  }, [])
 
-    const selectedFile = e.target.files[0];
-    
-    // Validate file type
-    if (fileTypes.length > 0 && !fileTypes.includes(selectedFile.type)) {
-      setError(`Tipo de arquivo inválido. Tipos permitidos: ${fileTypes.map(type => type.split('/')[1]).join(', ')}`);
-      setFile(null);
-      e.target.value = '';
-      return;
-    }
+  const handleDrop = React.useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      setDragActive(false)
 
-    // Validate file size
-    if (selectedFile.size > maxSize * 1024 * 1024) {
-      setError(`Arquivo muito grande. Tamanho máximo: ${maxSize}MB`);
-      setFile(null);
-      e.target.value = '';
-      return;
-    }
+      if (disabled) return
 
-    setFile(selectedFile);
-    setError(null);
-  };
+      const files = e.dataTransfer.files
+      if (files && files.length > 0) {
+        const fileArray = Array.from(files)
+        setSelectedFiles(fileArray)
+        onFileSelect(files)
+      }
+    },
+    [disabled, onFileSelect]
+  )
 
-  const handleUpload = async () => {
-    if (!file) return;
+  const handleChange = React.useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      e.preventDefault()
+      if (disabled) return
 
-    try {
-      setUploading(true);
-      setProgress(0);
-      setError(null);
+      const files = e.target.files
+      if (files && files.length > 0) {
+        const fileArray = Array.from(files)
+        setSelectedFiles(fileArray)
+        onFileSelect(files)
+      }
+    },
+    [disabled, onFileSelect]
+  )
 
-      // Create a unique file name
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-      const filePath = folderPath ? `${folderPath}/${fileName}` : fileName;
-
-      // Upload file to Supabase Storage
-      const { data, error } = await supabase.storage
-        .from(bucketName)
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false,
-          onUploadProgress: (progress) => {
-            const percent = Math.round((progress.loaded / progress.total) * 100);
-            setProgress(percent);
-          },
-        });
-
-      if (error) throw error;
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(filePath);
-
-      setFileUrl(publicUrl);
-      onUploadComplete(publicUrl);
+  const removeFile = React.useCallback(
+    (index: number) => {
+      const newFiles = selectedFiles.filter((_, i) => i !== index)
+      setSelectedFiles(newFiles)
       
-      // Reset file input
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      setFile(null);
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Erro ao fazer upload do arquivo';
-      setError(errorMessage);
-      if (onError) onError(errorMessage);
-    } finally {
-      setUploading(false);
+      const dataTransfer = new DataTransfer()
+      newFiles.forEach(file => dataTransfer.items.add(file))
+      onFileSelect(dataTransfer.files)
+    },
+    [selectedFiles, onFileSelect]
+  )
+
+  const openFileDialog = () => {
+    if (inputRef.current) {
+      inputRef.current.click()
     }
-  };
-
-  const handleRemove = async () => {
-    if (!fileUrl) return;
-
-    try {
-      // Extract file path from URL
-      const urlParts = fileUrl.split('/');
-      const filePath = urlParts[urlParts.length - 1];
-
-      // Remove file from Supabase Storage
-      const { error } = await supabase.storage
-        .from(bucketName)
-        .remove([filePath]);
-
-      if (error) throw error;
-
-      setFileUrl(null);
-      onUploadComplete('');
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Erro ao remover o arquivo';
-      setError(errorMessage);
-      if (onError) onError(errorMessage);
-    }
-  };
-
-  const handleViewFile = () => {
-    if (fileUrl) {
-      window.open(fileUrl, '_blank');
-    }
-  };
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="file-upload">Upload de Arquivo</Label>
-        <div className="flex items-center gap-2">
-          <Input
-            ref={fileInputRef}
-            id="file-upload"
-            type="file"
-            accept={fileTypes.join(',')}
-            onChange={handleFileChange}
-            disabled={uploading}
-            className="flex-1"
-          />
-          {file && !uploading && (
-            <Button onClick={handleUpload} disabled={!file}>
-              <Upload className="h-4 w-4 mr-2" />
-              Upload
-            </Button>
-          )}
+    <div className={cn("w-full", className)}>
+      <div
+        className={cn(
+          "relative border-2 border-dashed rounded-lg p-6 transition-colors",
+          dragActive
+            ? "border-primary bg-primary/5"
+            : "border-muted-foreground/25 hover:border-muted-foreground/50",
+          disabled && "opacity-50 cursor-not-allowed"
+        )}
+        onDragEnter={handleDrag}
+        onDragLeave={handleDrag}
+        onDragOver={handleDrag}
+        onDrop={handleDrop}
+      >
+        <Input
+          ref={inputRef}
+          type="file"
+          accept={accept}
+          multiple={multiple}
+          onChange={handleChange}
+          disabled={disabled}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          {...props}
+        />
+        
+        <div className="flex flex-col items-center justify-center space-y-2 text-center">
+          <Upload className="h-8 w-8 text-muted-foreground" />
+          <div className="space-y-1">
+            <p className="text-sm font-medium">
+              Arraste arquivos aqui ou{" "}
+              <Button
+                type="button"
+                variant="link"
+                className="p-0 h-auto font-medium"
+                onClick={openFileDialog}
+                disabled={disabled}
+              >
+                clique para selecionar
+              </Button>
+            </p>
+            {accept && (
+              <p className="text-xs text-muted-foreground">
+                Formatos aceitos: {accept}
+              </p>
+            )}
+            {maxSize && (
+              <p className="text-xs text-muted-foreground">
+                Tamanho máximo: {(maxSize / 1024 / 1024).toFixed(1)}MB
+              </p>
+            )}
+          </div>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Tipos permitidos: {fileTypes.map(type => type.split('/')[1]).join(', ')}. 
-          Tamanho máximo: {maxSize}MB
-        </p>
       </div>
 
-      {uploading && (
-        <div className="space-y-2">
-          <Progress value={progress} />
-          <p className="text-xs text-muted-foreground">Enviando... {progress}%</p>
-        </div>
-      )}
-
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {fileUrl && (
-        <div className="flex items-center gap-2 p-3 border rounded-md bg-muted/30">
-          <FileText className="h-5 w-5 text-primary" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">Arquivo carregado</p>
-            <p className="text-xs text-muted-foreground truncate">{fileUrl.split('/').pop()}</p>
-          </div>
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="sm" onClick={handleViewFile}>
-              <FileText className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="sm" onClick={handleRemove}>
-              <X className="h-4 w-4" />
-            </Button>
+      {selectedFiles.length > 0 && (
+        <div className="mt-4 space-y-2">
+          <Label className="text-sm font-medium">Arquivos selecionados:</Label>
+          <div className="space-y-2">
+            {selectedFiles.map((file, index) => (
+              <div
+                key={index}
+                className="flex items-center justify-between p-2 bg-muted rounded-md"
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{file.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {(file.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeFile(index)}
+                  disabled={disabled}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
           </div>
         </div>
       )}
     </div>
-  );
+  )
 }

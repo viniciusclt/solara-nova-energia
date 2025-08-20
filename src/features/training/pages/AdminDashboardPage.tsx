@@ -35,7 +35,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Input } from '../../../components/ui/input';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useAdminStats, useAdminReports } from '../hooks/useTraining';
-import { SidebarToggle } from '../../../components/sidebar';
+import { SidebarToggle } from '../../../core/components/layout/SidebarToggle';
+import { useToast } from '../../../hooks/use-toast';
 
 // =====================================================
 // COMPONENTE PRINCIPAL
@@ -44,6 +45,7 @@ import { SidebarToggle } from '../../../components/sidebar';
 const AdminDashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [selectedPeriod, setSelectedPeriod] = useState('month');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -66,15 +68,19 @@ const AdminDashboardPage: React.FC = () => {
   };
 
   const handleCreateModule = () => {
-    navigate('/training/admin/modules/create');
+    navigate('/training/modules/new');
   };
 
   const handleViewModule = (moduleId: string) => {
-    navigate(`/training/admin/modules/${moduleId}`);
+    navigate(`/training/modules/${moduleId}`);
   };
 
   const handleViewUser = (userId: string) => {
-    navigate(`/training/admin/users/${userId}`);
+    // Implementar página de usuário ou mostrar modal
+    toast({
+      title: "Funcionalidade em desenvolvimento",
+      description: "A visualização detalhada de usuários será implementada em breve."
+    });
   };
 
   const handleExportReport = () => {

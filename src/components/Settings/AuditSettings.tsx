@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -73,16 +73,7 @@ export const AuditSettings: React.FC<AuditSettingsProps> = ({ onSettingsChange }
     maxLogSize: 100
   });
 
-  useEffect(() => {
-    loadSettings();
-    loadAuditLogs();
-  }, []);
-
-  useEffect(() => {
-    loadAuditLogs();
-  }, [searchTerm, filterLevel, filterCategory, currentPage]);
-
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('audit_settings')
@@ -101,7 +92,7 @@ export const AuditSettings: React.FC<AuditSettingsProps> = ({ onSettingsChange }
     } catch (error) {
       logError('Erro ao carregar configurações de auditoria', 'AuditSettings', { error: (error as Error).message });
     }
-  };
+  }, []);
 
   const saveSettings = async () => {
     setIsLoading(true);
@@ -155,7 +146,7 @@ export const AuditSettings: React.FC<AuditSettingsProps> = ({ onSettingsChange }
     }
   };
 
-  const loadAuditLogs = async () => {
+  const loadAuditLogs = useCallback(async () => {
     setIsLoadingLogs(true);
     
     try {
@@ -247,7 +238,16 @@ export const AuditSettings: React.FC<AuditSettingsProps> = ({ onSettingsChange }
     } finally {
       setIsLoadingLogs(false);
     }
-  };
+  }, [searchTerm, filterLevel, filterCategory, currentPage, toast]);
+
+  useEffect(() => {
+    loadSettings();
+    loadAuditLogs();
+  }, [loadSettings, loadAuditLogs]);
+
+  useEffect(() => {
+    loadAuditLogs();
+  }, [searchTerm, filterLevel, filterCategory, currentPage, loadAuditLogs]);
 
   const exportLogs = async () => {
     setIsExporting(true);

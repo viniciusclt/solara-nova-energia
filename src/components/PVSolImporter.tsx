@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,10 +32,10 @@ export function PVSolImporter({ onDataImported, onClose, embedded = false }: PVS
   const [inverterColumns, setInverterColumns] = useState<string[]>(['Inversor 1', 'Inversor 2']);
   const [useTableMode, setUseTableMode] = useState(true);
 
-  const monthNames = [
+  const monthNames = useMemo(() => [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
-  ];
+  ], []);
 
   const sampleData = `Janeiro	850.5
 Fevereiro	780.2
@@ -51,7 +51,7 @@ Novembro	820.3
 Dezembro	780.1`;
 
   // Inicializar dados da tabela
-  const initializeTableData = () => {
+  const initializeTableData = useCallback(() => {
     const initialData: PVSolData[] = monthNames.map((month, index) => ({
       month,
       monthNumber: index + 1,
@@ -60,7 +60,7 @@ Dezembro	780.1`;
     }));
     setParsedData(initialData);
     setIsValid(false);
-  };
+  }, [monthNames, inverterColumns]);
 
   const parseData = (data: string): PVSolData[] => {
     try {
@@ -265,7 +265,7 @@ Dezembro	780.1`;
     if (useTableMode) {
       initializeTableData();
     }
-  }, [useTableMode, inverterColumns.length]);
+  }, [useTableMode, inverterColumns.length, initializeTableData]);
 
   const handleImport = () => {
     if (!isValid || parsedData.length === 0) {

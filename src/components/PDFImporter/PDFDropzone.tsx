@@ -90,7 +90,7 @@ export const PDFDropzone: React.FC<PDFDropzoneProps> = ({
       title: 'Arquivos adicionados',
       description: `${acceptedFiles.length} arquivo(s) PDF adicionado(s) com sucesso.`
     });
-  }, [onFilesSelected, onFileError]);
+  }, [onFilesSelected, onFileError, allowPreview, autoProcess]);
 
   const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
     onDrop,
@@ -197,7 +197,7 @@ export const PDFDropzone: React.FC<PDFDropzoneProps> = ({
         }
       });
     };
-  }, []);
+  }, [uploadedFiles]);
 
   const stats = getFileStats();
 

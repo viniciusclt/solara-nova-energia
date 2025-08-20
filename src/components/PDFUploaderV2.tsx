@@ -145,7 +145,7 @@ const PDFUploaderV2: React.FC<PDFUploaderV2Props> = ({
   });
   
   // Padrões regex para extração de dados
-  const extractionPatterns = {
+  const extractionPatterns = useMemo(() => ({
     email: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
     phone: /\(?\d{2}\)?\s?\d{4,5}-?\d{4}/g,
     cpf: /\d{3}\.\d{3}\.\d{3}-\d{2}/g,
@@ -155,7 +155,7 @@ const PDFUploaderV2: React.FC<PDFUploaderV2Props> = ({
     power: /\d{1,4}(?:,\d{1,2})?\s?kWp?/gi,
     percentage: /\d{1,3}(?:,\d{1,2})?\s?%/g,
     area: /\d{1,4}(?:,\d{1,2})?\s?m[²2]/gi
-  };
+  }), []);
   
   // Configuração do dropzone
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
@@ -184,7 +184,7 @@ const PDFUploaderV2: React.FC<PDFUploaderV2Props> = ({
     for (const uploadedFile of newFiles) {
       await processFile(uploadedFile.id);
     }
-  }, [uploadedFiles.length, maxFiles]);
+  }, [uploadedFiles.length, maxFiles, processFile]);
   
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -198,7 +198,7 @@ const PDFUploaderV2: React.FC<PDFUploaderV2Props> = ({
   });
   
   // Processar arquivo individual
-  const processFile = async (fileId: string) => {
+  const processFile = useCallback(async (fileId: string) => {
     const file = uploadedFiles.find(f => f.id === fileId);
     if (!file) return;
     
@@ -228,10 +228,10 @@ const PDFUploaderV2: React.FC<PDFUploaderV2Props> = ({
         } : f
       ));
     }
-  };
+  }, [uploadedFiles, processPDF, processImage]);
   
   // Processar PDF
-  const processPDF = async (fileId: string) => {
+  const processPDF = useCallback(async (fileId: string) => {
     const uploadedFile = uploadedFiles.find(f => f.id === fileId);
     if (!uploadedFile) return;
     
@@ -288,10 +288,10 @@ const PDFUploaderV2: React.FC<PDFUploaderV2Props> = ({
       title: "PDF Processado",
       description: `${numPages} página(s) processada(s) com sucesso.`
     });
-  };
+  }, [uploadedFiles, ocrSettings, convertPDFPageToCanvas, extractStructuredData, performOCR, preprocessImage]);
   
   // Processar imagem
-  const processImage = async (fileId: string) => {
+  const processImage = useCallback(async (fileId: string) => {
     const uploadedFile = uploadedFiles.find(f => f.id === fileId);
     if (!uploadedFile) return;
     
@@ -334,10 +334,10 @@ const PDFUploaderV2: React.FC<PDFUploaderV2Props> = ({
       title: "Imagem Processada",
       description: "OCR concluído com sucesso."
     });
-  };
+  }, [uploadedFiles, ocrSettings, createCanvasFromImage, extractStructuredData, performOCR, preprocessImage]);
   
   // Converter página PDF para canvas
-  const convertPDFPageToCanvas = async (pdfBuffer: ArrayBuffer, pageNumber: number): Promise<HTMLCanvasElement> => {
+  const convertPDFPageToCanvas = useCallback(async (pdfBuffer: ArrayBuffer, pageNumber: number): Promise<HTMLCanvasElement> => {
     return new Promise((resolve, reject) => {
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
@@ -366,10 +366,10 @@ const PDFUploaderV2: React.FC<PDFUploaderV2Props> = ({
         }).catch(reject);
       }).catch(reject);
     });
-  };
+  }, [ocrSettings.dpi]);
   
   // Criar canvas de imagem
-  const createCanvasFromImage = async (file: File): Promise<HTMLCanvasElement> => {
+  const createCanvasFromImage = useCallback(async (file: File): Promise<HTMLCanvasElement> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
       const canvas = document.createElement('canvas');
@@ -390,10 +390,10 @@ const PDFUploaderV2: React.FC<PDFUploaderV2Props> = ({
       img.onerror = () => reject(new Error('Erro ao carregar imagem'));
       img.src = URL.createObjectURL(file);
     });
-  };
+  }, []);
   
   // Pré-processar imagem
-  const preprocessImage = async (canvas: HTMLCanvasElement): Promise<HTMLCanvasElement> => {
+  const preprocessImage = useCallback(async (canvas: HTMLCanvasElement): Promise<HTMLCanvasElement> => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return canvas;
     
@@ -427,10 +427,10 @@ const PDFUploaderV2: React.FC<PDFUploaderV2Props> = ({
     
     ctx.putImageData(imageData, 0, 0);
     return canvas;
-  };
+  }, [ocrSettings.enhanceContrast, ocrSettings.removeNoise]);
   
   // Executar OCR
-  const performOCR = async (canvas: HTMLCanvasElement, pageNumber: number): Promise<OCRPageResult> => {
+  const performOCR = useCallback(async (canvas: HTMLCanvasElement, pageNumber: number): Promise<OCRPageResult> => {
     const worker = await Tesseract.createWorker({
       logger: m => {
         // Log do progresso interno do Tesseract
@@ -468,10 +468,10 @@ const PDFUploaderV2: React.FC<PDFUploaderV2Props> = ({
     } finally {
       await worker.terminate();
     }
-  };
+  }, [ocrSettings.language, ocrSettings.psm, ocrSettings.oem]);
   
   // Extrair dados estruturados
-  const extractStructuredData = (ocrResults: OCRPageResult[]): ExtractedData => {
+  const extractStructuredData = useCallback((ocrResults: OCRPageResult[]): ExtractedData => {
     const allText = ocrResults.map(r => r.text).join('\n\n');
     const data: ExtractedData = {};
     
@@ -516,7 +516,7 @@ const PDFUploaderV2: React.FC<PDFUploaderV2Props> = ({
     }
     
     return data;
-  };
+  }, [extractionPatterns]);
   
   // Remover arquivo
   const removeFile = (fileId: string) => {

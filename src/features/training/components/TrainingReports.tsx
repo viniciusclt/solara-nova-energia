@@ -69,7 +69,7 @@ import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
-import { DatePicker } from '../../../components/ui/date-picker';
+import { DatePicker } from '../../../shared/ui/date-picker';
 import { Separator } from '../../../components/ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../../../components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '../../../components/ui/popover';
@@ -450,7 +450,7 @@ function QuickFilters({
       
       <Select 
         value={filter.dateRange} 
-        onValueChange={(value: any) => onFilterChange({ dateRange: value })}
+        onValueChange={(value: string) => onFilterChange({ dateRange: value })}
       >
         <SelectTrigger className="w-40">
           <SelectValue />
@@ -466,7 +466,7 @@ function QuickFilters({
       
       <Select 
         value={filter.status} 
-        onValueChange={(value: any) => onFilterChange({ status: value })}
+        onValueChange={(value: string) => onFilterChange({ status: value })}
       >
         <SelectTrigger className="w-40">
           <SelectValue />

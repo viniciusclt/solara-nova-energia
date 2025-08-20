@@ -620,7 +620,6 @@ export function FinancialAnalysis({ currentLead }: FinancialAnalysisProps) {
                 </Card>
               </div>
             </TabsContent>
-        </TabsContent>
 
             <TabsContent value="calculos">
                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

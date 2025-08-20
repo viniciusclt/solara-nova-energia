@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exemplo de Fluxograma para Importação</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .flowchart-node {
+            display: inline-block;
+            padding: 10px;
+            margin: 5px;
+            border: 2px solid #333;
+            border-radius: 5px;
+            background-color: #f0f0f0;
+        }
+        .start-node {
+            background-color: #d4edda;
+            border-color: #28a745;
+        }
+        .process-node {
+            background-color: #cce5ff;
+            border-color: #007bff;
+        }
+        .decision-node {
+            background-color: #fff3cd;
+            border-color: #ffc107;
+        }
+        .end-node {
+            background-color: #f8d7da;
+            border-color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <h1>Processo de Aprovação de Proposta</h1>
+    
+    <h2>Fluxograma com Atributos Específicos</h2>
+    <div class="flowchart-container">
+        <!-- Nós com atributos data-flowchart para importação precisa -->
+        <div class="flowchart-node start-node" 
+             data-flowchart-type="start" 
+             data-x="100" 
+             data-y="50" 
+             data-label="Início do Processo">
+            Início do Processo
+        </div>
+        
+        <div class="flowchart-node process-node" 
+             data-flowchart-type="process" 
+             data-x="300" 
+             data-y="50" 
+             data-label="Receber Proposta">
+            Receber Proposta
+        </div>
+        
+        <div class="flowchart-node decision-node" 
+             data-flowchart-type="decision" 
+             data-x="500" 
+             data-y="50" 
+             data-label="Proposta Válida?">
+            Proposta Válida?
+        </div>
+        
+        <div class="flowchart-node process-node" 
+             data-flowchart-type="process" 
+             data-x="700" 
+             data-y="50" 
+             data-label="Aprovar Proposta">
+            Aprovar Proposta
+        </div>
+        
+        <div class="flowchart-node process-node" 
+             data-flowchart-type="process" 
+             data-x="500" 
+             data-y="200" 
+             data-label="Solicitar Correções">
+            Solicitar Correções
+        </div>
+        
+        <div class="flowchart-node end-node" 
+             data-flowchart-type="end" 
+             data-x="700" 
+             data-y="200" 
+             data-label="Fim do Processo">
+            Fim do Processo
+        </div>
+        
+        <!-- Definição de conexões -->
+        <div data-connections='[
+            {"source": "node-1", "target": "node-2", "label": ""},
+            {"source": "node-2", "target": "node-3", "label": ""},
+            {"source": "node-3", "target": "node-4", "label": "Sim"},
+            {"source": "node-3", "target": "node-5", "label": "Não"},
+            {"source": "node-4", "target": "node-6", "label": ""},
+            {"source": "node-5", "target": "node-6", "label": ""}
+        ]'></div>
+    </div>
+    
+    <h2>Processo Alternativo (Elementos HTML Comuns)</h2>
+    <p>Este exemplo mostra como elementos HTML comuns podem ser convertidos em fluxograma:</p>
+    
+    <h3>Etapa 1: Planejamento</h3>
+    <p>Definir objetivos e escopo do projeto</p>
+    <ul>
+        <li>Analisar requisitos</li>
+        <li>Definir cronograma</li>
+        <li>Alocar recursos</li>
+    </ul>
+    
+    <h3>Etapa 2: Execução</h3>
+    <p>Implementar as atividades planejadas</p>
+    <ul>
+        <li>Desenvolver funcionalidades</li>
+        <li>Realizar testes</li>
+        <li>Documentar processo</li>
+    </ul>
+    
+    <h3>Etapa 3: Finalização</h3>
+    <p>Entregar o projeto e avaliar resultados</p>
+    <ul>
+        <li>Validar entregáveis</li>
+        <li>Obter aprovação</li>
+        <li>Encerrar projeto</li>
+    </ul>
+    
+    <h2>Instruções de Uso</h2>
+    <p>Para importar este fluxograma:</p>
+    <ol>
+        <li>Salve este arquivo como .html</li>
+        <li>No editor de fluxogramas, clique em "Importar HTML"</li>
+        <li>Selecione este arquivo</li>
+        <li>O sistema irá converter automaticamente os elementos em nós de fluxograma</li>
+    </ol>
+    
+    <p><strong>Formatos Suportados:</strong></p>
+    <ul>
+        <li><strong>Específico:</strong> Elementos com atributos data-flowchart-type, data-x, data-y</li>
+        <li><strong>Automático:</strong> Títulos (h1-h6) → Nós de início</li>
+        <li><strong>Automático:</strong> Parágrafos (p) → Nós de processo</li>
+        <li><strong>Automático:</strong> Itens de lista (li) → Nós de decisão</li>
+    </ul>
+</body>
+</html>

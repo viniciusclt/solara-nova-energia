@@ -8,7 +8,7 @@ export const useFinancialCalculations = (initialData: FinancialData) => {
   const { toast } = useToast();
   const [financialData, setFinancialData] = useState<FinancialData>(initialData);
   const [calculando, setCalculando] = useState(false);
-  const [calculadoraService] = useState(() => new CalculadoraSolarService());
+  const calculadoraService = useMemo(() => new CalculadoraSolarService(), []);
 
   // Atualizar dados financeiros
   const updateFinancialData = useCallback((updates: Partial<FinancialData>) => {

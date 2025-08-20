@@ -155,57 +155,188 @@ export class CalculadoraSolarService {
   }
 
   /**
-   * Calcula VPL (Valor Presente Líquido)
+   * Calcula VPL (Valor Presente Líquido) com validação aprimorada
    */
-  private calcularVPL(fluxos_caixa: number[], taxa_desconto: number): number {
-    return fluxos_caixa.reduce((vpl, fluxo, periodo) => {
-      return vpl + (fluxo / Math.pow(1 + taxa_desconto, periodo));
-    }, 0);
-  }
-
-  /**
-   * Calcula TIR (Taxa Interna de Retorno) usando método de Newton-Raphson
-   */
-  private calcularTIR(fluxos_caixa: number[]): number {
-    let taxa = 0.1; // Chute inicial de 10%
-    const precisao = 0.0001;
-    const max_iteracoes = 100;
-
-    for (let i = 0; i < max_iteracoes; i++) {
-      let vpl = 0;
-      let derivada = 0;
-
-      for (let periodo = 0; periodo < fluxos_caixa.length; periodo++) {
-        const fator = Math.pow(1 + taxa, periodo);
-        vpl += fluxos_caixa[periodo] / fator;
-        derivada -= (periodo * fluxos_caixa[periodo]) / (fator * (1 + taxa));
-      }
-
-      if (Math.abs(vpl) < precisao) {
-        return taxa * 100; // Retorna em %
-      }
-
-      if (Math.abs(derivada) < precisao) {
-        break; // Evita divisão por zero
-      }
-
-      taxa = taxa - vpl / derivada;
-
-      if (taxa < -0.99) taxa = -0.99; // Limita taxa mínima
-      if (taxa > 10) taxa = 10; // Limita taxa máxima
+  private calcularVPL(
+    fluxos_caixa: number[], 
+    taxa_desconto_anual: number
+  ): number {
+    // Validações
+    if (!fluxos_caixa || fluxos_caixa.length === 0) {
+      throw new Error('Fluxos de caixa são obrigatórios');
+    }
+    
+    if (taxa_desconto_anual < 0 || taxa_desconto_anual > 1) {
+      throw new Error('Taxa de desconto deve estar entre 0 e 100%');
     }
 
-    return taxa * 100; // Retorna em %
+    // Converter taxa anual para mensal
+    const taxa_mensal = Math.pow(1 + taxa_desconto_anual, 1/12) - 1;
+    
+    let vpl = 0;
+    for (let periodo = 0; periodo < fluxos_caixa.length; periodo++) {
+      const fluxo = fluxos_caixa[periodo];
+      
+      // Validar fluxo
+      if (isNaN(fluxo) || !isFinite(fluxo)) {
+        console.warn(`Fluxo inválido no período ${periodo}: ${fluxo}`);
+        continue;
+      }
+      
+      const fator_desconto = Math.pow(1 + taxa_mensal, periodo);
+      vpl += fluxo / fator_desconto;
+    }
+    
+    return vpl;
   }
 
   /**
-   * Calcula payback simples e descontado
+   * Calcula TIR (Taxa Interna de Retorno) usando Newton-Raphson otimizado
+   */
+  private calcularTIR(fluxos_caixa: number[]): number {
+    // Validações iniciais
+    if (!fluxos_caixa || fluxos_caixa.length < 2) {
+      console.warn('TIR: Fluxos insuficientes');
+      return 0;
+    }
+    
+    if (fluxos_caixa[0] >= 0) {
+      console.warn('TIR: Primeiro fluxo deve ser negativo (investimento)');
+      return 0;
+    }
+    
+    // Verificar se há fluxos positivos
+    const fluxos_positivos = fluxos_caixa.slice(1).filter(f => f > 0);
+    if (fluxos_positivos.length === 0) {
+      console.warn('TIR: Não há fluxos positivos');
+      return 0;
+    }
+
+    // Método de Newton-Raphson melhorado
+    let taxa = 0.1; // Chute inicial de 10%
+    const precisao = 0.000001;
+    const max_iteracoes = 1000;
+    let melhor_taxa = taxa;
+    let menor_vpl = Infinity;
+    
+    for (let iteracao = 0; iteracao < max_iteracoes; iteracao++) {
+      let vpl = 0;
+      let derivada_vpl = 0;
+      
+      // Calcular VPL e sua derivada
+      for (let periodo = 0; periodo < fluxos_caixa.length; periodo++) {
+        const fluxo = fluxos_caixa[periodo];
+        const fator = Math.pow(1 + taxa, periodo);
+        
+        // VPL
+        vpl += fluxo / fator;
+        
+        // Derivada do VPL
+        if (periodo > 0) {
+          derivada_vpl -= (periodo * fluxo) / (fator * (1 + taxa));
+        }
+      }
+      
+      // Guardar melhor aproximação
+      if (Math.abs(vpl) < Math.abs(menor_vpl)) {
+        menor_vpl = vpl;
+        melhor_taxa = taxa;
+      }
+      
+      // Verificar convergência
+      if (Math.abs(vpl) < precisao) {
+        return taxa * 100; // Retornar em percentual
+      }
+      
+      // Evitar divisão por zero
+      if (Math.abs(derivada_vpl) < precisao) {
+        console.warn('TIR: Derivada muito pequena, usando melhor aproximação');
+        return melhor_taxa * 100;
+      }
+      
+      // Atualizar taxa usando Newton-Raphson
+      const nova_taxa = taxa - (vpl / derivada_vpl);
+      
+      // Aplicar limites razoáveis para evitar divergência
+      taxa = Math.max(-0.99, Math.min(5.0, nova_taxa));
+      
+      // Verificar se a mudança é muito pequena
+      if (Math.abs(nova_taxa - taxa) < precisao) {
+        break;
+      }
+    }
+    
+    // Se não convergiu, retornar melhor aproximação
+    console.warn('TIR: Não convergiu, usando melhor aproximação');
+    return melhor_taxa * 100;
+  }
+  
+  /**
+   * Método da bisseção como fallback para cálculo da TIR
+   */
+  private calcularTIRBissecao(fluxos_caixa: number[]): number {
+    let taxa_min = -0.99;
+    let taxa_max = 5.0;
+    const precisao = 0.0001;
+    const max_iteracoes = 100;
+    
+    // Função para calcular VPL
+    const calcularVPLParaTIR = (taxa: number): number => {
+      return fluxos_caixa.reduce((vpl, fluxo, periodo) => {
+        const fator = Math.pow(1 + taxa, periodo);
+        return vpl + (fluxo / fator);
+      }, 0);
+    };
+    
+    let vpl_min = calcularVPLParaTIR(taxa_min);
+    let vpl_max = calcularVPLParaTIR(taxa_max);
+    
+    // Verificar se há mudança de sinal
+    if (vpl_min * vpl_max > 0) {
+      return 0; // Não há TIR no intervalo
+    }
+    
+    for (let i = 0; i < max_iteracoes; i++) {
+      const taxa_media = (taxa_min + taxa_max) / 2;
+      const vpl_media = calcularVPLParaTIR(taxa_media);
+      
+      if (Math.abs(vpl_media) < precisao) {
+        return taxa_media * 100;
+      }
+      
+      if (vpl_media * vpl_min < 0) {
+        taxa_max = taxa_media;
+        vpl_max = vpl_media;
+      } else {
+        taxa_min = taxa_media;
+        vpl_min = vpl_media;
+      }
+      
+      if (Math.abs(taxa_max - taxa_min) < precisao) {
+        return ((taxa_min + taxa_max) / 2) * 100;
+      }
+    }
+    
+    return 0; // Não convergiu
+  }
+
+  /**
+   * Calcula payback simples e descontado com validação
    */
   private calcularPayback(
     investimento_inicial: number,
     fluxos_caixa_mensais: number[],
     taxa_desconto_mensal: number
   ): { payback_simples: number; payback_descontado: number } {
+    // Validações
+    if (investimento_inicial <= 0) {
+      throw new Error('Investimento inicial deve ser positivo');
+    }
+    
+    if (!fluxos_caixa_mensais || fluxos_caixa_mensais.length === 0) {
+      throw new Error('Fluxos de caixa são obrigatórios');
+    }
+
     let acumulado_simples = 0;
     let acumulado_descontado = 0;
     let payback_simples = 0;
@@ -214,19 +345,33 @@ export class CalculadoraSolarService {
     for (let mes = 0; mes < fluxos_caixa_mensais.length; mes++) {
       const fluxo = fluxos_caixa_mensais[mes];
       
+      // Validar fluxo
+      if (isNaN(fluxo) || !isFinite(fluxo)) {
+        continue;
+      }
+      
       // Payback simples
       acumulado_simples += fluxo;
       if (payback_simples === 0 && acumulado_simples >= investimento_inicial) {
-        payback_simples = mes / 12; // Converte para anos
+        // Interpolação linear para maior precisão
+        const fluxo_anterior = acumulado_simples - fluxo;
+        const fracao_mes = (investimento_inicial - fluxo_anterior) / fluxo;
+        payback_simples = (mes + fracao_mes) / 12; // Converte para anos
       }
 
       // Payback descontado
-      const fluxo_descontado = fluxo / Math.pow(1 + taxa_desconto_mensal, mes);
+      const fator_desconto = Math.pow(1 + taxa_desconto_mensal, mes);
+      const fluxo_descontado = fluxo / fator_desconto;
       acumulado_descontado += fluxo_descontado;
+      
       if (payback_descontado === 0 && acumulado_descontado >= investimento_inicial) {
-        payback_descontado = mes / 12; // Converte para anos
+        // Interpolação linear para maior precisão
+        const acumulado_anterior = acumulado_descontado - fluxo_descontado;
+        const fracao_mes = (investimento_inicial - acumulado_anterior) / fluxo_descontado;
+        payback_descontado = (mes + fracao_mes) / 12; // Converte para anos
       }
 
+      // Se ambos foram encontrados, pode parar
       if (payback_simples > 0 && payback_descontado > 0) {
         break;
       }

@@ -9,6 +9,8 @@ import { ProfessionalA4Template } from './templates/ProfessionalA4Template';
 import { Presentation16x9Template } from './templates/Presentation16x9Template';
 import jsPDF from 'jspdf';
 import { logError } from '../utils/secureLogger';
+import { supabase } from '../integrations/supabase/client';
+import { toast } from '../hooks/use-toast';
 
 export class ProposalTemplateManager {
   private static instance: ProposalTemplateManager;

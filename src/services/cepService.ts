@@ -3,6 +3,7 @@
  */
 
 import { logError } from '@/utils/secureLogger';
+import { CacheService } from './CacheService';
 
 export interface CEPData {
   cep: string;
@@ -63,12 +64,7 @@ class CEPService {
       // Converter para formato interno
       return this.convertToAddressData(data);
     } catch (error) {
-      logError('Erro ao buscar CEP via ViaCEP', {
-        service: 'CEPService',
-        error: error instanceof Error ? error.message : 'Erro desconhecido',
-        cep: cleanCEP,
-        action: 'searchByCEP'
-      });
+      logError('Erro ao buscar CEP', 'cepService', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }

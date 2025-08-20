@@ -57,7 +57,7 @@ interface AssessmentViewerProps {
 interface AssessmentResult {
   score: number;
   passed: boolean;
-  answers: Record<string, any>;
+  answers: Record<string, string | number | string[]>;
   timeSpent: number;
   submissionId: string;
 }
@@ -156,7 +156,7 @@ export function AssessmentViewer({ assessmentId, moduleId, onComplete, onClose }
   // HANDLERS
   // =====================================================
   
-  const handleAnswerChange = (questionId: string, answer: any) => {
+  const handleAnswerChange = (questionId: string, answer: string | number | string[]) => {
     setAnswers(prev => ({
       ...prev,
       [questionId]: {
@@ -492,8 +492,8 @@ function QuestionRenderer({
   onAnswerChange 
 }: {
   question: AssessmentQuestion;
-  answer: any;
-  onAnswerChange: (answer: any) => void;
+  answer: string | number | string[] | undefined;
+  onAnswerChange: (answer: string | number | string[]) => void;
 }) {
   return (
     <div className="space-y-4">
@@ -560,12 +560,18 @@ function QuestionRenderer({
 // COMPONENTE: RESULTADOS DA AVALIAÇÃO
 // =====================================================
 
+interface AssessmentResultData {
+  score: number;
+  correct_answers?: number;
+  time_spent?: number;
+}
+
 function AssessmentResults({ 
   result, 
   assessment, 
   onClose 
 }: {
-  result: any;
+  result: AssessmentResultData;
   assessment: Assessment;
   onClose?: () => void;
 }) {

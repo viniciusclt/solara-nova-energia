@@ -43,7 +43,7 @@ import { Badge } from '../../../components/ui/badge';
 import { Progress } from '../../../components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
-import { Avatar, AvatarFallback, AvatarImage } from '../../../components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '../../../shared/ui/avatar';
 import { Separator } from '../../../components/ui/separator';
 import { useUserProgress, useGamification, useTrainingReports } from '../hooks/useTraining';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -350,7 +350,7 @@ function StatsCard({
   title: string;
   value: number;
   total?: number;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   color: 'green' | 'blue' | 'purple' | 'yellow';
   percentage?: number;
   suffix?: string;
@@ -481,7 +481,7 @@ function ModulesProgressList({ progress }: { progress: UserProgress[] }) {
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>Progresso por Módulo</CardTitle>
-          <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+          <Select value={sortBy} onValueChange={(value: 'name' | 'progress' | 'score' | 'date') => setSortBy(value)}>
             <SelectTrigger className="w-40">
               <SelectValue />
             </SelectTrigger>
@@ -562,13 +562,20 @@ function ModulesProgressList({ progress }: { progress: UserProgress[] }) {
 // COMPONENTE: PAINEL DE GAMIFICAÇÃO
 // =====================================================
 
+interface RankingUser {
+  id: string;
+  name: string;
+  avatar_url?: string;
+  total_points: number;
+}
+
 function GamificationPanel({ 
   gamificationData, 
   ranking, 
   userStats 
 }: {
   gamificationData: GamificationData;
-  ranking: any[];
+  ranking: RankingUser[];
   userStats: ProgressStats;
 }) {
   return (

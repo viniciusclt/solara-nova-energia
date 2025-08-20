@@ -211,19 +211,31 @@ export class TrainingService {
 
   // Progresso do Usuário
   static async getUserProgress(userId: string, moduleId?: string): Promise<UserProgress[]> {
-    let query = supabase
-      .from('user_progress')
-      .select('*')
-      .eq('user_id', userId);
+    try {
+      let query = supabase
+        .from('user_training_progress')
+        .select('*')
+        .eq('user_id', userId);
 
-    if (moduleId) {
-      query = query.eq('module_id', moduleId);
+      if (moduleId) {
+        query = query.eq('module_id', moduleId);
+      }
+
+      const { data, error } = await query;
+
+      // Se a tabela não existir, retornar array vazio
+      if (error && (error.code === 'PGRST116' || error.code === '42P01')) {
+        console.warn('Tabela user_training_progress não existe ainda. Sistema de treinamento desabilitado temporariamente');
+        return [];
+      }
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      logError('Erro ao buscar progresso', 'trainingService', { error: error instanceof Error ? error.message : String(error) });
+      // Retornar array vazio em caso de erro para não quebrar a aplicação
+      return [];
     }
-
-    const { data, error } = await query;
-
-    if (error) throw error;
-    return data || [];
   }
 
   static async updateVideoProgress(
@@ -231,22 +243,35 @@ export class TrainingService {
     videoId: string, 
     progressPercentage: number, 
     watchTimeSeconds: number
-  ): Promise<UserProgress> {
-    const { data, error } = await supabase
-      .from('user_progress')
-      .upsert({
-        user_id: userId,
-        video_id: videoId,
-        progress_percentage: progressPercentage,
-        watch_time_seconds: watchTimeSeconds,
-        last_watched_at: new Date().toISOString(),
-        completed_at: progressPercentage >= 100 ? new Date().toISOString() : null
-      })
-      .select()
-      .single();
+  ): Promise<UserProgress | null> {
+    try {
+      const { data, error } = await supabase
+        .from('user_training_progress')
+        .upsert({
+          user_id: userId,
+          content_id: videoId,
+          progress_percentage: progressPercentage,
+          time_spent: watchTimeSeconds,
+          last_position: watchTimeSeconds,
+          status: progressPercentage >= 100 ? 'completed' : 'in_progress',
+          updated_at: new Date().toISOString(),
+          completed_at: progressPercentage >= 100 ? new Date().toISOString() : null
+        })
+        .select()
+        .single();
 
-    if (error) throw error;
-    return data;
+      // Se a tabela não existir, retornar null
+      if (error && (error.code === 'PGRST116' || error.code === '42P01')) {
+        console.warn('Tabela user_training_progress não existe ainda. Progresso não será salvo.');
+        return null;
+      }
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      logError('Erro ao atualizar progresso do vídeo', 'trainingService', { error: error instanceof Error ? error.message : String(error) });
+      return null;
+    }
   }
 
   // Resultados de Avaliação
@@ -269,7 +294,7 @@ export class TrainingService {
     let score = 0;
     const totalQuestions = assessment.questions.length;
 
-    assessment.questions.forEach((question: any) => {
+    assessment.questions.forEach((question: AssessmentQuestion) => {
       const userAnswer = answers.find(a => a.question_id === question.id);
       if (userAnswer && userAnswer.answer === question.correct_answer) {
         score += question.points;
@@ -294,19 +319,30 @@ export class TrainingService {
   }
 
   static async getUserAssessmentResults(userId: string, assessmentId?: string): Promise<AssessmentResult[]> {
-    let query = supabase
-      .from('assessment_results')
-      .select('*')
-      .eq('user_id', userId);
+    try {
+      let query = supabase
+        .from('assessment_results')
+        .select('*')
+        .eq('user_id', userId);
 
-    if (assessmentId) {
-      query = query.eq('assessment_id', assessmentId);
+      if (assessmentId) {
+        query = query.eq('assessment_id', assessmentId);
+      }
+
+      const { data, error } = await query.order('completed_at', { ascending: false });
+
+      // Se a tabela não existir, retornar array vazio
+      if (error && (error.code === 'PGRST116' || error.code === '42P01')) {
+        console.warn('Tabela assessment_results não existe ainda. Sistema de avaliações desabilitado temporariamente');
+        return [];
+      }
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      logError('Erro ao buscar resultados de avaliação', 'trainingService', { error: error instanceof Error ? error.message : String(error) });
+      return [];
     }
-
-    const { data, error } = await query.order('completed_at', { ascending: false });
-
-    if (error) throw error;
-    return data || [];
   }
 
   // Certificados
@@ -328,20 +364,31 @@ export class TrainingService {
   }
 
   static async getUserCertificates(userId: string): Promise<Certificate[]> {
-    const { data, error } = await supabase
-      .from('certificates')
-      .select(`
-        *,
-        training_modules (
-          title,
-          description
-        )
-      `)
-      .eq('user_id', userId)
-      .order('issued_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('certificates')
+        .select(`
+          *,
+          training_modules (
+            title,
+            description
+          )
+        `)
+        .eq('user_id', userId)
+        .order('issued_at', { ascending: false });
 
-    if (error) throw error;
-    return data || [];
+      // Se a tabela não existir, retornar array vazio
+      if (error && (error.code === 'PGRST116' || error.code === '42P01')) {
+        console.warn('Tabela certificates não existe ainda. Sistema de certificados desabilitado temporariamente');
+        return [];
+      }
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      logError('Erro ao buscar certificados', 'trainingService', { error: error instanceof Error ? error.message : String(error) });
+      return [];
+    }
   }
 
   // Upload de arquivos

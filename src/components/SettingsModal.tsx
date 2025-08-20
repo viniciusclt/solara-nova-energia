@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, lazy } from "react";
+import React, { useState, useEffect, Suspense, lazy, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -38,13 +38,7 @@ export const SettingsModal: React.FC = () => {
   const [googleApiKey, setGoogleApiKey] = useState("");
   const [isSavingApiKey, setIsSavingApiKey] = useState(false);
 
-  useEffect(() => {
-    if (isOpen) {
-      loadApiKey();
-    }
-  }, [isOpen]);
-
-  const loadApiKey = async () => {
+  const loadApiKey = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('user_settings')
@@ -62,7 +56,13 @@ export const SettingsModal: React.FC = () => {
     } catch (error) {
       logError('Erro ao carregar API Key', 'SettingsModal', { error: (error as Error).message });
     }
-  };
+  }, [profile?.id]);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadApiKey();
+    }
+  }, [isOpen, loadApiKey]);
 
   const saveApiKey = async () => {
     if (!googleApiKey || googleApiKey === "••••••••••••••••") return;

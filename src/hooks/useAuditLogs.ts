@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from '../hooks/use-toast';
 import { logError } from '../utils/secureLogger';
@@ -99,7 +99,12 @@ export function useAuditLogs(): UseAuditLogsReturn {
 
   // Carregar logs de auditoria
   const loadLogs = useCallback(async () => {
-    if (!user || !profile?.company_id) return;
+    if (!user || !profile?.company_id) {
+      setLogs([]);
+      setTotalCount(0);
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
@@ -160,19 +165,25 @@ export function useAuditLogs(): UseAuditLogsReturn {
       setLogs(data || []);
       setTotalCount(count || 0);
     } catch (err) {
-      logError('Erro ao carregar logs de auditoria', {
-        service: 'useAuditLogs',
-        error: err instanceof Error ? err.message : 'Erro desconhecido',
-        userId: user?.id,
-        companyId: profile?.company_id,
-        action: 'loadLogs'
-      });
-      setError('Erro ao carregar logs de auditoria');
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível carregar os logs de auditoria',
-        variant: 'destructive',
-      });
+      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+      console.warn('Erro ao carregar logs de auditoria:', errorMessage);
+      
+      // Só mostrar erro se não for um problema de tabela inexistente
+      if (!errorMessage.includes('relation "audit_logs" does not exist')) {
+        logError('Erro ao carregar logs de auditoria', {
+          service: 'useAuditLogs',
+          error: errorMessage,
+          userId: user?.id,
+          companyId: profile?.company_id,
+          action: 'loadLogs'
+        });
+        setError('Erro ao carregar logs de auditoria');
+        toast({
+          title: 'Erro',
+          description: 'Não foi possível carregar os logs de auditoria',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -180,7 +191,10 @@ export function useAuditLogs(): UseAuditLogsReturn {
 
   // Carregar estatísticas
   const loadStats = useCallback(async () => {
-    if (!user || !profile?.company_id) return;
+    if (!user || !profile?.company_id) {
+      setStats(null);
+      return;
+    }
 
     try {
       const { data, error } = await supabase.rpc('get_audit_stats', {
@@ -194,13 +208,19 @@ export function useAuditLogs(): UseAuditLogsReturn {
 
       setStats(data);
     } catch (err) {
-      logError('Erro ao carregar estatísticas de auditoria', {
-        service: 'useAuditLogs',
-        error: err instanceof Error ? err.message : 'Erro desconhecido',
-        userId: user?.id,
-        companyId: profile?.company_id,
-        action: 'loadStats'
-      });
+      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+      console.warn('Erro ao carregar estatísticas de auditoria:', errorMessage);
+      
+      // Só mostrar erro se não for um problema de função inexistente
+      if (!errorMessage.includes('function get_audit_stats') && !errorMessage.includes('does not exist')) {
+        logError('Erro ao carregar estatísticas de auditoria', {
+          service: 'useAuditLogs',
+          error: errorMessage,
+          userId: user?.id,
+          companyId: profile?.company_id,
+          action: 'loadStats'
+        });
+      }
     }
   }, [user, profile]);
 
@@ -405,17 +425,35 @@ export function useAuditLogs(): UseAuditLogsReturn {
     setCurrentPage(page);
   }, []);
 
-  // Carregar dados iniciais
+  // Efeito principal para carregar dados quando necessário
   useEffect(() => {
-    if (user && profile) {
-      refreshLogs();
-    }
-  }, [user, profile, refreshLogs]);
+    let isMounted = true;
+    
+    const loadData = async () => {
+      if (!user || !profile?.company_id || !isMounted) return;
+      
+      // Evitar múltiplas chamadas simultâneas
+      if (loading) return;
+      
+      await Promise.all([
+        loadLogs(),
+        loadStats()
+      ]);
+    };
+    
+    loadData();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [user, profile?.company_id, currentPage, filters]);
 
-  // Recarregar quando filtros ou página mudarem
+  // Efeito separado para mudanças de página (sem recarregar stats)
   useEffect(() => {
-    loadLogs();
-  }, [loadLogs]);
+    if (user && profile?.company_id && currentPage > 1) {
+      loadLogs();
+    }
+  }, [currentPage]);
 
   return {
     logs,

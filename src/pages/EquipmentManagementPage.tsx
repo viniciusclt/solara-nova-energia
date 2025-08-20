@@ -1,83 +1,73 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Sun, Zap, Battery, Settings, ArrowLeft, Plus, Search, Filter } from "lucide-react";
-import { ModuleManagerAdvanced } from "@/components/ModuleManagerAdvanced";
-import { InverterManagerAdvanced } from "@/components/InverterManagerAdvanced";
+import { Sun, Zap, Battery, Settings, ArrowLeft, Plus, Upload, Download } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 interface EquipmentManagementPageProps {
   onBack?: () => void;
-  defaultTab?: "modules" | "inverters" | "batteries";
 }
 
-export function EquipmentManagementPage({ onBack, defaultTab = "modules" }: EquipmentManagementPageProps) {
-  const [activeTab, setActiveTab] = useState(defaultTab);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterBy, setFilterBy] = useState("all");
-
-  const equipmentCategories = [
-    {
-      id: "modules",
-      name: "Módulos Solares",
-      icon: Sun,
-      description: "Gerenciar módulos fotovoltaicos",
-      color: "text-orange-500",
-      bgColor: "bg-orange-50",
-      borderColor: "border-orange-200",
-      count: 0 // Será atualizado dinamicamente
-    },
-    {
-      id: "inverters", 
-      name: "Inversores",
-      icon: Zap,
-      description: "Gerenciar inversores solares",
-      color: "text-blue-500",
-      bgColor: "bg-blue-50",
-      borderColor: "border-blue-200",
-      count: 0 // Será atualizado dinamicamente
-    },
-    {
-      id: "batteries",
-      name: "Baterias",
-      icon: Battery,
-      description: "Gerenciar sistemas de armazenamento",
-      color: "text-green-500",
-      bgColor: "bg-green-50",
-      borderColor: "border-green-200",
-      count: 0 // Será atualizado dinamicamente
-    }
-  ];
+export function EquipmentManagementPage({ onBack }: EquipmentManagementPageProps) {
+  const { toast } = useToast();
+  const [systemType, setSystemType] = useState("");
+  const [installationType, setInstallationType] = useState("");
 
   const quickActions = [
     {
-      title: "Adicionar Módulo",
-      description: "Cadastrar novo módulo solar",
+      title: "Configurar Módulos",
+      description: "Definir módulos para o sistema",
       icon: Sun,
-      action: () => setActiveTab("modules"),
+      action: () => {
+        toast({
+          title: "Configuração de Módulos",
+          description: "Funcionalidade será integrada na próxima etapa (Simulação)"
+        });
+      },
       color: "text-orange-500",
       bgColor: "bg-orange-50"
     },
     {
-      title: "Adicionar Inversor",
-      description: "Cadastrar novo inversor",
+      title: "Configurar Inversores",
+      description: "Definir inversores para o sistema",
       icon: Zap,
-      action: () => setActiveTab("inverters"),
+      action: () => {
+        toast({
+          title: "Configuração de Inversores",
+          description: "Funcionalidade será integrada na próxima etapa (Simulação)"
+        });
+      },
       color: "text-blue-500",
       bgColor: "bg-blue-50"
     },
     {
-      title: "Importar Dados",
-      description: "Importar equipamentos em lote",
-      icon: Plus,
+      title: "Importar Configuração",
+      description: "Importar configuração de equipamentos",
+      icon: Upload,
       action: () => {
-        // TODO: Implementar funcionalidade de importação
+        toast({
+          title: "Importar Configuração",
+          description: "Funcionalidade de importação em desenvolvimento"
+        });
       },
       color: "text-purple-500",
       bgColor: "bg-purple-50"
+    },
+    {
+      title: "Exportar Configuração",
+      description: "Exportar configuração atual",
+      icon: Download,
+      action: () => {
+        toast({
+          title: "Exportar Configuração",
+          description: "Funcionalidade de exportação em desenvolvimento"
+        });
+      },
+      color: "text-green-500",
+      bgColor: "bg-green-50"
     }
   ];
 
@@ -113,7 +103,7 @@ export function EquipmentManagementPage({ onBack, defaultTab = "modules" }: Equi
       </Card>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {quickActions.map((action, index) => {
           const IconComponent = action.icon;
           return (
@@ -138,131 +128,51 @@ export function EquipmentManagementPage({ onBack, defaultTab = "modules" }: Equi
         })}
       </div>
 
-      {/* Search and Filter Bar */}
+      {/* Configuration Overview */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar equipamentos..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5 text-primary" />
+            Configuração Básica do Sistema
+          </CardTitle>
+          <CardDescription>
+            Configure os parâmetros básicos do sistema solar. O gerenciamento detalhado de equipamentos será feito na etapa de Simulação.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+               <Label htmlFor="system-type">Tipo de Sistema</Label>
+               <Input
+                 id="system-type"
+                 placeholder="Ex: Residencial, Comercial, Industrial"
+                 value={systemType}
+                 onChange={(e) => setSystemType(e.target.value)}
+               />
+             </div>
+             <div className="space-y-2">
+               <Label htmlFor="installation-type">Tipo de Instalação</Label>
+               <Input
+                 id="installation-type"
+                 placeholder="Ex: Telhado, Solo, Carport"
+                 value={installationType}
+                 onChange={(e) => setInstallationType(e.target.value)}
+               />
+             </div>
+          </div>
+          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <Settings className="h-4 w-4 text-blue-600" />
+              <span className="font-medium text-blue-800 dark:text-blue-200">Próxima Etapa</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <Select value={filterBy} onValueChange={setFilterBy}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Filtrar por" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="active">Ativos</SelectItem>
-                  <SelectItem value="inactive">Inativos</SelectItem>
-                  <SelectItem value="favorites">Favoritos</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <p className="text-sm text-blue-700 dark:text-blue-300">
+              O gerenciamento detalhado de módulos, inversores e baterias será feito na etapa de <strong>Simulação Técnica</strong>.
+            </p>
           </div>
         </CardContent>
       </Card>
 
-      {/* Equipment Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
-          {equipmentCategories.map((category) => {
-            const IconComponent = category.icon;
-            return (
-              <TabsTrigger 
-                key={category.id} 
-                value={category.id}
-                className="flex items-center gap-2"
-              >
-                <IconComponent className={`h-4 w-4 ${category.color}`} />
-                {category.name}
-                {category.count > 0 && (
-                  <Badge variant="secondary" className="ml-1 text-xs">
-                    {category.count}
-                  </Badge>
-                )}
-              </TabsTrigger>
-            );
-          })}
-        </TabsList>
 
-        <TabsContent value="modules" className="space-y-4">
-          <ModuleManagerAdvanced />
-        </TabsContent>
-
-        <TabsContent value="inverters" className="space-y-4">
-          <InverterManagerAdvanced />
-        </TabsContent>
-
-        <TabsContent value="batteries" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Battery className="h-5 w-5 text-green-500" />
-                Gerenciador de Baterias
-              </CardTitle>
-              <CardDescription>
-                Gerencie sistemas de armazenamento de energia
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12">
-                <Battery className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                <h3 className="text-lg font-semibold mb-2">Em Desenvolvimento</h3>
-                <p className="text-muted-foreground mb-4">
-                  O gerenciamento de baterias será implementado em uma próxima versão
-                </p>
-                <div className="flex flex-col items-center gap-2">
-                  <Badge variant="secondary">Próxima Atualização</Badge>
-                  <p className="text-xs text-muted-foreground">
-                    Funcionalidades planejadas: Tesla Powerwall, BYD, Pylontech
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      {/* Equipment Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {equipmentCategories.map((category) => {
-          const IconComponent = category.icon;
-          return (
-            <Card 
-              key={category.id} 
-              className={`cursor-pointer transition-all hover:shadow-md ${
-                activeTab === category.id ? `${category.bgColor} ${category.borderColor} border-2` : ''
-              }`}
-              onClick={() => setActiveTab(category.id)}
-            >
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${category.bgColor}`}>
-                      <IconComponent className={`h-5 w-5 ${category.color}`} />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">{category.name}</h4>
-                      <p className="text-sm text-muted-foreground">{category.description}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold">{category.count}</div>
-                    <div className="text-xs text-muted-foreground">cadastrados</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
     </div>
   );
 }

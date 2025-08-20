@@ -7,21 +7,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Search, Filter, Plus, Copy, Trash2, User, ArrowLeft, Calendar, MapPin } from "lucide-react";
+import { Search, Filter, Plus, Copy, Trash2, User, ArrowLeft, Calendar, MapPin, WifiOff, Wifi } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDebounce } from "@/hooks/useDebounce";
-import { logError } from "@/utils/secureLogger";
+import { logError, logInfo, logWarn } from "@/utils/secureLogger";
+import { useConnectivity } from '@/services/connectivityService';
+import { DemoDataService } from "@/services/DemoDataService";
 
 interface Lead {
   id: string;
   name: string;
   email: string | null;
   phone: string | null;
-  concessionaria: string | null;
-  grupo: string | null;
-  consumo_medio: number | null;
+  consumo_medio: number | null; // Corrigido de consumption_kwh para consumo_medio
+  status: string | null;
   created_at: string;
   updated_at: string;
   address?: {
@@ -62,14 +63,17 @@ export function LeadTablePage({
 }: LeadTablePageProps) {
   const { toast } = useToast();
   const { profile } = useAuth();
+  const connectivity = useConnectivity();
+  const demoService = DemoDataService.getInstance();
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [allConcessionarias, setAllConcessionarias] = useState<string[]>([]);
-  const [allGrupos, setAllGrupos] = useState<string[]>([]);
+  const [allStatuses, setAllStatuses] = useState<string[]>([]);
   const [allCities, setAllCities] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isUsingFallback, setIsUsingFallback] = useState(false);
+  const [errorCount, setErrorCount] = useState(0);
+  const [lastErrorTime, setLastErrorTime] = useState(0);
   const [searchTerm, setSearchTerm] = useState(searchQuery);
-  const [filterConcessionaria, setFilterConcessionaria] = useState("");
-  const [filterGrupo, setFilterGrupo] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
   const [filterCity, setFilterCity] = useState("");
   const [filterDateStart, setFilterDateStart] = useState("");
   const [filterDateEnd, setFilterDateEnd] = useState("");
@@ -85,68 +89,106 @@ export function LeadTablePage({
   // Debounce da busca
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
-  // Carregar opções de filtro na inicialização
-  useEffect(() => {
-    fetchFilterOptions();
-  }, []);
+  // Função para buscar dados mock como fallback
+  const fetchMockLeads = useCallback((): { leads: Lead[], totalCount: number } => {
+    const mockLeads = demoService.getLeads();
+    
+    let filteredLeads = mockLeads.map(lead => ({
+      id: lead.id!,
+      name: lead.name,
+      email: lead.email,
+      phone: lead.phone,
+      consumo_medio: lead.consumoMedio || 0, // Corrigido
+      status: lead.status || 'new',
+      created_at: lead.created_at!,
+      updated_at: lead.updated_at!,
+      address: lead.address
+    }));
 
-  // Buscar leads quando filtros mudarem
-  useEffect(() => {
-    fetchLeads();
-  }, [
-    currentPage, 
-    sortBy, 
-    sortOrder, 
-    debouncedSearchTerm, 
-    filterConcessionaria, 
-    filterGrupo,
-    filterCity,
-    filterDateStart,
-    filterDateEnd,
-    filterConsumoMin,
-    filterConsumoMax,
-    fetchLeads
-  ]);
-
-  // Resetar página quando filtros mudarem
-  useEffect(() => {
-    if (currentPage !== 1) {
-      setCurrentPage(1);
+    // Aplicar filtros
+    if (debouncedSearchTerm) {
+      const term = debouncedSearchTerm.toLowerCase();
+      filteredLeads = filteredLeads.filter(lead => 
+        lead.name.toLowerCase().includes(term) ||
+        (lead.email && lead.email.toLowerCase().includes(term)) ||
+        (lead.phone && lead.phone.includes(term))
+      );
     }
-  }, [
-    debouncedSearchTerm, 
-    filterConcessionaria, 
-    filterGrupo, 
-    filterCity,
-    filterDateStart,
-    filterDateEnd,
-    filterConsumoMin,
-    filterConsumoMax,
-    currentPage
-  ]);
+
+    if (filterStatus) {
+      filteredLeads = filteredLeads.filter(lead => lead.status === filterStatus);
+    }
+
+    if (filterCity) {
+      filteredLeads = filteredLeads.filter(lead => 
+        lead.address && lead.address.city === filterCity
+      );
+    }
+
+    if (filterConsumoMin) {
+      filteredLeads = filteredLeads.filter(lead => 
+        lead.consumo_medio && lead.consumo_medio >= parseInt(filterConsumoMin)
+      );
+    }
+
+    if (filterConsumoMax) {
+      filteredLeads = filteredLeads.filter(lead => 
+        lead.consumo_medio && lead.consumo_medio <= parseInt(filterConsumoMax)
+      );
+    }
+
+    // Aplicar ordenação
+    filteredLeads.sort((a, b) => {
+      let aValue, bValue;
+      switch (sortBy) {
+        case 'name':
+          aValue = a.name;
+          bValue = b.name;
+          break;
+        case 'consumo_medio': // Corrigido
+          aValue = a.consumo_medio || 0;
+          bValue = b.consumo_medio || 0;
+          break;
+        case 'created_at':
+          aValue = new Date(a.created_at).getTime();
+          bValue = new Date(b.created_at).getTime();
+          break;
+        case 'updated_at':
+        default:
+          aValue = new Date(a.updated_at).getTime();
+          bValue = new Date(b.updated_at).getTime();
+          break;
+      }
+      
+      if (sortOrder === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+
+    // Calcular total antes da paginação
+    const totalCount = filteredLeads.length;
+
+    // Aplicar paginação
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const paginatedLeads = filteredLeads.slice(startIndex, endIndex);
+    
+    return { leads: paginatedLeads, totalCount };
+  }, [demoService, debouncedSearchTerm, filterStatus, filterCity, filterConsumoMin, filterConsumoMax, sortBy, sortOrder, currentPage, pageSize]);
 
   const fetchFilterOptions = async () => {
     try {
-      // Buscar todas as concessionárias únicas
-      const { data: concessionariaData } = await supabase
+      // Buscar todos os status únicos
+      const { data: statusData } = await supabase
         .from('leads')
-        .select('concessionaria')
-        .not('concessionaria', 'is', null)
-        .neq('concessionaria', '');
+        .select('status')
+        .not('status', 'is', null)
+        .neq('status', '');
 
-      const concessionarias = Array.from(
-        new Set(concessionariaData?.map(item => item.concessionaria).filter(Boolean))
-      ).sort();
-
-      // Buscar todos os grupos únicos
-      const { data: grupoData } = await supabase
-        .from('leads')
-        .select('grupo')
-        .not('grupo', 'is', null)
-        .neq('grupo', '');
-
-      const grupos = Array.from(
-        new Set(grupoData?.map(item => item.grupo).filter(Boolean))
+      const statuses = Array.from(
+        new Set(statusData?.map(item => item.status).filter(Boolean))
       ).sort();
 
       // Buscar todas as cidades únicas
@@ -163,103 +205,242 @@ export function LeadTablePage({
         )
       ).sort();
 
-      setAllConcessionarias(concessionarias);
-      setAllGrupos(grupos);
+      setAllStatuses(statuses);
       setAllCities(cities);
     } catch (error) {
       logError('Erro ao carregar opções de filtro de leads', {
         service: 'LeadTablePage',
         error: (error as Error).message || 'Erro desconhecido'
       });
+      
+      // Usar dados mock para filtros
+      if (connectivity.shouldUseFallback(error)) {
+        const mockLeads = demoService.getLeads();
+        const statuses = Array.from(new Set(mockLeads.map(lead => lead.status).filter(Boolean))).sort();
+        const cities = Array.from(new Set(mockLeads.map(lead => lead.address?.city).filter(Boolean))).sort();
+        setAllStatuses(statuses);
+        setAllCities(cities);
+      }
     }
   };
 
-  const fetchLeads = async () => {
+  // Cache para resultados de busca
+  const [searchCache, setSearchCache] = useState<Map<string, { data: any[], count: number, timestamp: number }>>(new Map());
+  const CACHE_DURATION = 30000; // 30 segundos
+
+  const fetchLeads = useCallback(async () => {
     try {
       setLoading(true);
       
-      let query = supabase
-        .from('leads')
-        .select('id, name, email, phone, concessionaria, grupo, consumo_medio, created_at, updated_at, address', { count: 'exact' })
-        .order(sortBy, { ascending: sortOrder === 'asc' });
-
-      // Aplicar filtros na query
-      if (debouncedSearchTerm) {
-        query = query.or(`name.ilike.%${debouncedSearchTerm}%,email.ilike.%${debouncedSearchTerm}%,phone.ilike.%${debouncedSearchTerm}%`);
+      // Criar chave de cache baseada nos filtros
+      const cacheKey = JSON.stringify({
+        sortBy, sortOrder, debouncedSearchTerm, filterStatus, 
+        filterCity, filterDateStart, filterDateEnd, 
+        filterConsumoMin, filterConsumoMax, currentPage, pageSize
+      });
+      
+      // Verificar cache primeiro
+      const cached = searchCache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        setLeads(cached.data);
+        setTotalCount(cached.count);
+        setTotalPages(Math.ceil(cached.count / pageSize));
+        setIsUsingFallback(false);
+        setLoading(false);
+        return;
       }
-
-      if (filterConcessionaria) {
-        query = query.eq('concessionaria', filterConcessionaria);
+      
+      // Verificar rate limiting mais rigoroso
+      const now = Date.now();
+      const timeSinceLastError = now - lastErrorTime;
+      if (errorCount >= 2 && timeSinceLastError < 60000) { // Reduzido para 2 erros e aumentado timeout
+        logWarn('Rate limiting ativado - usando dados locais', 'LeadTablePage', {
+          errorCount,
+          timeSinceLastError
+        });
+        const mockResult = fetchMockLeads();
+        setLeads(mockResult.leads);
+        setTotalCount(mockResult.totalCount);
+        setTotalPages(Math.ceil(mockResult.totalCount / pageSize));
+        setIsUsingFallback(true);
+        return;
       }
+      
+      // Timeout mais agressivo para evitar travamentos
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Timeout na busca de leads')), 8000);
+      });
+      
+      const searchPromise = connectivity.withRetry(async () => {
+        logInfo('Buscando leads no Supabase', 'LeadTablePage');
+        
+        let query = supabase
+          .from('leads')
+          .select('id, name, email, phone, consumo_medio, status, created_at, updated_at, address, user_id') // Corrigido
+          .order(sortBy, { ascending: sortOrder === 'asc' });
 
-      if (filterGrupo) {
-        query = query.eq('grupo', filterGrupo);
-      }
-
-      if (filterDateStart) {
-        query = query.gte('created_at', filterDateStart);
-      }
-
-      if (filterDateEnd) {
-        query = query.lte('created_at', filterDateEnd + 'T23:59:59');
-      }
-
-      if (filterConsumoMin) {
-        query = query.gte('consumo_medio', parseInt(filterConsumoMin));
-      }
-
-      if (filterConsumoMax) {
-        query = query.lte('consumo_medio', parseInt(filterConsumoMax));
-      }
-
-      // Aplicar paginação
-      query = query.range((currentPage - 1) * pageSize, currentPage * pageSize - 1);
-
-      const { data, error, count } = await query;
-
-      if (error) throw error;
-
-      // Filtrar por cidade se necessário (filtro no frontend devido à estrutura JSON)
-      let filteredData = data || [];
-      if (filterCity) {
-        filteredData = filteredData.filter(lead => 
-          lead.address && lead.address.city === filterCity
-        );
-      }
-
-      setLeads(filteredData);
-      setTotalCount(count || 0);
-      setTotalPages(Math.ceil((count || 0) / pageSize));
-    } catch (error) {
-      logError('Erro ao carregar leads', {
-        service: 'LeadTablePage',
-        error: (error as Error).message || 'Erro desconhecido',
-        filters: {
-          searchTerm: debouncedSearchTerm,
-          concessionaria: filterConcessionaria,
-          grupo: filterGrupo,
-          city: filterCity
+        // Aplicar filtros na query
+        if (debouncedSearchTerm) {
+          query = query.or(`name.ilike.%${debouncedSearchTerm}%,email.ilike.%${debouncedSearchTerm}%,phone.ilike.%${debouncedSearchTerm}%`);
         }
+
+        if (filterCity) {
+          // Corrigir filtro de cidade para usar address->city
+          query = query.contains('address', { city: filterCity });
+        }
+
+        if (filterStatus) {
+          query = query.eq('status', filterStatus);
+        }
+
+        if (filterDateStart) {
+          query = query.gte('created_at', filterDateStart);
+        }
+
+        if (filterDateEnd) {
+          query = query.lte('created_at', filterDateEnd + 'T23:59:59');
+        }
+
+        if (filterConsumoMin) {
+          query = query.gte('consumo_medio', parseInt(filterConsumoMin)); // Corrigido
+        }
+
+        if (filterConsumoMax) {
+          query = query.lte('consumo_medio', parseInt(filterConsumoMax)); // Corrigido
+        }
+
+        // Aplicar paginação
+        query = query.range((currentPage - 1) * pageSize, currentPage * pageSize - 1);
+
+        const { data, error, count } = await query;
+
+        if (error) {
+          logError('Erro do Supabase na busca de leads', 'LeadTablePage', { 
+            error: error.message,
+            code: error.code,
+            details: error.details
+          });
+          throw error;
+        }
+
+        return { data: data || [], count: count || 0 };
+      }, {
+        maxRetries: 1, // Reduzido para evitar loops
+        baseDelay: 2000,
+        maxDelay: 5000
       });
-      toast({
-        title: "Erro",
-        description: "Erro ao carregar leads",
-        variant: "destructive"
+      
+      const result = await Promise.race([searchPromise, timeoutPromise]) as { data: any[], count: number };
+
+      setLeads(result.data);
+      setTotalCount(result.count);
+      setTotalPages(Math.ceil(result.count / pageSize));
+      setIsUsingFallback(false);
+      
+      // Salvar no cache
+      setSearchCache(prev => {
+        const newCache = new Map(prev);
+        newCache.set(cacheKey, {
+          data: result.data,
+          count: result.count,
+          timestamp: Date.now()
+        });
+        
+        // Limpar entradas antigas do cache
+        for (const [key, value] of newCache.entries()) {
+          if (Date.now() - value.timestamp > CACHE_DURATION) {
+            newCache.delete(key);
+          }
+        }
+        
+        return newCache;
       });
+      
+      // Reset error count em caso de sucesso
+      setErrorCount(prev => {
+        if (prev > 0) {
+          logInfo('Conexão com Supabase restaurada', 'LeadTablePage');
+          return 0;
+        }
+        return prev;
+      });
+      
+    } catch (error) {
+      const now = Date.now();
+      setErrorCount(prev => prev + 1);
+      setLastErrorTime(now);
+      
+      logWarn('Falha na busca - usando dados locais', 'LeadTablePage', { 
+        reason: error instanceof Error ? error.message : String(error),
+        errorCount: errorCount + 1
+      });
+      
+      // Sempre usar fallback em caso de erro
+      const mockResult = fetchMockLeads();
+      setLeads(mockResult.leads);
+      setTotalCount(mockResult.totalCount);
+      setTotalPages(Math.ceil(mockResult.totalCount / pageSize));
+      setIsUsingFallback(true);
     } finally {
       setLoading(false);
     }
-  };
+  }, [sortBy, sortOrder, debouncedSearchTerm, filterStatus, filterDateStart, filterDateEnd, filterConsumoMin, filterConsumoMax, currentPage, pageSize, filterCity, toast, connectivity, fetchMockLeads, demoService, errorCount, lastErrorTime, searchCache]);
+
+  // Toast para modo fallback
+  useEffect(() => {
+    if (isUsingFallback) {
+      toast({
+        title: "Modo Offline",
+        description: "Carregando dados locais. Verifique sua conexão.",
+        variant: "default"
+      });
+    }
+  }, [isUsingFallback, toast]);
+
+  // Carregar opções de filtro na inicialização
+  useEffect(() => {
+    fetchFilterOptions();
+  }, []);
+
+  // Buscar leads quando filtros mudarem
+  useEffect(() => {
+    fetchLeads();
+  }, [
+    currentPage, 
+    sortBy, 
+    sortOrder, 
+    debouncedSearchTerm, 
+    filterStatus,
+    filterCity,
+    filterDateStart,
+    filterDateEnd,
+    filterConsumoMin,
+    filterConsumoMax,
+    fetchLeads
+  ]);
+
+  // Resetar página quando filtros mudarem
+  useEffect(() => {
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [
+    debouncedSearchTerm, 
+    filterStatus, 
+    filterCity,
+    filterDateStart,
+    filterDateEnd,
+    filterConsumoMin,
+    filterConsumoMax,
+    currentPage
+  ]);
 
   const handleFilterChange = useCallback((type: string, value: string) => {
     const newValue = value === "none" ? "" : value;
     
     switch (type) {
-      case 'concessionaria':
-        setFilterConcessionaria(newValue);
-        break;
-      case 'grupo':
-        setFilterGrupo(newValue);
+      case 'status':
+        setFilterStatus(newValue);
         break;
       case 'city':
         setFilterCity(newValue);
@@ -284,7 +465,7 @@ export function LeadTablePage({
       // Buscar dados completos do lead
       const { data: fullLead, error } = await supabase
         .from('leads')
-        .select('*')
+        .select('id, name, email, phone, consumo_medio, status, created_at, updated_at, address, user_id')
         .eq('id', lead.id)
         .single();
 
@@ -358,8 +539,7 @@ export function LeadTablePage({
 
   const clearAllFilters = () => {
     setSearchTerm("");
-    setFilterConcessionaria("");
-    setFilterGrupo("");
+    setFilterStatus("");
     setFilterCity("");
     setFilterDateStart("");
     setFilterDateEnd("");
@@ -372,7 +552,7 @@ export function LeadTablePage({
   };
 
   const getFilterCount = () => {
-    const hasFilters = debouncedSearchTerm || filterConcessionaria || filterGrupo || filterCity || 
+    const hasFilters = debouncedSearchTerm || filterStatus || filterCity || 
                       filterDateStart || filterDateEnd || filterConsumoMin || filterConsumoMax;
     if (!hasFilters) return `Total: ${totalCount} leads`;
     
@@ -400,9 +580,27 @@ export function LeadTablePage({
               <CardTitle className="flex items-center gap-2">
                 <User className="h-5 w-5" />
                 Tabela Completa de Leads
+                {/* Indicador de conectividade */}
+                {isUsingFallback && (
+                  <div className="flex items-center gap-1 text-xs text-amber-600 ml-2">
+                    <WifiOff className="h-3 w-3" />
+                    <span className="hidden sm:inline">Modo Offline</span>
+                  </div>
+                )}
+                {!isUsingFallback && connectivity.isOnline && (
+                  <div className="flex items-center gap-1 text-xs text-green-600 ml-2">
+                    <Wifi className="h-3 w-3" />
+                    <span className="hidden sm:inline">Online</span>
+                  </div>
+                )}
               </CardTitle>
               <CardDescription>
                 {getFilterCount()}
+                {isUsingFallback && (
+                  <span className="text-amber-600 ml-2">
+                    • Exibindo dados locais
+                  </span>
+                )}
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -439,29 +637,14 @@ export function LeadTablePage({
             </div>
 
             <div>
-              <Label htmlFor="concessionaria">Concessionária</Label>
-              <Select value={filterConcessionaria || "none"} onValueChange={(value) => handleFilterChange('concessionaria', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todas" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Todas</SelectItem>
-                  {allConcessionarias.map(value => (
-                    <SelectItem key={value} value={value}>{value}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="grupo">Grupo</Label>
-              <Select value={filterGrupo || "none"} onValueChange={(value) => handleFilterChange('grupo', value)}>
+              <Label htmlFor="status">Status</Label>
+              <Select value={filterStatus || "none"} onValueChange={(value) => handleFilterChange('status', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Todos</SelectItem>
-                  {allGrupos.map(value => (
+                  {allStatuses.map(value => (
                     <SelectItem key={value} value={value}>{value}</SelectItem>
                   ))}
                 </SelectContent>
@@ -553,12 +736,12 @@ export function LeadTablePage({
                   </TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Telefone</TableHead>
-                  <TableHead>Concessionária</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Cidade</TableHead>
                   <TableHead 
                     className="cursor-pointer hover:bg-muted"
                     onClick={() => {
-                      setSortBy("consumo_medio");
+                      setSortBy("consumo_medio"); // Corrigido
                       setSortOrder(sortBy === "consumo_medio" && sortOrder === "asc" ? "desc" : "asc");
                     }}
                   >
@@ -585,7 +768,7 @@ export function LeadTablePage({
                     <TableCell className="font-medium">{lead.name}</TableCell>
                     <TableCell>{lead.email || "-"}</TableCell>
                     <TableCell>{lead.phone || "-"}</TableCell>
-                    <TableCell>{lead.concessionaria || "-"}</TableCell>
+                    <TableCell>{lead.status || "-"}</TableCell>
                     <TableCell>
                       {lead.address?.city ? (
                         <div className="flex items-center gap-1">
@@ -688,7 +871,7 @@ export function LeadTablePage({
             <div className="text-center py-8 text-muted-foreground">
               <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>Nenhum lead encontrado</p>
-              {(debouncedSearchTerm || filterConcessionaria || filterGrupo) && (
+              {(debouncedSearchTerm || filterStatus) && (
                 <Button variant="outline" onClick={clearAllFilters} className="mt-4">
                   Limpar filtros
                 </Button>

@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useToast } from './useToast';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../integrations/supabase/client';
 import { logFinancial, logError, logInfo } from '../utils/secureLogger';
 
 interface FinancialInstitution {
@@ -416,9 +416,8 @@ export const useFinancialIntegration = (): UseFinancialIntegrationReturn => {
       return data.id;
       
     } catch (err: unknown) {
-      logError('Erro ao criar aplicação financeira', {
-        error: err instanceof Error ? err.message : 'Erro desconhecido',
-        service: 'useFinancialIntegration'
+      logError('Erro ao criar aplicação financeira', 'useFinancialIntegration', {
+        error: err instanceof Error ? err.message : 'Erro desconhecido'
       });
       toast({
         title: "Erro",
@@ -488,9 +487,8 @@ export const useFinancialIntegration = (): UseFinancialIntegrationReturn => {
       });
       
     } catch (err: unknown) {
-      logError('Erro ao atualizar aplicação financeira', {
+      logError('Erro ao atualizar aplicação financeira', 'useFinancialIntegration', {
         error: err instanceof Error ? err.message : 'Erro desconhecido',
-        service: 'useFinancialIntegration',
         applicationId
       });
       toast({
@@ -517,9 +515,8 @@ export const useFinancialIntegration = (): UseFinancialIntegrationReturn => {
       return data.status;
       
     } catch (err: unknown) {
-      logError('Erro ao verificar status da aplicação', {
+      logError('Erro ao verificar status da aplicação', 'useFinancialIntegration', {
         error: err instanceof Error ? err.message : 'Erro desconhecido',
-        service: 'useFinancialIntegration',
         applicationId
       });
       return 'draft';
@@ -626,9 +623,8 @@ export const useFinancialIntegration = (): UseFinancialIntegrationReturn => {
       });
       
     } catch (err: unknown) {
-      logError('Erro na sincronização de aplicações', {
-        error: err instanceof Error ? err.message : 'Erro desconhecido',
-        service: 'useFinancialIntegration'
+      logError('Erro na sincronização de aplicações', 'useFinancialIntegration', {
+        error: err instanceof Error ? err.message : 'Erro desconhecido'
       });
       toast({
         title: "Erro",

@@ -52,6 +52,8 @@ import { Progress } from '../../../components/ui/progress';
 import { Separator } from '../../../components/ui/separator';
 import { useModuleContent, useVideoUpload } from '../hooks/useTraining';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useToast } from '../../../hooks/use-toast';
+import { logError } from '@/utils/secureLogger';
 import type { ContentFormData, TrainingContent } from '../types';
 
 // =====================================================
@@ -65,7 +67,7 @@ const contentSchema = z.object({
   description: z.string().optional(),
   estimated_duration: z.number().min(1, 'Duração deve ser maior que 0').optional(),
   is_mandatory: z.boolean().default(true),
-  content_data: z.record(z.any()).optional()
+  content_data: z.record(z.unknown()).optional()
 });
 
 type ContentFormValues = z.infer<typeof contentSchema>;
@@ -121,7 +123,10 @@ interface QuizData {
 
 export function ContentEditor({ moduleId, contentId, onSave, onCancel, isOpen }: ContentEditorProps) {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [currentTab, setCurrentTab] = useState('basic');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [videoUpload, setVideoUpload] = useState<VideoUploadState>({
     file: null,
     progress: 0,
@@ -164,7 +169,34 @@ export function ContentEditor({ moduleId, contentId, onSave, onCancel, isOpen }:
   useEffect(() => {
     if (contentId) {
       // Carregar dados do conteúdo existente
-      // TODO: Implementar busca de conteúdo por ID
+      const loadContent = async () => {
+        try {
+          setIsLoading(true);
+          // Implementação básica de carregamento de conteúdo
+          // A funcionalidade completa será implementada quando necessário
+          await new Promise(resolve => setTimeout(resolve, 1000)); // Simular carregamento
+          
+          // Aqui seria feita a chamada real para carregar o conteúdo
+          // const content = await trainingService.getContent(contentId);
+          // form.reset(content);
+          
+        } catch (error) {
+          logError('Erro ao carregar conteúdo', {
+            service: 'ContentEditor',
+            error: error instanceof Error ? error.message : 'Erro desconhecido',
+            contentId,
+            action: 'loadContent'
+          });
+          toast({
+            title: "Erro",
+            description: "Erro ao carregar conteúdo",
+            variant: "destructive"
+          });
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      loadContent();
     }
   }, [contentId]);
   
@@ -174,6 +206,7 @@ export function ContentEditor({ moduleId, contentId, onSave, onCancel, isOpen }:
   
   const handleSubmit = async (data: ContentFormValues) => {
     try {
+      setIsSaving(true);
       let contentData = {};
       
       // Preparar dados específicos por tipo
@@ -208,12 +241,33 @@ export function ContentEditor({ moduleId, contentId, onSave, onCancel, isOpen }:
       if (contentId) {
         const updatedContent = await updateContent({ contentId, contentData: contentPayload });
         onSave?.(updatedContent);
+        toast({
+          title: "Sucesso",
+          description: "Conteúdo atualizado com sucesso"
+        });
       } else {
         const newContent = await createContent(contentPayload);
         onSave?.(newContent);
+        toast({
+          title: "Sucesso",
+          description: "Conteúdo criado com sucesso"
+        });
       }
     } catch (error) {
-      console.error('Erro ao salvar conteúdo:', error);
+      logError('Erro ao salvar conteúdo', {
+        service: 'ContentEditor',
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        contentId,
+        contentType: data.content_type,
+        action: 'handleSubmit'
+      });
+      toast({
+        title: "Erro",
+        description: "Erro ao salvar conteúdo",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
   
@@ -395,7 +449,7 @@ export function ContentEditor({ moduleId, contentId, onSave, onCancel, isOpen }:
 // ABA: INFORMAÇÕES BÁSICAS
 // =====================================================
 
-function BasicContentTab({ form }: { form: any }) {
+function BasicContentTab({ form }: { form: ReturnType<typeof useForm> }) {
   return (
     <div className="space-y-6">
       <Card>
@@ -1069,7 +1123,7 @@ function InteractiveContentTab() {
 // ABA: VISUALIZAR
 // =====================================================
 
-function PreviewContentTab({ form, contentType }: { form: any; contentType: string }) {
+function PreviewContentTab({ form, contentType }: { form: ReturnType<typeof useForm>; contentType: string }) {
   const formData = form.watch();
   
   return (

@@ -93,7 +93,7 @@ const OCRProcessor: React.FC<OCRProcessorProps> = ({
   ];
 
   // Fabricantes conhecidos
-  const fabricantesConhecidos = [
+  const fabricantesConhecidos = useMemo(() => [
     'Canadian Solar',
     'Jinko Solar',
     'Trina Solar',
@@ -106,15 +106,15 @@ const OCRProcessor: React.FC<OCRProcessorProps> = ({
     'Growatt',
     'Sungrow',
     'Huawei'
-  ];
+  ], []);
 
   useEffect(() => {
     if (ocrData.length > 0 && processedProducts.length === 0) {
       processOCRData();
     }
-  }, [ocrData]);
+  }, [ocrData, processOCRData, processedProducts.length]);
 
-  const processOCRData = async () => {
+  const processOCRData = useCallback(async () => {
     if (ocrData.length === 0) return;
 
     setIsProcessing(true);
@@ -166,9 +166,9 @@ const OCRProcessor: React.FC<OCRProcessorProps> = ({
     } finally {
       setIsProcessing(false);
     }
-  };
+  }, [ocrData, onProductsProcessed, extractProductFromOCR]);
 
-  const extractProductFromOCR = async (data: OCRData): Promise<ProcessedProduct> => {
+  const extractProductFromOCR = useCallback(async (data: OCRData): Promise<ProcessedProduct> => {
     // Simulação de extração inteligente de dados
     const text = data.rawText.toLowerCase();
     
@@ -234,7 +234,7 @@ const OCRProcessor: React.FC<OCRProcessorProps> = ({
       confidence: data.confidence,
       verified: false
     };
-  };
+  }, [fabricantesConhecidos]);
 
   const updateProduct = (productId: string, field: string, value: string) => {
     setProcessedProducts(prev => 

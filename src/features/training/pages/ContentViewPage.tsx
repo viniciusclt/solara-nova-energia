@@ -27,9 +27,9 @@ import { Progress } from '../../../components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useModuleContent, useUserProgress } from '../hooks/useTraining';
-import { SidebarToggle } from '../../../components/sidebar';
+import { SidebarToggle } from '../../../core/components/layout/SidebarToggle';
 import VideoPlayer from '../components/VideoPlayer';
-import type { ModuleContent } from '../types';
+import type { ModuleContent, TrainingContent } from '../types';
 
 // =====================================================
 // COMPONENTE PRINCIPAL
@@ -42,15 +42,25 @@ const ContentViewPage: React.FC = () => {
   const [currentProgress, setCurrentProgress] = useState(0);
 
   const {
-    data: content,
-    isLoading,
-    error
-  } = useModuleContent(moduleId!, contentId!);
+    content: moduleContents,
+    isLoading: contentsLoading
+  } = useModuleContent(moduleId!);
 
   const {
     data: userProgress,
     updateProgress
   } = useUserProgress(moduleId!);
+
+  // Encontrar o conteúdo atual e sua posição na lista
+  const currentContent = moduleContents?.find(c => c.id === contentId);
+  const sortedContents = moduleContents?.sort((a, b) => a.content_order - b.content_order) || [];
+  const currentIndex = sortedContents.findIndex(c => c.id === contentId);
+  const hasNext = currentIndex < sortedContents.length - 1;
+  const hasPrevious = currentIndex > 0;
+
+  const isLoading = contentsLoading;
+  const error = !currentContent && !contentsLoading;
+  const content = currentContent;
 
   // =====================================================
   // HANDLERS
@@ -73,13 +83,17 @@ const ContentViewPage: React.FC = () => {
   };
 
   const handleNextContent = () => {
-    // Lógica para próximo conteúdo
-    console.log('Próximo conteúdo');
+    if (hasNext) {
+      const nextContent = sortedContents[currentIndex + 1];
+      navigate(`/training/modules/${moduleId}/content/${nextContent.id}`);
+    }
   };
 
   const handlePreviousContent = () => {
-    // Lógica para conteúdo anterior
-    console.log('Conteúdo anterior');
+    if (hasPrevious) {
+      const previousContent = sortedContents[currentIndex - 1];
+      navigate(`/training/modules/${moduleId}/content/${previousContent.id}`);
+    }
   };
 
   // =====================================================
@@ -244,7 +258,7 @@ const ContentViewPage: React.FC = () => {
                     onClick={handlePreviousContent} 
                     variant="outline" 
                     className="w-full"
-                    disabled
+                    disabled={!hasPrevious}
                   >
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Conteúdo Anterior
@@ -252,7 +266,7 @@ const ContentViewPage: React.FC = () => {
                   <Button 
                     onClick={handleNextContent} 
                     className="w-full"
-                    disabled
+                    disabled={!hasNext}
                   >
                     Próximo Conteúdo
                     <ArrowLeft className="h-4 w-4 ml-2 rotate-180" />

@@ -8,13 +8,16 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { Sun, Zap, Database, TrendingUp, AlertTriangle, CheckCircle, Settings, FileText } from "lucide-react";
+import { Sun, Zap, Database, TrendingUp, AlertTriangle, CheckCircle, Settings, FileText, Battery } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { SolarModule } from "@/types";
 import { EquipmentManager } from "./EquipmentManager";
 import { PVSolImporter } from "./PVSolImporter";
+import { ModuleManagerAdvanced } from "./modulemanageradvanced";
+import { InverterManagerAdvanced } from "./InverterManagerAdvanced";
 import { DemoDataService } from "@/services/DemoDataService";
+import { useSimulationData } from "@/stores/simulationStore";
 
 interface SimulationData {
   desvioAzimutal: number;
@@ -44,6 +47,7 @@ interface TechnicalSimulationProps {
 
 export function TechnicalSimulation({ currentLead }: TechnicalSimulationProps) {
   const { toast } = useToast();
+  const { updateSimulation } = useSimulationData();
   const [simulationLevel, setSimulationLevel] = useState<"basico" | "preciso">("basico");
   const [showEquipmentManager, setShowEquipmentManager] = useState(false);
   const [equipmentManagerTab, setEquipmentManagerTab] = useState<"modules" | "inverters">("modules");
@@ -155,13 +159,36 @@ export function TechnicalSimulation({ currentLead }: TechnicalSimulationProps) {
     
     setSimulation(novaSimulacao);
     
+    // Atualizar store global com dados da simulação
+    updateSimulation({
+      potencia_sistema_kwp: potenciaTotal / 1000,
+      geracao_anual_kwh: geracaoAnual,
+      geracao_mensal_media: geracaoMensalMedia,
+      quantidade_modulos: simulation.quantidadeModulos,
+      potencia_modulo: simulation.potenciaModulo,
+      modelo_modulo: simulation.modeloModulo,
+      quantidade_inversores: simulation.quantidadeInversores,
+      potencia_inversor: simulation.potenciaInversor,
+      modelo_inversor: simulation.modeloInversor,
+      performance_ratio: pr,
+      oversize: oversizeCalc,
+      hsp: simulation.hsp,
+      irradiancia_anual: simulation.irradianciaAnual,
+      desvio_azimutal: simulation.desvioAzimutal,
+      inclinacao: simulation.inclinacao,
+      tipo_telhado: simulation.tipoTelhado,
+      custo_sistema: 0, // Será preenchido posteriormente
+      economia_anual: 0, // Será calculado na análise financeira
+      payback_anos: 0 // Será calculado na análise financeira
+    });
+    
     toast({
       title: "Simulação Calculada",
-      description: `Sistema de ${(potenciaTotal/1000).toFixed(1)}kWp com PR de ${pr.toFixed(1)}%`
+      description: `Sistema de ${(potenciaTotal/1000).toFixed(1)}kWp com PR de ${pr.toFixed(1)}% - Dados salvos para análise financeira`
     });
   };
 
-  const isOversizeOptimal = simulation.oversize >= 100 && simulation.oversize <= 138;
+  const isOversizeOptimal = simulation.oversize >= 90 && simulation.oversize <= 140;
   const isGeracaoSuficiente = simulation.geracaoAnual >= simulation.geracaoNecessaria * 0.9;
 
   const handleOpenEquipmentManager = (tab: "modules" | "inverters") => {
@@ -447,148 +474,41 @@ export function TechnicalSimulation({ currentLead }: TechnicalSimulationProps) {
         </TabsContent>
 
         <TabsContent value="equipamentos">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="shadow-card">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Módulos Fotovoltaicos</CardTitle>
-                  <Button variant="outline" size="sm" onClick={() => handleOpenEquipmentManager("modules")}>
-                    <Settings className="h-4 w-4 mr-2" />
-                    Gerenciar
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="modeloModulo">Modelo do Módulo</Label>
-                  <Select value={simulation.modeloModulo} onValueChange={(value) => {
-                    const modulo = moduloPresets.find(m => m.nome === value);
-                    setSimulation(prev => ({ 
-                      ...prev, 
-                      modeloModulo: value,
-                      potenciaModulo: modulo?.potencia || prev.potenciaModulo
-                    }));
-                  }}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {moduloPresets.map(modulo => (
-                        <SelectItem key={modulo.nome} value={modulo.nome}>
-                          {modulo.nome} - {modulo.potencia}W
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="potenciaModulo">Potência (W)</Label>
-                    <Input
-                      id="potenciaModulo"
-                      type="number"
-                      value={simulation.potenciaModulo}
-                      onChange={(e) => setSimulation(prev => ({ ...prev, potenciaModulo: Number(e.target.value) }))}
-                    />
+          <Tabs defaultValue="modules" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="modules">Módulos Solares</TabsTrigger>
+              <TabsTrigger value="inverters">Inversores</TabsTrigger>
+              <TabsTrigger value="batteries">Baterias</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="modules" className="mt-6">
+              <ModuleManagerAdvanced />
+            </TabsContent>
+            
+            <TabsContent value="inverters" className="mt-6">
+              <InverterManagerAdvanced />
+            </TabsContent>
+            
+            <TabsContent value="batteries" className="mt-6">
+              <Card className="shadow-card">
+                <CardHeader>
+                  <CardTitle>Gerenciamento de Baterias</CardTitle>
+                  <CardDescription>
+                    Configure e gerencie as baterias do sistema
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8">
+                    <Battery className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">Funcionalidade em desenvolvimento</p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      O gerenciamento de baterias será implementado em breve
+                    </p>
                   </div>
-                  <div>
-                    <Label htmlFor="quantidadeModulos">Quantidade</Label>
-                    <Input
-                      id="quantidadeModulos"
-                      type="number"
-                      value={simulation.quantidadeModulos}
-                      onChange={(e) => setSimulation(prev => ({ ...prev, quantidadeModulos: Number(e.target.value) }))}
-                    />
-                  </div>
-                </div>
-
-                <div className="bg-muted/50 p-3 rounded-lg">
-                  <div className="text-sm font-medium">Potência Total do Array</div>
-                  <div className="text-xl font-bold text-primary">
-                    {((simulation.quantidadeModulos * simulation.potenciaModulo) / 1000).toFixed(2)} kWp
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-card">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Inversor</CardTitle>
-                  <Button variant="outline" size="sm" onClick={() => handleOpenEquipmentManager("inverters")}>
-                    <Settings className="h-4 w-4 mr-2" />
-                    Gerenciar
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="modeloInversor">Modelo do Inversor</Label>
-                  <Select value={simulation.modeloInversor} onValueChange={(value) => {
-                    const inversor = inversorPresets.find(i => i.nome === value);
-                    setSimulation(prev => ({ 
-                      ...prev, 
-                      modeloInversor: value,
-                      potenciaInversor: inversor?.potencia || prev.potenciaInversor
-                    }));
-                  }}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {inversorPresets.map(inversor => (
-                        <SelectItem key={inversor.nome} value={inversor.nome}>
-                          {inversor.nome} - {inversor.potencia}W
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="potenciaInversor">Potência (W)</Label>
-                    <Input
-                      id="potenciaInversor"
-                      type="number"
-                      value={simulation.potenciaInversor}
-                      onChange={(e) => setSimulation(prev => ({ ...prev, potenciaInversor: Number(e.target.value) }))}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="quantidadeInversores">Quantidade</Label>
-                    <Input
-                      id="quantidadeInversores"
-                      type="number"
-                      min="1"
-                      value={simulation.quantidadeInversores}
-                      onChange={(e) => setSimulation(prev => ({ ...prev, quantidadeInversores: Number(e.target.value) }))}
-                    />
-                  </div>
-                </div>
-
-                <div className="bg-muted/50 p-3 rounded-lg">
-                  <div className="text-sm font-medium">Potência Total dos Inversores</div>
-                  <div className="text-xl font-bold text-secondary">
-                    {((simulation.quantidadeInversores * simulation.potenciaInversor) / 1000).toFixed(2)} kWp
-                  </div>
-                </div>
-
-                <div className="bg-muted/50 p-3 rounded-lg">
-                  <div className="text-sm font-medium">Oversize Calculado</div>
-                  <div className={`text-xl font-bold ${
-                    simulation.oversize >= 100 && simulation.oversize <= 138 ? 'text-success' : 'text-warning'
-                  }`}>
-                    {((simulation.quantidadeModulos * simulation.potenciaModulo) / (simulation.potenciaInversor * simulation.quantidadeInversores) * 100).toFixed(1)}%
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Ideal: 100% - 138%
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
         <TabsContent value="perdas">
@@ -708,7 +628,7 @@ export function TechnicalSimulation({ currentLead }: TechnicalSimulationProps) {
                     <div className="font-medium">Oversize do Sistema</div>
                     <div className="text-sm text-muted-foreground">
                       {isOversizeOptimal ? 
-                        "Oversize dentro da faixa ideal (100-138%)" :
+                        "Oversize dentro da faixa ideal (90-140%)" :
                         "Oversize fora da faixa ideal. Ajuste os equipamentos"
                       }
                     </div>

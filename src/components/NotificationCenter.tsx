@@ -25,28 +25,9 @@ import {
   Settings
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import useNotifications from '@/hooks/useNotifications';
+import { useNotifications, type Notification, type NotificationType, type NotificationPriority } from '@/hooks/useNotifications';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
-export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'system';
-export type NotificationPriority = 'low' | 'medium' | 'high' | 'urgent';
-
-export interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  type: NotificationType;
-  priority: NotificationPriority;
-  read: boolean;
-  created_at: string;
-  expires_at?: string;
-  action_url?: string;
-  action_label?: string;
-  user_id: string;
-  company_id?: string;
-  metadata?: Record<string, string | number | boolean>;
-}
 
 interface NotificationCenterProps {
   isOpen: boolean;
@@ -162,7 +143,9 @@ export function NotificationCenter({ isOpen, onClose }: NotificationCenterProps)
                   }`}>
                     {notification.title}
                   </h4>
-                  <div className={`w-2 h-2 rounded-full ${getPriorityColor(notification.priority)}`} />
+                  {notification.priority && (
+                    <div className={`w-2 h-2 rounded-full ${getPriorityColor(notification.priority)}`} />
+                  )}
                 </div>
                 <p className={`text-sm ${
                   notification.read ? 'text-muted-foreground' : 'text-muted-foreground'
@@ -172,21 +155,24 @@ export function NotificationCenter({ isOpen, onClose }: NotificationCenterProps)
                 <div className="flex items-center gap-4 mt-2">
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <Clock className="h-3 w-3" />
-                    {formatDistanceToNow(new Date(notification.created_at), {
+                    {formatDistanceToNow(new Date(notification.created_at || notification.timestamp), {
                       addSuffix: true,
                       locale: ptBR
                     })}
                   </span>
-                  {notification.action_url && notification.action_label && (
+                  {(notification.action_url || notification.actionLabel) && (notification.action_label || notification.actionLabel) && (
                     <Button
                       variant="link"
                       size="sm"
                       className="h-auto p-0 text-xs"
                       onClick={() => {
                         markAsRead(notification.id);
+                        if (notification.actionCallback) {
+                          notification.actionCallback();
+                        }
                       }}
                     >
-                      {notification.action_label}
+                      {notification.action_label || notification.actionLabel}
                     </Button>
                   )}
                 </div>

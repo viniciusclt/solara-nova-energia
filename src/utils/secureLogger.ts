@@ -22,7 +22,7 @@ class SecureLogger {
   ];
 
   private constructor() {
-    this.isDevelopment = import.meta.env.DEV || process.env.NODE_ENV === 'development';
+    this.isDevelopment = import.meta.env.DEV || import.meta.env.MODE === 'development';
   }
 
   public static getInstance(): SecureLogger {

@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { ExcelFile, ColumnMapping, ValidationResult, ProcessedProduct, ImportSettings, ValidationError } from './types';
+import { logError } from '@/utils/secureLogger';
 
 interface UseExcelImporterReturn {
   // Estado
@@ -113,7 +114,7 @@ export const useExcelImporter = (): UseExcelImporterReturn => {
       setTimeout(() => setProgress(0), 1000);
 
     } catch (error) {
-      console.error('Erro ao processar arquivo:', error);
+      logError('Erro ao processar arquivo', 'useExcelImporter', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     } finally {
       setIsProcessing(false);
@@ -159,7 +160,7 @@ export const useExcelImporter = (): UseExcelImporterReturn => {
 
       // Validações específicas por campo
       switch (field) {
-        case 'potencia':
+        case 'potencia': {
           const potencia = parseFloat(String(value).replace(/[^0-9.,]/g, '').replace(',', '.'));
           if (isNaN(potencia) || potencia <= 0) {
             errors.push({
@@ -173,8 +174,9 @@ export const useExcelImporter = (): UseExcelImporterReturn => {
             product.potencia = potencia;
           }
           break;
+        }
 
-        case 'preco':
+        case 'preco': {
           const preco = parseFloat(String(value).replace(/[^0-9.,]/g, '').replace(',', '.'));
           if (isNaN(preco) || preco <= 0) {
             errors.push({
@@ -188,9 +190,10 @@ export const useExcelImporter = (): UseExcelImporterReturn => {
             product.preco = preco;
           }
           break;
+        }
 
         default:
-          (product as any)[field] = String(value).trim();
+          (product as Record<string, string | number>)[field] = String(value).trim();
       }
     });
 
@@ -199,7 +202,7 @@ export const useExcelImporter = (): UseExcelImporterReturn => {
       if (!settings.requiredFields.includes(field) && typeof columnIndex === 'number') {
         const value = row[columnIndex];
         if (value && String(value).trim() !== '') {
-          (product as any)[field] = String(value).trim();
+          (product as Record<string, string | number>)[field] = String(value).trim();
         }
       }
     });
@@ -278,7 +281,7 @@ export const useExcelImporter = (): UseExcelImporterReturn => {
       setValidationResult(result);
       
     } catch (error) {
-      console.error('Erro ao processar dados:', error);
+      logError('Erro ao processar dados', 'useExcelImporter', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     } finally {
       setIsProcessing(false);

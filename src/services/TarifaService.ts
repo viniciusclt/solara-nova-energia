@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { logWarn } from '@/utils/secureLogger';
+import { logWarn, logError } from '@/utils/secureLogger';
 
 // Interfaces para estrutura de tarifas
 export interface TarifaConcessionaria {
@@ -32,7 +32,13 @@ export interface CalculoTarifa {
   te_total: number;
   impostos_total: number;
   cosip_total: number;
-}
+  base_calculo: {
+    base_energetica: number;
+    pis_cofins_percentual: number;
+    icms_percentual: number;
+    cosip_valor: number;
+   };
+ }
 
 // Tarifas padrão das concessionárias do RJ (2025)
 const TARIFAS_PADRAO: Record<string, TarifaConcessionaria> = {
@@ -45,7 +51,7 @@ const TARIFAS_PADRAO: Record<string, TarifaConcessionaria> = {
     te: 0.366062,
     pis: 0.0107,
     cofins: 0.0494,
-    icms_faixa_1: 0.0, // Isento até 100 kWh
+    icms_faixa_1: 0.18, // 18% para faixa 51-100 kWh
     icms_faixa_2: 0.20, // 20% de 101-200 kWh
     icms_faixa_3: 0.31, // 31% acima de 200 kWh
     cosip_faixa_1: 7.97,
@@ -67,7 +73,7 @@ const TARIFAS_PADRAO: Record<string, TarifaConcessionaria> = {
     te: 0.3580000000,
     pis: 0.0107,
     cofins: 0.0494,
-    icms_faixa_1: 0.0,
+    icms_faixa_1: 0.18,
     icms_faixa_2: 0.20,
     icms_faixa_3: 0.31,
     cosip_faixa_1: 8.50,
@@ -89,7 +95,7 @@ const TARIFAS_PADRAO: Record<string, TarifaConcessionaria> = {
     te: 0.3450000000,
     pis: 0.0107,
     cofins: 0.0494,
-    icms_faixa_1: 0.0,
+    icms_faixa_1: 0.18,
     icms_faixa_2: 0.20,
     icms_faixa_3: 0.31,
     cosip_faixa_1: 7.50,
@@ -184,69 +190,127 @@ export class TarifaService {
   }
 
   /**
-   * Calcula ICMS baseado no consumo (faixas progressivas do RJ)
+   * Calcula ICMS por faixa de consumo (Rio de Janeiro)
    */
-  private calcularICMS(consumo_kwh: number, tarifa: TarifaConcessionaria): number {
-    if (consumo_kwh <= 100) {
-      return tarifa.icms_faixa_1; // Isento
-    } else if (consumo_kwh <= 200) {
-      return tarifa.icms_faixa_2; // 20%
-    } else {
-      return tarifa.icms_faixa_3; // 31%
-    }
-  }
-
-  /**
-   * Calcula COSIP baseado no consumo (faixas do RJ)
-   */
-  private calcularCOSIP(consumo_kwh: number, tarifa: TarifaConcessionaria): number {
-    if (consumo_kwh <= 30) {
-      return tarifa.cosip_faixa_1;
+  private calcularICMSPorFaixa(
+    consumo_kwh: number, 
+    tarifa: TarifaConcessionaria
+  ): number {
+    // Faixas progressivas do ICMS no RJ
+    if (consumo_kwh <= 50) {
+      return 0; // Isento até 50 kWh (tarifa social)
     } else if (consumo_kwh <= 100) {
-      return tarifa.cosip_faixa_2;
-    } else if (consumo_kwh <= 220) {
-      return tarifa.cosip_faixa_3;
-    } else if (consumo_kwh <= 1000) {
-      return tarifa.cosip_faixa_4;
+      return tarifa.icms_faixa_1 || 0.18; // 18% para faixa 51-100 kWh
+    } else if (consumo_kwh <= 200) {
+      return tarifa.icms_faixa_2 || 0.20; // 20% para faixa 101-200 kWh
     } else {
-      return tarifa.cosip_faixa_5;
+      return tarifa.icms_faixa_3 || 0.31; // 31% acima de 200 kWh
     }
   }
 
   /**
-   * Calcula tarifa final aplicando a fórmula oficial:
-   * (TUSD + TE) × (1 + PIS + COFINS) × (1 + ICMS) + COSIP
+   * Calcula COSIP por faixa de consumo
+   */
+  private calcularCOSIPPorFaixa(
+    consumo_kwh: number, 
+    tarifa: TarifaConcessionaria
+  ): number {
+    // COSIP é valor fixo por faixa, não percentual
+    if (consumo_kwh <= 30) {
+      return tarifa.cosip_faixa_1 || 0;
+    } else if (consumo_kwh <= 50) {
+      return tarifa.cosip_faixa_2 || 3.11;
+    } else if (consumo_kwh <= 100) {
+      return tarifa.cosip_faixa_3 || 6.22;
+    } else if (consumo_kwh <= 200) {
+      return tarifa.cosip_faixa_4 || 12.44;
+    } else if (consumo_kwh <= 300) {
+      return tarifa.cosip_faixa_5 || 18.66;
+    } else if (consumo_kwh <= 400) {
+      return 24.88; // Nova faixa
+    } else if (consumo_kwh <= 500) {
+      return 31.10; // Nova faixa
+    } else {
+      return 31.86; // Nova faixa
+    }
+  }
+
+  /**
+   * Calcula tarifa final usando fórmula oficial ANEEL
+   * Fórmula: (TUSD + TE) × (1 + PIS/COFINS) × (1 + ICMS) + COSIP/kWh
    */
   public calcularTarifaFinal(
     consumo_kwh: number,
     concessionaria: TarifaConcessionaria,
     incluir_fio_b: boolean = true
   ): CalculoTarifa {
-    const tusd_fio_a = concessionaria.tusd_fio_a;
-    const tusd_fio_b = incluir_fio_b ? concessionaria.tusd_fio_b : 0;
-    const te = concessionaria.te;
+    // Validação de entrada
+    if (consumo_kwh <= 0) {
+      throw new Error('Consumo deve ser maior que zero');
+    }
     
-    const tusd_total = tusd_fio_a + tusd_fio_b;
-    const te_total = te;
+    if (!concessionaria) {
+      throw new Error('Dados da concessionária são obrigatórios');
+    }
+
+    // Componentes base da tarifa
+    const tusd_fio_a = concessionaria.tusd_fio_a || 0;
+    const tusd_fio_b = incluir_fio_b ? (concessionaria.tusd_fio_b || 0) : 0;
+    const te = concessionaria.te || 0;
     
-    const base_energetica = tusd_total + te_total;
+    // Base energética (sem impostos)
+    const base_energetica = tusd_fio_a + tusd_fio_b + te;
     
-    const pis_cofins = concessionaria.pis + concessionaria.cofins;
-    const icms = this.calcularICMS(consumo_kwh, concessionaria);
-    const cosip = this.calcularCOSIP(consumo_kwh, concessionaria);
+    // Impostos federais (PIS + COFINS)
+    const pis_cofins = (concessionaria.pis || 0) + (concessionaria.cofins || 0);
     
-    // Aplicar fórmula oficial
+    // ICMS por faixa de consumo (RJ)
+    const icms = this.calcularICMSPorFaixa(consumo_kwh, concessionaria);
+    
+    // COSIP por faixa de consumo (valor fixo, não percentual)
+    const cosip_valor = this.calcularCOSIPPorFaixa(consumo_kwh, concessionaria);
+    
+    // Aplicar fórmula oficial ANEEL
     const tarifa_com_impostos = base_energetica * (1 + pis_cofins) * (1 + icms);
-    const tarifa_final = tarifa_com_impostos + (cosip / consumo_kwh); // COSIP é valor fixo, não por kWh
+    const tarifa_final = tarifa_com_impostos + (cosip_valor / Math.max(consumo_kwh, 1));
+    
+    // Validação do resultado
+    if (tarifa_final < 0.5 || tarifa_final > 2.0) {
+      console.warn(`Tarifa calculada fora da faixa esperada: R$ ${tarifa_final.toFixed(4)}/kWh`);
+    }
     
     return {
       tarifa_sem_fv: tarifa_final,
-      tarifa_com_fv: incluir_fio_b ? tusd_fio_a * (1 + pis_cofins) * (1 + icms) + (cosip / consumo_kwh) : tarifa_final,
-      tusd_total,
-      te_total,
-      impostos_total: (base_energetica * pis_cofins) + (base_energetica * (1 + pis_cofins) * icms),
-      cosip_total: cosip
+      tarifa_com_fv: incluir_fio_b ? 
+        this.calcularTarifaSemFioB(consumo_kwh, concessionaria, cosip_valor) : 
+        tarifa_final,
+      tusd_total: tusd_fio_a + tusd_fio_b,
+      te_total: te,
+      impostos_total: base_energetica * (pis_cofins + icms + (pis_cofins * icms)),
+      cosip_total: cosip_valor,
+      base_calculo: {
+        base_energetica,
+        pis_cofins_percentual: pis_cofins,
+        icms_percentual: icms,
+        cosip_valor
+      }
     };
+  }
+
+  /**
+   * Calcula tarifa sem Fio B (para sistemas fotovoltaicos)
+   */
+  private calcularTarifaSemFioB(
+    consumo_kwh: number,
+    concessionaria: TarifaConcessionaria,
+    cosip_valor: number
+  ): number {
+    const base_sem_fio_b = concessionaria.tusd_fio_a + concessionaria.te;
+    const pis_cofins = concessionaria.pis + concessionaria.cofins;
+    const icms = this.calcularICMSPorFaixa(consumo_kwh, concessionaria);
+    
+    const tarifa_com_impostos = base_sem_fio_b * (1 + pis_cofins) * (1 + icms);
+    return tarifa_com_impostos + (cosip_valor / Math.max(consumo_kwh, 1));
   }
 
   /**

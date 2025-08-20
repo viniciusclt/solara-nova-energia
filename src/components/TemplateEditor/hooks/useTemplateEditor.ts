@@ -25,7 +25,7 @@ export function useTemplateEditor(templateId?: string) {
     if (templateId) {
       loadTemplate(templateId);
     }
-  }, [templateId]);
+  }, [templateId, loadTemplate]);
 
   const addToHistory = useCallback((components: TemplateComponent[]) => {
     setState(prev => {
@@ -77,7 +77,7 @@ export function useTemplateEditor(templateId?: string) {
 
   const updateComponentProperties = useCallback((id: string, properties: Partial<ComponentProperties>) => {
     updateComponent(id, { properties: { ...getComponentById(id)?.properties, ...properties } });
-  }, [updateComponent]);
+  }, [updateComponent, getComponentById]);
 
   const deleteComponent = useCallback((id: string) => {
     setState(prev => {
@@ -105,7 +105,7 @@ export function useTemplateEditor(templateId?: string) {
       };
       addComponent(newComponent);
     }
-  }, [state.components, addComponent]);
+  }, [state.components, addComponent, getComponentById]);
 
   const selectComponent = useCallback((id: string | null) => {
     setState(prev => ({

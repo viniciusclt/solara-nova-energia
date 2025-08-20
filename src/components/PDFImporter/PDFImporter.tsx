@@ -89,7 +89,7 @@ export const PDFImporter: React.FC<PDFImporterProps> = ({
         }, 1000);
       }
     }
-  }, [autoProcess]);
+  }, [autoProcess, handleStartProcessing]);
 
   const handleFileRejected = useCallback((rejectedFiles: Array<{file: File, errors: Array<{code: string, message: string}>}>) => {
     const errors = rejectedFiles.map(file => {
@@ -123,7 +123,7 @@ export const PDFImporter: React.FC<PDFImporterProps> = ({
       progress: 0,
       message: 'Iniciando processamento OCR...'
     });
-  }, [currentFile]);
+  }, [currentFile, setActiveTab, setProcessingStatus]);
 
   const handleProcessingProgress = useCallback((progress: number, message: string, currentPage?: number, totalPages?: number) => {
     setProcessingStatus({

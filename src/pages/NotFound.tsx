@@ -1,13 +1,4 @@
-import { useLocation } from "react-router-dom";
-import { useEffect } from "react";
-
 const NotFound = () => {
-  const location = useLocation();
-
-  useEffect(() => {
-    // Log 404 attempts securely without exposing path information
-    // This could be enhanced with server-side logging if needed
-  }, [location.pathname]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">

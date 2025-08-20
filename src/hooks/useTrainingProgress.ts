@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { TrainingService } from '@/services/trainingService';
 import { UserProgress } from '@/types/training';
@@ -13,20 +13,27 @@ export function useTrainingProgress(moduleId?: string) {
     if (user) {
       loadProgress();
     }
-  }, [user, moduleId]);
+  }, [user, moduleId, loadProgress]);
 
-  const loadProgress = async () => {
+  const loadProgress = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       const data = await TrainingService.getUserProgress(user!.id, moduleId);
-      setProgress(data);
+      setProgress(data || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao carregar progresso');
+      console.warn('Erro ao carregar progresso do treinamento:', err);
+      // Em caso de erro, definir array vazio para não quebrar a aplicação
+      setProgress([]);
+      // Só mostrar erro se não for relacionado a tabela inexistente
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar progresso';
+      if (!errorMessage.includes('não existe')) {
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, moduleId]);
 
   const updateVideoProgress = async (
     videoId: string, 
@@ -40,12 +47,18 @@ export function useTrainingProgress(moduleId?: string) {
         progressPercentage,
         watchTimeSeconds
       );
+      
+      // Se o serviço retornou null (tabela não existe), não atualizar o estado
+      if (!updatedProgress) {
+        console.warn('Progresso não foi salvo - tabela de treinamento não existe');
+        return;
+      }
 
       // Atualizar estado local
       setProgress(prev => {
-        const existing = prev.find(p => p.video_id === videoId);
+        const existing = prev.find(p => p.video_id === videoId || p.content_id === videoId);
         if (existing) {
-          return prev.map(p => p.video_id === videoId ? updatedProgress : p);
+          return prev.map(p => (p.video_id === videoId || p.content_id === videoId) ? updatedProgress : p);
         } else {
           return [...prev, updatedProgress];
         }
@@ -53,7 +66,11 @@ export function useTrainingProgress(moduleId?: string) {
 
       return updatedProgress;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao atualizar progresso');
+      console.warn('Erro ao atualizar progresso do vídeo:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao atualizar progresso';
+      if (!errorMessage.includes('não existe')) {
+        setError(errorMessage);
+      }
       throw err;
     }
   };

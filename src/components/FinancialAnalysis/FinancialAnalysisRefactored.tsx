@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Calculator, Settings, BarChart3, Zap } from 'lucide-react';
+import { Calculator, Settings, BarChart3, FileText, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { TarifaService, TarifaConcessionaria } from '@/services/TarifaService';
 import { logError } from '@/utils/secureLogger';
@@ -13,6 +13,7 @@ import { FinancialKitManager } from '../FinancialKitManager';
 import { FinancialConfiguration } from './FinancialConfiguration';
 import { FinancialResults } from './FinancialResults';
 import { FinancialCharts } from './FinancialCharts';
+import { FinancialReport } from './FinancialReport';
 import { useFinancialCalculations } from './useFinancialCalculations';
 import { FinancialAnalysisProps, FinancialData } from './types';
 
@@ -43,10 +44,10 @@ export const FinancialAnalysisRefactored: React.FC<FinancialAnalysisProps> = ({ 
     economiaAnual: 0,
     economia25Anos: 0,
     // Dados do lead ou valores padrão
-    potenciaSistema: (currentLead as any)?.potenciaSistema || 7.2,
-    geracaoAnual: (currentLead as any)?.geracaoAnual || 11000,
-    consumoMensal: (currentLead as any)?.consumoMedio || 780,
-    incrementoConsumo: (currentLead as any)?.incrementoConsumo || 4.5,
+    potenciaSistema: (currentLead as Record<string, number | string>)?.potenciaSistema || 7.2,
+    geracaoAnual: (currentLead as Record<string, number | string>)?.geracaoAnual || 11000,
+    consumoMensal: (currentLead as Record<string, number | string>)?.consumoMedio || 780,
+    incrementoConsumo: (currentLead as Record<string, number | string>)?.incrementoConsumo || 4.5,
     fatorSimultaneidade: 30,
     concessionariaId: 'enel-rj',
     tipoLigacao: 'monofasico',
@@ -198,7 +199,7 @@ export const FinancialAnalysisRefactored: React.FC<FinancialAnalysisProps> = ({ 
 
       {/* Tabs principais */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="configuration" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
             Configuração
@@ -210,6 +211,10 @@ export const FinancialAnalysisRefactored: React.FC<FinancialAnalysisProps> = ({ 
           <TabsTrigger value="charts" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
             Gráficos
+          </TabsTrigger>
+          <TabsTrigger value="report" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Relatório
           </TabsTrigger>
         </TabsList>
 
@@ -230,6 +235,11 @@ export const FinancialAnalysisRefactored: React.FC<FinancialAnalysisProps> = ({ 
         {/* Gráficos */}
         <TabsContent value="charts" className="space-y-6">
           <FinancialCharts financialData={financialData} />
+        </TabsContent>
+
+        {/* Relatório */}
+        <TabsContent value="report" className="space-y-6">
+          <FinancialReport financialData={financialData} />
         </TabsContent>
       </Tabs>
     </div>

@@ -5,7 +5,7 @@
 // Data: 2024-12-12
 // =====================================================
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -59,7 +59,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { ScrollArea } from '../../../components/ui/scroll-area';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useTrainingModules, useUserProgress, useTrainingFilters } from '../hooks/useTraining';
-import { SidebarToggle } from '../../../components/sidebar';
+import { SidebarToggle } from '../../../core/components/layout/SidebarToggle';
 import type { TrainingModule } from '../types';
 
 // =====================================================
@@ -103,26 +103,28 @@ export function ModuleListPage() {
     hasActiveFilters
   } = useTrainingFilters();
   
-  // Dados
+  // Dados - Memoizar parâmetros para evitar re-renders
+  const moduleParams = useMemo(() => ({
+    search: searchQuery,
+    category: filters.categories,
+    difficulty: filters.difficulties,
+    tags: filters.tags
+  }), [searchQuery, filters.categories, filters.difficulties, filters.tags]);
+  
   const { 
     data: modules, 
     isLoading, 
     error, 
     refetch 
-  } = useTrainingModules({
-    search: searchQuery,
-    category: filters.categories,
-    difficulty: filters.difficulties,
-    tags: filters.tags
-  });
+  } = useTrainingModules(moduleParams);
   
   const { data: userProgress } = useUserProgress();
   
-  // Módulos filtrados e ordenados
+  // Módulos filtrados e ordenados - Otimizar dependências
   const filteredAndSortedModules = useMemo(() => {
     if (!modules) return [];
     
-    let filtered = modules.filter(module => {
+    const filtered = modules.filter(module => {
       // Filtro de busca
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
@@ -136,15 +138,15 @@ export function ModuleListPage() {
       }
       
       // Filtros avançados
-      if (filters.categories.length > 0 && !filters.categories.includes(module.category)) {
+      if (filters.categories?.length > 0 && !filters.categories.includes(module.category)) {
         return false;
       }
       
-      if (filters.difficulties.length > 0 && !filters.difficulties.includes(module.difficulty)) {
+      if (filters.difficulties?.length > 0 && !filters.difficulties.includes(module.difficulty)) {
         return false;
       }
       
-      if (filters.status.length > 0) {
+      if (filters.status?.length > 0) {
         const moduleProgress = userProgress?.find(p => p.module_id === module.id);
         const status = moduleProgress?.completed ? 'completed' : 
                      moduleProgress ? 'in_progress' : 'not_started';
@@ -159,7 +161,7 @@ export function ModuleListPage() {
     
     // Ordenação
     filtered.sort((a, b) => {
-      let aValue: any, bValue: any;
+      let aValue: string | number | Date, bValue: string | number | Date;
       
       switch (sortField) {
         case 'title':
@@ -174,11 +176,12 @@ export function ModuleListPage() {
           aValue = a.estimated_duration || 0;
           bValue = b.estimated_duration || 0;
           break;
-        case 'difficulty':
+        case 'difficulty': {
           const difficultyOrder = { beginner: 1, intermediate: 2, advanced: 3 };
           aValue = difficultyOrder[a.difficulty as keyof typeof difficultyOrder] || 0;
           bValue = difficultyOrder[b.difficulty as keyof typeof difficultyOrder] || 0;
           break;
+        }
         default:
           return 0;
       }
@@ -189,28 +192,30 @@ export function ModuleListPage() {
     });
     
     return filtered;
-  }, [modules, searchQuery, filters, sortField, sortOrder, userProgress]);
+  }, [modules, searchQuery, filters.categories, filters.difficulties, filters.status, sortField, sortOrder, userProgress]);
   
-  // Handlers
-  const handleBookmarkToggle = (moduleId: string) => {
-    const newBookmarks = new Set(bookmarkedModules);
-    if (newBookmarks.has(moduleId)) {
-      newBookmarks.delete(moduleId);
-    } else {
-      newBookmarks.add(moduleId);
-    }
-    setBookmarkedModules(newBookmarks);
+  // Handlers - Otimizar com useCallback
+  const handleBookmarkToggle = useCallback((moduleId: string) => {
+    setBookmarkedModules(prev => {
+      const newBookmarks = new Set(prev);
+      if (newBookmarks.has(moduleId)) {
+        newBookmarks.delete(moduleId);
+      } else {
+        newBookmarks.add(moduleId);
+      }
+      return newBookmarks;
+    });
     // Implementar salvamento no backend
-  };
+  }, []);
   
-  const handleSort = (field: SortField) => {
+  const handleSort = useCallback((field: SortField) => {
     if (sortField === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
     } else {
       setSortField(field);
       setSortOrder('asc');
     }
-  };
+  }, [sortField]);
   
   if (error) {
     return (
@@ -482,7 +487,7 @@ function ModuleCard({
   onEdit 
 }: {
   module: TrainingModule;
-  userProgress: any[] | undefined;
+  userProgress: { module_id: string; progress_percentage: number; completed: boolean }[] | undefined;
   isBookmarked: boolean;
   onBookmarkToggle: () => void;
   onView: () => void;
@@ -688,7 +693,7 @@ function ModuleListItem({
   onEdit 
 }: {
   module: TrainingModule;
-  userProgress: any[] | undefined;
+  userProgress: { module_id: string; progress_percentage: number; completed: boolean }[] | undefined;
   isBookmarked: boolean;
   onBookmarkToggle: () => void;
   onView: () => void;

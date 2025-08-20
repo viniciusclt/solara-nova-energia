@@ -38,7 +38,7 @@ export function DemoDataIndicator() {
 
   return (
     <div 
-      className="fixed top-4 right-4 z-50 transition-all duration-300 ease-in-out group"
+      className="fixed top-4 right-20 z-50 transition-all duration-300 ease-in-out group"
       onMouseEnter={() => setIsCollapsed(false)}
       onMouseLeave={() => setIsCollapsed(true)}
     >

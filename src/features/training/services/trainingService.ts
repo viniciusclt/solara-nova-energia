@@ -404,27 +404,49 @@ export class TrainingService {
     moduleId?: string
   ): Promise<ProgressResponse> {
     try {
-      let query = supabase
+      // Buscar progresso do usuário
+      const progressQuery = supabase
         .from('user_training_progress')
-        .select(`
-          *,
-          training_content!inner(
-            *,
-            training_modules!inner(*)
-          )
-        `)
+        .select('*')
         .eq('user_id', userId);
 
-      if (moduleId) {
-        query = query.eq('training_content.module_id', moduleId);
+      const { data: progressData, error: progressError } = await progressQuery;
+      if (progressError) throw progressError;
+
+      // Buscar conteúdos relacionados
+      const contentIds = progressData?.map(p => p.content_id) || [];
+      let enrichedProgress = [];
+
+      if (contentIds.length > 0) {
+        const { data: contentData, error: contentError } = await supabase
+          .from('training_content')
+          .select(`
+            *,
+            training_modules(*)
+          `)
+          .in('id', contentIds);
+
+        if (contentError) throw contentError;
+
+        // Combinar dados de progresso com conteúdo
+        enrichedProgress = progressData.map(progress => {
+          const content = contentData?.find(c => c.id === progress.content_id);
+          return {
+            ...progress,
+            training_content: content
+          };
+        });
+
+        // Filtrar por módulo se especificado
+        if (moduleId) {
+          enrichedProgress = enrichedProgress.filter(p => 
+            p.training_content?.module_id === moduleId
+          );
+        }
       }
 
-      const { data, error } = await query;
-
-      if (error) throw error;
-
       // Processar dados para retornar estrutura organizada
-      const moduleProgress = this.processProgressData(data || []);
+      const moduleProgress = this.processProgressData(enrichedProgress);
       const overallStats = await this.calculateOverallStats(userId);
       const recentActivity = await this.getRecentActivity(userId);
       const upcomingDeadlines = await this.getUpcomingDeadlines(userId);
@@ -605,7 +627,7 @@ export class TrainingService {
           answers: answers.reduce((acc, answer) => {
             acc[answer.question_id] = answer.answer;
             return acc;
-          }, {} as Record<string, any>),
+          }, {} as Record<string, string | string[] | number | boolean>),
           score: totalPoints,
           percentage,
           passed,
@@ -618,7 +640,7 @@ export class TrainingService {
               explanation: result.explanation
             };
             return acc;
-          }, {} as Record<string, any>)
+          }, {} as Record<string, {is_correct: boolean; points_earned: number; explanation?: string}>)
         })
         .select()
         .single();
@@ -628,7 +650,7 @@ export class TrainingService {
       // Gerar certificado se passou
       let certificate = null;
       if (passed) {
-        certificate = await this.generateCertificate(userId, assessment.module_id, percentage);
+        certificate = await this.generateCertificateInternal(userId, assessment.module_id, percentage);
         await this.awardPoints(userId, 'assessment_passed', assessmentId, 100);
         
         if (percentage === 100) {
@@ -751,10 +773,203 @@ export class TrainingService {
   }
 
   // =====================================================
+  // MÉTODOS PARA DIAGRAMAS
+  // =====================================================
+
+  /**
+   * Busca diagramas de treinamento
+   */
+  async getDiagrams(): Promise<TrainingDiagram[]> {
+    try {
+      const { data, error } = await supabase
+        .from('training_diagrams')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Erro ao buscar diagramas:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Busca um diagrama específico
+   */
+  async getDiagram(id: string): Promise<TrainingDiagram | null> {
+    try {
+      const { data, error } = await supabase
+        .from('training_diagrams')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Erro ao buscar diagrama:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Cria um novo diagrama
+   */
+  async createDiagram(diagram: Omit<TrainingDiagram, 'id' | 'created_at' | 'updated_at'>): Promise<TrainingDiagram> {
+    try {
+      const { data, error } = await supabase
+        .from('training_diagrams')
+        .insert({
+          ...diagram,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Erro ao criar diagrama:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Atualiza um diagrama existente
+   */
+  async updateDiagram(id: string, updates: Partial<TrainingDiagram>): Promise<TrainingDiagram> {
+    try {
+      const { data, error } = await supabase
+        .from('training_diagrams')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Erro ao atualizar diagrama:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Remove um diagrama
+   */
+  async deleteDiagram(id: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('training_diagrams')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Erro ao remover diagrama:', error);
+      throw error;
+    }
+  }
+
+  // =====================================================
+  // MÉTODOS PARA UPLOAD DE ARQUIVOS
+  // =====================================================
+
+  /**
+   * Faz upload de arquivo para o storage
+   */
+  async uploadFile(file: File, path: string): Promise<{ url: string; path: string }> {
+    try {
+      const fileName = `${Date.now()}-${file.name}`;
+      const filePath = `${path}/${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from('training-files')
+        .upload(filePath, file);
+
+      if (error) throw error;
+
+      const { data: urlData } = supabase.storage
+        .from('training-files')
+        .getPublicUrl(filePath);
+
+      return {
+        url: urlData.publicUrl,
+        path: filePath
+      };
+    } catch (error) {
+      console.error('Erro ao fazer upload:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Remove arquivo do storage
+   */
+  async deleteFile(path: string): Promise<void> {
+    try {
+      const { error } = await supabase.storage
+        .from('training-files')
+        .remove([path]);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Erro ao remover arquivo:', error);
+      throw error;
+    }
+  }
+
+  // =====================================================
+  // MÉTODOS PARA PLAYBOOKS
+  // =====================================================
+
+  /**
+   * Busca playbooks de treinamento
+   */
+  async getPlaybooks(): Promise<TrainingPlaybook[]> {
+    try {
+      const { data, error } = await supabase
+        .from('training_playbooks')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Erro ao buscar playbooks:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Busca um playbook específico
+   */
+  async getPlaybook(id: string): Promise<TrainingPlaybook | null> {
+    try {
+      const { data, error } = await supabase
+        .from('training_playbooks')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Erro ao buscar playbook:', error);
+      return null;
+    }
+  }
+
+  // =====================================================
   // MÉTODOS AUXILIARES PRIVADOS
   // =====================================================
 
-  private processProgressData(data: any[]): any[] {
+  private processProgressData(data: UserTrainingProgress[]): ModuleProgress[] {
     // Processar dados de progresso para estrutura organizada
     const moduleMap = new Map();
     
@@ -809,12 +1024,12 @@ export class TrainingService {
     };
   }
 
-  private async getRecentActivity(userId: string): Promise<any[]> {
+  private async getRecentActivity(userId: string): Promise<RecentActivity[]> {
     // Implementar busca de atividade recente
     return [];
   }
 
-  private async getUpcomingDeadlines(userId: string): Promise<any[]> {
+  private async getUpcomingDeadlines(userId: string): Promise<UpcomingDeadline[]> {
     // Implementar busca de prazos próximos
     return [];
   }
@@ -849,7 +1064,7 @@ export class TrainingService {
     // Se completado, conceder pontos
   }
 
-  private calculateAssessmentScore(questions: AssessmentQuestion[], answers: UserAnswer[]): any[] {
+  private calculateAssessmentScore(questions: AssessmentQuestion[], answers: UserAnswer[]): Array<{question_id: string; is_correct: boolean; points_earned: number; explanation?: string}> {
     return questions.map(question => {
       const userAnswer = answers.find(a => a.question_id === question.id);
       const isCorrect = this.isAnswerCorrect(question, userAnswer?.answer);
@@ -863,7 +1078,7 @@ export class TrainingService {
     });
   }
 
-  private isAnswerCorrect(question: AssessmentQuestion, userAnswer: any): boolean {
+  private isAnswerCorrect(question: AssessmentQuestion, userAnswer: string | string[] | number | boolean | undefined): boolean {
     // Implementar lógica de verificação baseada no tipo de questão
     switch (question.question_type) {
       case 'multiple_choice':
@@ -878,7 +1093,40 @@ export class TrainingService {
     }
   }
 
-  private async generateCertificate(
+  /**
+   * Gera certificado público para um usuário
+   */
+  async generateCertificate(
+    userId: string,
+    moduleId: string
+  ): Promise<TrainingCertificate> {
+    const certificateNumber = `CERT-${Date.now()}-${userId.slice(-6)}`;
+    const verificationCode = Math.random().toString(36).substring(2, 15);
+
+    const { data, error } = await supabase
+      .from('training_certificates')
+      .insert({
+        user_id: userId,
+        module_id: moduleId,
+        certificate_number: certificateNumber,
+        verification_code: verificationCode,
+        issued_at: new Date().toISOString(),
+        is_valid: true,
+        certificate_data: {
+          user_name: '',
+          course_title: '',
+          completion_date: new Date().toISOString(),
+          company_name: 'Solara Nova Energia'
+        }
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  private async generateCertificateInternal(
     userId: string,
     moduleId: string,
     score: number

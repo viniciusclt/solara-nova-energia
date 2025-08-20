@@ -201,13 +201,11 @@ export type Database = {
           cdd: number | null
           comentarios: string | null
           company_id: string
-          concessionaria: string | null
           consumo_medio: number | null
           consumo_mensal: Json | null
           cpf_cnpj: string | null
           created_at: string
           email: string | null
-          grupo: string | null
           id: string
           incremento_consumo: number | null
           modalidade_tarifaria: string | null
@@ -229,13 +227,11 @@ export type Database = {
           cdd?: number | null
           comentarios?: string | null
           company_id: string
-          concessionaria?: string | null
           consumo_medio?: number | null
           consumo_mensal?: Json | null
           cpf_cnpj?: string | null
           created_at?: string
           email?: string | null
-          grupo?: string | null
           id?: string
           incremento_consumo?: number | null
           modalidade_tarifaria?: string | null
@@ -257,13 +253,11 @@ export type Database = {
           cdd?: number | null
           comentarios?: string | null
           company_id?: string
-          concessionaria?: string | null
           consumo_medio?: number | null
           consumo_mensal?: Json | null
           cpf_cnpj?: string | null
           created_at?: string
           email?: string | null
-          grupo?: string | null
           id?: string
           incremento_consumo?: number | null
           modalidade_tarifaria?: string | null

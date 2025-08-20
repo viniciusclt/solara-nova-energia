@@ -31,7 +31,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui
 import { Avatar, AvatarFallback, AvatarImage } from '../../../components/ui/avatar';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useUserProgress, useUserAchievements, useUserStats } from '../hooks/useTraining';
-import { SidebarToggle } from '../../../components/sidebar';
+import { SidebarToggle } from '../../../core/components/layout/SidebarToggle';
 
 // =====================================================
 // COMPONENTE PRINCIPAL

@@ -104,12 +104,13 @@ export const ExcelImporterRefactored: React.FC<ExcelImporterProps> = ({
     switch (step) {
       case 'upload':
         return selectedFile ? 'complete' : currentStep === 'upload' ? 'current' : 'pending';
-      case 'mapping':
+      case 'mapping': {
         if (!selectedFile) return 'pending';
         const requiredMapped = settings.requiredFields.every(field => 
           columnMapping[field] !== undefined && columnMapping[field] !== ''
         );
         return requiredMapped ? 'complete' : currentStep === 'mapping' ? 'current' : 'pending';
+      }
       case 'validation':
         return validationResult ? 'complete' : currentStep === 'validation' ? 'current' : 'pending';
       default:

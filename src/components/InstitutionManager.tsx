@@ -96,7 +96,7 @@ const InstitutionManager: React.FC = () => {
   const [documentInput, setDocumentInput] = useState('');
 
   // Load institutions
-  const loadInstitutions = async () => {
+  const loadInstitutions = useCallback(async () => {
     if (!user || !profile?.empresa_id) return;
 
     setIsLoading(true);
@@ -121,7 +121,7 @@ const InstitutionManager: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, profile?.empresa_id, toast]);
 
   // Filter institutions
   useEffect(() => {
@@ -160,7 +160,7 @@ const InstitutionManager: React.FC = () => {
 
   useEffect(() => {
     loadInstitutions();
-  }, [user, profile]);
+  }, [loadInstitutions]);
 
   // Save institution
   const saveInstitution = async () => {

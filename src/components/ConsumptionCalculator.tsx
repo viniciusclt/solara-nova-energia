@@ -30,7 +30,7 @@ export function ConsumptionCalculator({ currentLead }: ConsumptionCalculatorProp
   const [equipments, setEquipments] = useState<Equipment[]>([]);
   const [showManageModal, setShowManageModal] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState<Equipment | null>(null);
-  const [editingPreset, setEditingPreset] = useState<{type: string, preset: any} | null>(null);
+  const [editingPreset, setEditingPreset] = useState<{type: string, preset: { name: string; power: number }} | null>(null);
   const [newEquipmentType, setNewEquipmentType] = useState('');
   const [showAddTypeModal, setShowAddTypeModal] = useState(false);
   const [newEquipment, setNewEquipment] = useState({

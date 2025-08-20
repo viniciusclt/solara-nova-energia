@@ -62,7 +62,7 @@ export interface TrainingContent {
   type: ContentType;
   title: string;
   content_order: number;
-  content_data: Record<string, any>;
+  content_data: Record<string, unknown>;
   file_url?: string;
   file_size?: number;
   duration?: number; // em segundos
@@ -149,7 +149,7 @@ export interface AssessmentQuestion {
   question_text: string;
   question_type: QuestionType;
   options: QuestionOption[];
-  correct_answer: any;
+  correct_answer: string | string[] | number | boolean;
   points: number;
   explanation?: string;
   question_order?: number;
@@ -170,20 +170,20 @@ export interface AssessmentAttempt {
   user_id: string;
   assessment_id: string;
   attempt_number: number;
-  answers: Record<string, any>;
+  answers: Record<string, string | string[] | number | boolean>;
   score?: number;
   percentage?: number;
   passed?: boolean;
   time_taken?: number;
   started_at: string;
   completed_at?: string;
-  feedback: Record<string, any>;
+  feedback: Record<string, string>;
 }
 
 // Resposta do Usuário
 export interface UserAnswer {
   question_id: string;
-  answer: any;
+  answer: string | string[] | number | boolean;
   is_correct?: boolean;
   points_earned?: number;
   time_spent?: number;
@@ -254,6 +254,69 @@ export interface TrainingCertificate {
   template_used?: string;
 }
 
+// Alias para compatibilidade com componentes
+export type Certificate = TrainingCertificate;
+
+// =====================================================
+// DIAGRAMAS
+// =====================================================
+
+// Diagrama de Treinamento
+export interface TrainingDiagram {
+  id: string;
+  module_id: string;
+  title: string;
+  description?: string;
+  diagram_type: 'flowchart' | 'mindmap';
+  diagram_data: DiagramData;
+  order_index: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// Dados do Diagrama (ReactFlow)
+export interface DiagramData {
+  nodes: DiagramNode[];
+  edges: DiagramEdge[];
+}
+
+// Nó do Diagrama
+export interface DiagramNode {
+  id: string;
+  type?: string;
+  position: { x: number; y: number };
+  data: { label: string; [key: string]: unknown };
+  selected?: boolean;
+}
+
+// Aresta do Diagrama
+export interface DiagramEdge {
+  id: string;
+  source: string;
+  target: string;
+  type?: string;
+  selected?: boolean;
+  [key: string]: unknown;
+}
+
+// =====================================================
+// PLAYBOOKS
+// =====================================================
+
+// Playbook de Treinamento
+export interface TrainingPlaybook {
+  id: string;
+  module_id: string;
+  title: string;
+  description?: string;
+  file_url: string;
+  file_type: 'pdf' | 'presentation' | 'document';
+  file_size?: number;
+  order_index: number;
+  created_at: string;
+  updated_at: string;
+}
+
 // Dados do Certificado
 export interface CertificateData {
   user_name: string;
@@ -263,7 +326,7 @@ export interface CertificateData {
   duration?: number;
   instructor?: string;
   company_name: string;
-  custom_fields?: Record<string, any>;
+  custom_fields?: Record<string, string | number>;
 }
 
 // Template de Certificado
@@ -271,7 +334,7 @@ export interface CertificateTemplate {
   id: string;
   name: string;
   description?: string;
-  template_data: any;
+  template_data: Record<string, unknown>;
   is_active: boolean;
   preview_url?: string;
 }
@@ -317,7 +380,7 @@ export interface BadgeCriteria {
   study_streak?: number;
   fast_completion?: number;
   points_earned?: number;
-  custom_criteria?: Record<string, any>;
+  custom_criteria?: Record<string, number | string | boolean>;
 }
 
 // Badge do Usuário
@@ -326,7 +389,7 @@ export interface UserBadge {
   user_id: string;
   badge_id: string;
   earned_at: string;
-  progress_data: Record<string, any>;
+  progress_data: Record<string, number | string | boolean>;
   badge?: GamificationBadge;
 }
 
@@ -376,7 +439,7 @@ export interface TrainingNotification {
   scheduled_for?: string;
   sent_at?: string;
   created_at: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean>;
 }
 
 // Template de Notificação
@@ -411,7 +474,7 @@ export interface ContentVersion {
   id: string;
   content_id: string;
   version_number: number;
-  content_data: any;
+  content_data: Record<string, unknown>;
   changes_summary?: string;
   created_by?: string;
   created_at: string;
@@ -430,8 +493,8 @@ export interface ChangeHistory {
 // Alteração de Conteúdo
 export interface ContentChange {
   field: string;
-  old_value: any;
-  new_value: any;
+  old_value: unknown;
+  new_value: unknown;
   change_type: 'added' | 'modified' | 'removed';
 }
 
@@ -520,7 +583,7 @@ export interface ContentFormData {
   type: ContentType;
   content_order: number;
   is_required: boolean;
-  content_data: Record<string, any>;
+  content_data: Record<string, unknown>;
   file?: File;
 }
 
@@ -541,7 +604,7 @@ export interface QuestionFormData {
   question_text: string;
   question_type: QuestionType;
   options: QuestionOption[];
-  correct_answer: any;
+  correct_answer: string | number | string[];
   points: number;
   explanation?: string;
   difficulty: QuestionDifficulty;
@@ -622,8 +685,8 @@ export interface AssessmentResponse {
 // Resultado da Questão
 export interface QuestionResult {
   question_id: string;
-  user_answer: any;
-  correct_answer: any;
+  user_answer: string | number | string[];
+  correct_answer: string | number | string[];
   is_correct: boolean;
   points_earned: number;
   explanation?: string;

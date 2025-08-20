@@ -2,6 +2,7 @@
  * Serviço de Conectividade
  * Gerencia verificação de conectividade, retry automático e fallback para cache local
  */
+import React from 'react';
 import { logInfo, logWarn, logError } from '@/utils/secureLogger';
 
 interface ConnectivityStatus {
@@ -34,6 +35,16 @@ class ConnectivityService {
     baseDelay: 1000,
     maxDelay: 10000,
     backoffFactor: 2
+  };
+
+  // Circuit breaker para evitar loops infinitos
+  private circuitBreaker = {
+    failureCount: 0,
+    lastFailureTime: 0,
+    isOpen: false,
+    threshold: 10, // Máximo de falhas consecutivas
+    timeout: 60000, // 1 minuto para resetar o circuit breaker
+    activeOperations: new Set<string>() // Track operações ativas
   };
 
   constructor() {
@@ -110,7 +121,7 @@ class ConnectivityService {
       });
 
     } catch (error) {
-      logWarn('Falha na verificação de conectividade', 'ConnectivityService', { 
+      logError('Falha na verificação de conectividade', 'ConnectivityService', { 
         error: (error as Error).message 
       });
       this.updateStatus({
@@ -130,53 +141,90 @@ class ConnectivityService {
     customConfig?: Partial<RetryConfig>
   ): Promise<T> {
     const config = { ...this.retryConfig, ...customConfig };
+    const operationId = Math.random().toString(36).substr(2, 9);
+    
+    // Verificar circuit breaker
+    if (this.isCircuitBreakerOpen()) {
+      const error = new Error('Circuit breaker aberto - muitas falhas consecutivas');
+      logWarn('Circuit breaker ativo, rejeitando operação', 'ConnectivityService', {
+        failureCount: this.circuitBreaker.failureCount,
+        lastFailureTime: this.circuitBreaker.lastFailureTime
+      });
+      throw error;
+    }
+
+    // Verificar se já há muitas operações ativas
+    if (this.circuitBreaker.activeOperations.size >= 5) {
+      const error = new Error('Muitas operações simultâneas - limitando para evitar sobrecarga');
+      logWarn('Limitando operações simultâneas', 'ConnectivityService', {
+        activeOperations: this.circuitBreaker.activeOperations.size
+      });
+      throw error;
+    }
+
+    this.circuitBreaker.activeOperations.add(operationId);
     let lastError: Error;
 
-    for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
-      try {
-        // Verificar conectividade antes de tentar
-        if (attempt > 0) {
-          await this.checkConnectivity();
-          if (!this.status.isOnline) {
-            throw new Error('Sem conectividade de rede');
+    try {
+      for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
+        try {
+          // Verificar conectividade antes de tentar
+          if (attempt > 0) {
+            await this.checkConnectivity();
+            if (!this.status.isOnline) {
+              throw new Error('Sem conectividade de rede');
+            }
           }
-        }
 
-        const result = await operation();
-        
-        // Se chegou aqui, a operação foi bem-sucedida
-        if (attempt > 0) {
-          logInfo('Operação bem-sucedida com retry', 'ConnectivityService', { 
-            attempts: attempt + 1 
-          });
-        }
-        
-        return result;
+          const result = await operation();
+          
+          // Operação bem-sucedida - resetar circuit breaker
+          this.resetCircuitBreaker();
+          
+          if (attempt > 0) {
+            logInfo('Operação bem-sucedida com retry', 'ConnectivityService', { 
+              attempts: attempt + 1 
+            });
+          }
+          
+          return result;
 
-      } catch (error) {
-        lastError = error as Error;
-        
-        if (attempt === config.maxRetries) {
-          logError('Operação falhou após múltiplas tentativas', 'ConnectivityService', { 
-            totalAttempts: config.maxRetries + 1,
+        } catch (error) {
+          lastError = error as Error;
+          
+          // Incrementar contador de falhas
+          this.recordFailure();
+          
+          if (attempt === config.maxRetries) {
+            logError('Operação falhou após múltiplas tentativas', 'ConnectivityService', { 
+              totalAttempts: config.maxRetries + 1,
+              error: (error as Error).message 
+            });
+            break;
+          }
+
+          // Verificar se deve parar devido ao circuit breaker
+          if (this.isCircuitBreakerOpen()) {
+            logWarn('Circuit breaker ativado durante retry', 'ConnectivityService');
+            break;
+          }
+
+          // Calcular delay para próxima tentativa
+          const delay = Math.min(
+            config.baseDelay * Math.pow(config.backoffFactor, attempt),
+            config.maxDelay
+          );
+
+          logWarn('Tentativa de operação falhou, tentando novamente', 'ConnectivityService', { 
+            attempt: attempt + 1,
+            delayMs: delay,
             error: (error as Error).message 
           });
-          break;
+          await this.sleep(delay);
         }
-
-        // Calcular delay para próxima tentativa
-        const delay = Math.min(
-          config.baseDelay * Math.pow(config.backoffFactor, attempt),
-          config.maxDelay
-        );
-
-        logWarn('Tentativa de operação falhou, tentando novamente', 'ConnectivityService', { 
-          attempt: attempt + 1,
-          delayMs: delay,
-          error: (error as Error).message 
-        });
-        await this.sleep(delay);
       }
+    } finally {
+      this.circuitBreaker.activeOperations.delete(operationId);
     }
 
     throw lastError!;
@@ -281,6 +329,66 @@ class ConnectivityService {
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
+
+  /**
+   * Verifica se o circuit breaker está aberto
+   */
+  private isCircuitBreakerOpen(): boolean {
+    const now = Date.now();
+    
+    // Se passou o timeout, resetar o circuit breaker
+    if (this.circuitBreaker.isOpen && 
+        (now - this.circuitBreaker.lastFailureTime) > this.circuitBreaker.timeout) {
+      this.resetCircuitBreaker();
+      logInfo('Circuit breaker resetado após timeout', 'ConnectivityService');
+      return false;
+    }
+    
+    return this.circuitBreaker.isOpen;
+  }
+
+  /**
+   * Registra uma falha no circuit breaker
+   */
+  private recordFailure(): void {
+    this.circuitBreaker.failureCount++;
+    this.circuitBreaker.lastFailureTime = Date.now();
+    
+    if (this.circuitBreaker.failureCount >= this.circuitBreaker.threshold) {
+      this.circuitBreaker.isOpen = true;
+      logWarn('Circuit breaker ativado devido a muitas falhas', 'ConnectivityService', {
+        failureCount: this.circuitBreaker.failureCount,
+        threshold: this.circuitBreaker.threshold
+      });
+    }
+  }
+
+  /**
+   * Reseta o circuit breaker
+   */
+  resetCircuitBreaker(): void {
+    if (this.circuitBreaker.failureCount > 0 || this.circuitBreaker.isOpen) {
+      logInfo('Circuit breaker resetado', 'ConnectivityService', {
+        previousFailures: this.circuitBreaker.failureCount
+      });
+    }
+    
+    this.circuitBreaker.failureCount = 0;
+    this.circuitBreaker.isOpen = false;
+    this.circuitBreaker.lastFailureTime = 0;
+  }
+
+  /**
+   * Obtém status do circuit breaker
+   */
+  getCircuitBreakerStatus() {
+    return {
+      isOpen: this.circuitBreaker.isOpen,
+      failureCount: this.circuitBreaker.failureCount,
+      activeOperations: this.circuitBreaker.activeOperations.size,
+      lastFailureTime: this.circuitBreaker.lastFailureTime
+    };
+  }
 }
 
 // Instância singleton
@@ -301,11 +409,10 @@ export function useConnectivity() {
     ...status,
     checkConnectivity: () => connectivityService.checkConnectivity(),
     withRetry: connectivityService.withRetry.bind(connectivityService),
-    shouldUseFallback: connectivityService.shouldUseFallback.bind(connectivityService)
+    shouldUseFallback: connectivityService.shouldUseFallback.bind(connectivityService),
+    getCircuitBreakerStatus: () => connectivityService.getCircuitBreakerStatus(),
+    resetCircuitBreaker: () => connectivityService.resetCircuitBreaker()
   };
 }
-
-// Importar React para o hook
-import React from 'react';
 
 export default connectivityService;

@@ -18,9 +18,7 @@ interface GoogleSheetsSettings {
     phone: string;
     cpfCnpj: string;
     address: string;
-    concessionaria: string;
     tipoFornecimento: string;
-    grupo: string;
     consumoMedio: string;
     incrementoConsumo: string;
     // Consumo mensal (Jan-Dez)
@@ -281,8 +279,6 @@ function processRow(row: string[], settings: GoogleSheetsSettings, userId: strin
   }
 
   // Get values with fallbacks
-  const concessionaria = getValue(settings.columnMapping.concessionaria) || 'Light';
-  const grupo = getValue(settings.columnMapping.grupo) || 'B1';
   const tipoFornecimento = getValue(settings.columnMapping.tipoFornecimento) || 'Monofásico';
   const consumoMedio = getNumericValue(settings.columnMapping.consumoMedio);
   const incrementoConsumo = getNumericValue(settings.columnMapping.incrementoConsumo);
@@ -376,8 +372,6 @@ function processRow(row: string[], settings: GoogleSheetsSettings, userId: strin
     source: 'google_sheets',
     source_ref: settings.spreadsheetUrl,
     // Use mapped values or defaults
-    concessionaria: concessionaria,
-    grupo: grupo,
     tipo_fornecimento: tipoFornecimento,
     cdd: cdd,
     tensao_alimentacao: tensaoAlimentacao,

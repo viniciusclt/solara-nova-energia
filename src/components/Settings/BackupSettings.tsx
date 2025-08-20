@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -68,12 +68,7 @@ export const BackupSettings: React.FC<BackupSettingsProps> = ({ onSettingsChange
     }
   });
 
-  useEffect(() => {
-    loadSettings();
-    loadBackupList();
-  }, []);
-
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('backup_settings')
@@ -92,7 +87,7 @@ export const BackupSettings: React.FC<BackupSettingsProps> = ({ onSettingsChange
     } catch (error) {
       logError('Erro ao carregar configurações de backup', 'BackupSettings', { error: (error as Error).message });
     }
-  };
+  }, []);
 
   const saveSettings = async () => {
     setIsLoading(true);
@@ -146,7 +141,7 @@ export const BackupSettings: React.FC<BackupSettingsProps> = ({ onSettingsChange
     }
   };
 
-  const loadBackupList = async () => {
+  const loadBackupList = useCallback(async () => {
     setIsLoadingBackups(true);
     
     try {
@@ -195,7 +190,12 @@ export const BackupSettings: React.FC<BackupSettingsProps> = ({ onSettingsChange
     } finally {
       setIsLoadingBackups(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    loadSettings();
+    loadBackupList();
+  }, [loadSettings, loadBackupList]);
 
   const createBackup = async () => {
     setIsCreatingBackup(true);

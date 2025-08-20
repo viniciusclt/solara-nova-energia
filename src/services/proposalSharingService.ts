@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { logError } from '../utils/secureLogger';
+import { logError } from '@/utils/secureLogger';
 
 export interface SharedProposal {
   id: string;

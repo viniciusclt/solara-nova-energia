@@ -42,7 +42,7 @@ export interface TrainingDiagram {
   title: string;
   description?: string;
   diagram_type: 'flowchart' | 'mindmap';
-  diagram_data: any; // JSON data for React Flow
+  diagram_data: DiagramData; // JSON data for React Flow
   created_at: string;
   updated_at: string;
   order_index: number;
@@ -86,7 +86,7 @@ export interface AssessmentResult {
   assessment_id: string;
   score: number;
   total_questions: number;
-  answers: any[];
+  answers: UserAnswer[];
   completed_at: string;
   time_taken_minutes?: number;
   passed: boolean;

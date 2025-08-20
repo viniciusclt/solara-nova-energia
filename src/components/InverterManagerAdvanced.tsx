@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Inverter } from "@/types";
 import { DemoDataService } from "@/services/DemoDataService";
 import { FileUpload } from "@/components/ui/file-upload";
-import { logger } from "@/utils/secureLogger";
+import { logError, logInfo } from "@/utils/secureLogger";
 
 export function InverterManagerAdvanced() {
   const { toast } = useToast();
@@ -91,7 +91,7 @@ export function InverterManagerAdvanced() {
     "WiFi", "Ethernet", "RS485", "Bluetooth", "4G/LTE", "Zigbee", "LoRa", "USB"
   ];
 
-  const fetchInverters = async (retryCount = 0) => {
+  const fetchInverters = useCallback(async (retryCount = 0) => {
     setIsLoading(true);
     try {
       const demoDataService = DemoDataService.getInstance();
@@ -127,7 +127,7 @@ export function InverterManagerAdvanced() {
         setInverters(data || []);
       }
     } catch (error) {
-      secureLogger.logError('Erro ao carregar inversores', {
+      logError('Erro ao carregar inversores', {
         error: error instanceof Error ? error.message : 'Erro desconhecido',
         retryCount,
         service: 'InverterManagerAdvanced'
@@ -135,7 +135,7 @@ export function InverterManagerAdvanced() {
       
       // Retry automático para erros de conexão (máximo 2 tentativas)
       if (retryCount < 2 && (error as Error).message?.includes('connection')) {
-        secureLogger.logInfo('Tentando novamente carregar inversores', {
+        logInfo('Tentando novamente carregar inversores', {
           retryAttempt: retryCount + 1,
           service: 'InverterManagerAdvanced'
         });
@@ -155,7 +155,7 @@ export function InverterManagerAdvanced() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchInverters();
@@ -214,7 +214,7 @@ export function InverterManagerAdvanced() {
       setIsDialogOpen(false);
       fetchInverters();
     } catch (error) {
-      secureLogger.logError('Erro ao salvar inversor', {
+      logError('Erro ao salvar inversor', {
         error: error instanceof Error ? error.message : 'Erro desconhecido',
         isEditing,
         inverterId: currentInverter.id,
@@ -261,7 +261,7 @@ export function InverterManagerAdvanced() {
 
       fetchInverters();
     } catch (error) {
-      secureLogger.logError('Erro ao excluir inversor', {
+      logError('Erro ao excluir inversor', {
         error: error instanceof Error ? error.message : 'Erro desconhecido',
         inverterId: id,
         service: 'InverterManagerAdvanced'

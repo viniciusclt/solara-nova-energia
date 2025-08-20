@@ -44,7 +44,11 @@ import {
   Heart,
   MessageSquare,
   ThumbsUp,
-  Flag
+  Flag,
+  Upload,
+  GitBranch,
+  Award,
+  ArrowLeft
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
@@ -60,9 +64,10 @@ import { ScrollArea } from '../../../components/ui/scroll-area';
 import { Textarea } from '../../../components/ui/textarea';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useTrainingModule, useModuleContent, useUserProgress } from '../hooks/useTraining';
-import { SidebarToggle } from '../../../components/sidebar';
+import { SidebarToggle } from '../../../core/components/layout/SidebarToggle';
 import VideoPlayer from '../components/VideoPlayer';
 import AssessmentViewer from '../components/AssessmentViewer';
+import { VideoUploader, DiagramEditor, CertificateGenerator, PlaybookViewer } from '../components';
 import type { TrainingModule, ModuleContent } from '../types';
 
 // =====================================================
@@ -507,7 +512,7 @@ function ContentListCard({
   onContentSelect 
 }: {
   contents: ModuleContent[];
-  userProgress: any[];
+  userProgress: { content_id: string; completed: boolean; progress_percentage?: number }[];
   activeContent: string | null;
   onContentSelect: (contentId: string) => void;
 }) {
@@ -523,6 +528,14 @@ function ContentListCard({
         return HelpCircle;
       case 'interactive':
         return Zap;
+      case 'video_upload':
+        return Upload;
+      case 'diagram':
+        return GitBranch;
+      case 'certificate':
+        return Award;
+      case 'playbook':
+        return BookOpen;
       default:
         return BookOpen;
     }
@@ -582,7 +595,11 @@ function ContentListCard({
                           <Badge variant="outline" className="text-xs">
                             {content.type === 'video' ? 'Vídeo' :
                              content.type === 'document' ? 'Documento' :
-                             content.type === 'quiz' ? 'Quiz' : 'Interativo'}
+                             content.type === 'quiz' ? 'Quiz' :
+                             content.type === 'video_upload' ? 'Upload de Vídeo' :
+                             content.type === 'diagram' ? 'Diagrama' :
+                             content.type === 'certificate' ? 'Certificado' :
+                             content.type === 'playbook' ? 'Playbook' : 'Interativo'}
                           </Badge>
                           {content.estimated_duration && (
                             <span className="text-xs text-gray-500">
@@ -674,6 +691,82 @@ function ContentViewer({
     video_url: 'https://example.com/video.mp4'
   };
   
+  const renderContentByType = () => {
+    switch (content.type) {
+      case 'video':
+        return (
+          <VideoPlayer 
+            videoId={contentId}
+            onComplete={() => onComplete(contentId)}
+          />
+        );
+      
+      case 'quiz':
+        return (
+          <AssessmentViewer 
+            assessmentId={contentId}
+            onComplete={() => onComplete(contentId)}
+          />
+        );
+      
+      case 'video_upload':
+        return (
+          <VideoUploader 
+            onUploadComplete={(videoData) => {
+              console.log('Vídeo enviado:', videoData);
+              onComplete(contentId);
+            }}
+          />
+        );
+      
+      case 'diagram':
+        return (
+          <DiagramEditor 
+            diagramId={contentId}
+            onSave={(diagramData) => {
+              console.log('Diagrama salvo:', diagramData);
+              onComplete(contentId);
+            }}
+          />
+        );
+      
+      case 'certificate':
+        return (
+          <CertificateGenerator 
+            moduleId={contentId}
+            onGenerate={(certificateData) => {
+              console.log('Certificado gerado:', certificateData);
+              onComplete(contentId);
+            }}
+          />
+        );
+      
+      case 'playbook':
+        return (
+          <PlaybookViewer 
+            playbookId={contentId}
+            onView={(playbookData) => {
+              console.log('Playbook visualizado:', playbookData);
+              onComplete(contentId);
+            }}
+          />
+        );
+      
+      default:
+        return (
+          <div className="p-8 text-center">
+            <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Tipo de conteúdo não suportado
+            </h3>
+            <p className="text-gray-600">
+              O tipo de conteúdo "{content.type}" ainda não é suportado.
+            </p>
+          </div>
+        );
+    }
+  };
+  
   return (
     <Card>
       <CardHeader>
@@ -685,21 +778,7 @@ function ContentViewer({
         </div>
       </CardHeader>
       <CardContent>
-        {content.type === 'video' && (
-          <VideoPlayer 
-            videoId={contentId}
-            onComplete={() => onComplete(contentId)}
-          />
-        )}
-        
-        {content.type === 'quiz' && (
-          <AssessmentViewer 
-            assessmentId={contentId}
-            onComplete={() => onComplete(contentId)}
-          />
-        )}
-        
-        {/* Outros tipos de conteúdo */}
+        {renderContentByType()}
       </CardContent>
     </Card>
   );

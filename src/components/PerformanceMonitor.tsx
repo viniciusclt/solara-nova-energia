@@ -48,7 +48,7 @@ import {
   Settings
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { logError } from '@/utils/secureLogger';
@@ -97,6 +97,7 @@ interface ErrorLog {
 
 export function PerformanceMonitor() {
   const { user, profile, hasPermission } = useAuth();
+  const { toast } = useToast();
   const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null);
   const [performanceData, setPerformanceData] = useState<PerformanceData[]>([]);
   const [errorLogs, setErrorLogs] = useState<ErrorLog[]>([]);
@@ -264,7 +265,7 @@ export function PerformanceMonitor() {
     } finally {
       setLoading(false);
     }
-  }, [user, profile, generateMockHealth, generateMockData, generateMockErrors]);
+  }, [user, profile, generateMockHealth, generateMockData, generateMockErrors, toast]);
 
   // Auto refresh
   useEffect(() => {

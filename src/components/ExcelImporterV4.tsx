@@ -55,7 +55,7 @@ const FinancialKitSchema = z.object({
   cpfCnpj: z.string().min(11, 'CPF/CNPJ inválido').optional().or(z.literal('')),
   address: z.string().max(200, 'Endereço muito longo').optional().or(z.literal('')),
   consumoMedio: z.number().min(0, 'Consumo deve ser positivo').max(10000, 'Consumo muito alto'),
-  concessionaria: z.string().max(50, 'Nome da concessionária muito longo').optional().or(z.literal('')),
+
   tipoFornecimento: z.enum(['monofasico', 'bifasico', 'trifasico']).optional(),
   grupo: z.enum(['B1', 'B2', 'B3', 'B4']).optional()
 });
@@ -143,7 +143,7 @@ const ExcelImporterV4: React.FC<ExcelImporterV4Props> = ({
     financial_kits: {
       name: 'Kits Financeiros',
       description: 'Dados de clientes e consumo energético',
-      columns: ['name', 'email', 'phone', 'cpfCnpj', 'address', 'consumoMedio', 'concessionaria', 'tipoFornecimento', 'grupo'],
+      columns: ['name', 'email', 'phone', 'cpfCnpj', 'address', 'consumoMedio', 'tipoFornecimento', 'grupo'],
       sampleData: {
         name: 'João Silva',
         email: 'joao@email.com',
@@ -151,7 +151,7 @@ const ExcelImporterV4: React.FC<ExcelImporterV4Props> = ({
         cpfCnpj: '12345678901',
         address: 'Rua das Flores, 123',
         consumoMedio: 350,
-        concessionaria: 'CPFL',
+  
         tipoFornecimento: 'bifasico',
         grupo: 'B1'
       }
@@ -316,7 +316,7 @@ const ExcelImporterV4: React.FC<ExcelImporterV4Props> = ({
       setIsLoading(false);
       setUploadProgress(0);
     }
-  }, [batchSize, validateData, toast]);
+  }, [batchSize, debouncedValidateData, selectedTemplate, toast]);
   
   // Configuração do dropzone
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -358,7 +358,7 @@ const ExcelImporterV4: React.FC<ExcelImporterV4Props> = ({
       setHistoryIndex(historyIndex + 1);
       debouncedValidateData(nextData);
     }
-  }, [history, historyIndex, validateData]);
+  }, [history, historyIndex, debouncedValidateData]);
   
   // Funções de manipulação de dados
   const updateCellValue = useCallback((rowId: string, columnId: string, value: unknown) => {
@@ -480,7 +480,7 @@ const ExcelImporterV4: React.FC<ExcelImporterV4Props> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [gridData, validationErrors, onDataImported, toast]);
+  }, [gridData, validationErrors, onDataImported, selectedTemplate, toast]);
   
   // Configuração das colunas da tabela
   const columns = useMemo(() => {

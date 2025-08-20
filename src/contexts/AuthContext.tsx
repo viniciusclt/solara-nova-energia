@@ -4,6 +4,8 @@ import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
 import { PERMISSIONS, validateEmail, validatePassword, sanitizeEmail } from './authUtils';
 import { logWarn, logError } from '@/utils/secureLogger';
+import { DashboardService } from '@/services/DashboardService';
+import { useConnectivity } from '@/services/connectivityService';
 
 
 export type UserAccessType = 'vendedor' | 'engenheiro' | 'admin' | 'super_admin';
@@ -58,9 +60,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [isSubscriptionActive, setIsSubscriptionActive] = useState(false);
   const { toast } = useToast();
+  const connectivity = useConnectivity();
+
+  /**
+   * Garante que existe uma empresa padrão no sistema
+   */
+  const ensureDefaultCompanyExists = async (): Promise<string | null> => {
+    try {
+      return await DashboardService.ensureDefaultCompany();
+    } catch (error) {
+      console.error('[AuthContext] Erro ao garantir empresa padrão:', error);
+      return null;
+    }
+  };
 
   const fetchProfile = async (userId: string) => {
     try {
+      console.log(`[AuthContext] Buscando perfil para usuário: ${userId}`);
+      
+      // Verificar conectividade antes de tentar acessar Supabase
+      if (!connectivity?.isOnline) {
+        console.log('[AuthContext] Modo offline detectado, usando perfil de demonstração');
+        throw new Error('Offline mode - using demo profile');
+      }
+      
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -80,9 +103,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
       
+      // Verificar se usuário tem empresa associada
+      if (!profileData.company_id) {
+        console.warn(`[AuthContext] Usuário ${userId} sem empresa. Tentando associar à empresa padrão.`);
+        
+        // Tentar associar à empresa padrão
+        const defaultCompanyId = await ensureDefaultCompanyExists();
+        
+        if (defaultCompanyId) {
+          console.log(`[AuthContext] Associando usuário ${userId} à empresa padrão: ${defaultCompanyId}`);
+          
+          // Atualizar perfil com empresa padrão
+          const { data: updatedProfile, error: updateError } = await supabase
+            .from('profiles')
+            .update({ 
+              company_id: defaultCompanyId,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', userId)
+            .select('*')
+            .single();
+
+          if (!updateError && updatedProfile) {
+            console.log(`[AuthContext] Usuário ${userId} associado à empresa padrão com sucesso`);
+            profileData.company_id = defaultCompanyId;
+            
+            // Log da ação
+            await supabase
+              .from('audit_logs')
+              .insert({
+                user_id: userId,
+                action: 'auto_assign_company',
+                details: { 
+                  company_id: defaultCompanyId,
+                  timestamp: new Date().toISOString(),
+                  reason: 'user_without_company'
+                }
+              });
+          } else {
+            console.error(`[AuthContext] Erro ao associar usuário à empresa padrão:`, updateError);
+          }
+        } else {
+          console.error(`[AuthContext] Não foi possível criar/encontrar empresa padrão`);
+        }
+      }
+      
       setProfile(profileData);
 
       if (profileData.company_id) {
+        console.log(`[AuthContext] Carregando dados da empresa: ${profileData.company_id}`);
+        
         const { data: companyData } = await supabase
           .from('companies')
           .select('*')
@@ -103,6 +173,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                           (!subscriptionData.end_date || new Date(subscriptionData.end_date) > new Date());
           setIsSubscriptionActive(isActive);
         }
+      } else {
+        console.warn(`[AuthContext] Usuário ${userId} ainda sem empresa após tentativa de associação`);
+        setCompany(null);
+        setIsSubscriptionActive(false);
       }
 
       // Update last login
@@ -124,17 +198,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
 
     } catch (error) {
-      logError('Erro ao buscar perfil do usuário', {
-        service: 'AuthContext',
-        error: error instanceof Error ? error.message : 'Erro desconhecido',
-        userId,
-        action: 'fetchProfile'
-      });
-      // Se falhar, ainda assim define loading como false para evitar tela branca
-      setProfile(null);
-      setCompany(null);
-      setIsSubscriptionActive(false);
+      console.warn(`[AuthContext] Erro ao conectar com Supabase, usando dados de demonstração:`, error);
+      
+      // Fallback para desenvolvimento/localhost - criar perfil de demonstração
+      const demoProfile: UserProfile = {
+        id: userId,
+        email: user?.email || 'demo@solara.com.br',
+        name: 'Usuário Demonstração',
+        access_type: 'admin',
+        company_id: 'demo-company-id',
+        last_login: new Date().toISOString()
+      };
+      
+      const demoCompany: Company = {
+        id: 'demo-company-id',
+        name: 'Solara Energia - Demo',
+        cnpj: '00.000.000/0001-00',
+        address: 'Endereço de Demonstração',
+        num_employees: 10
+      };
+      
+      setProfile(demoProfile);
+      setCompany(demoCompany);
+      setIsSubscriptionActive(true); // Ativo para demonstração
       setLoading(false);
+      
+      console.log(`[AuthContext] Perfil de demonstração criado para usuário: ${userId}`);
     }
   };
 

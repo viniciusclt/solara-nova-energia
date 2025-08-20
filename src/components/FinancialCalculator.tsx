@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,7 +53,7 @@ const FinancialCalculator: React.FC = () => {
   });
 
   // Load institutions
-  const loadInstitutions = async () => {
+  const loadInstitutions = useCallback(async () => {
     if (!user || !profile?.empresa_id) return;
 
     try {
@@ -75,11 +75,11 @@ const FinancialCalculator: React.FC = () => {
         variant: 'destructive'
       });
     }
-  };
+  }, [user, profile?.empresa_id, toast]);
 
   useEffect(() => {
     loadInstitutions();
-  }, [user, profile]);
+  }, [loadInstitutions]);
 
   // Calculate PMT (monthly payment)
   const calculatePMT = (principal: number, rate: number, nper: number): number => {

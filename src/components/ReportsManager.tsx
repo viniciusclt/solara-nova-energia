@@ -67,7 +67,7 @@ import {
   Printer
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { DateRange } from 'react-day-picker';
@@ -149,6 +149,7 @@ interface ReportData {
 
 export function ReportsManager() {
   const { user, profile, hasPermission } = useAuth();
+  const { toast } = useToast();
   const [templates, setTemplates] = useState<ReportTemplate[]>([]);
   const [generatedReports, setGeneratedReports] = useState<GeneratedReport[]>([]);
   const [reportData, setReportData] = useState<ReportData | null>(null);

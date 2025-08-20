@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/shared/ui/alert-dialog";
 import { Plus, Edit, Trash2, FileSpreadsheet, DollarSign } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -61,11 +61,7 @@ export function FinancialKitManager({ onKitsUpdated }: FinancialKitManagerProps 
 
   const categorias = ["Residencial", "Comercial", "Industrial", "Rural"];
 
-  useEffect(() => {
-    fetchKits();
-  }, [fetchKits]);
-
-  const fetchKits = async (retryCount = 0) => {
+  const fetchKits = useCallback(async (retryCount = 0) => {
     try {
       setIsLoading(true);
       
@@ -123,7 +119,11 @@ export function FinancialKitManager({ onKitsUpdated }: FinancialKitManagerProps 
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchKits();
+  }, [fetchKits]);
 
   const resetForm = () => {
     setFormData({

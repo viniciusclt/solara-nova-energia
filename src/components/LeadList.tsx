@@ -14,16 +14,26 @@ import { useAuth } from "@/contexts/AuthContext";
 import { DemoDataService } from "@/services/DemoDataService";
 import { logError } from "@/utils/secureLogger";
 
+interface Address {
+  street?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+  [key: string]: string | undefined;
+}
+
 interface Lead {
   id: string;
   name: string;
   email: string | null;
   phone: string | null;
-  concessionaria: string | null;
-  grupo: string | null;
   consumo_medio: number | null;
+  status: string;
   created_at: string;
   updated_at: string;
+  address?: Address | string | null;
+  user_id?: string;
 }
 
 interface LeadListProps {
@@ -36,12 +46,10 @@ export const LeadList = memo(function LeadList({ onLeadSelect, selectedLeadId, o
   const { toast } = useToast();
   const { profile } = useAuth();
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [allConcessionarias, setAllConcessionarias] = useState<string[]>([]);
-  const [allGrupos, setAllGrupos] = useState<string[]>([]);
+  const [allStatuses, setAllStatuses] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterConcessionaria, setFilterConcessionaria] = useState("");
-  const [filterGrupo, setFilterGrupo] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "created_at" | "updated_at">("updated_at");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [currentPage, setCurrentPage] = useState(1);
@@ -61,41 +69,29 @@ export const LeadList = memo(function LeadList({ onLeadSelect, selectedLeadId, o
     }, searchTerm ? 300 : 0); // Debounce para busca por texto
 
     return () => clearTimeout(timer);
-  }, [currentPage, sortBy, sortOrder, searchTerm, filterConcessionaria, filterGrupo]);
+  }, [fetchLeads, searchTerm]);
 
   // Resetar página quando filtros mudarem
   useEffect(() => {
     if (currentPage !== 1) {
       setCurrentPage(1);
     }
-  }, [searchTerm, filterConcessionaria, filterGrupo]);
+  }, [currentPage, searchTerm, filterStatus]);
 
   const fetchFilterOptions = async () => {
     try {
-      // Buscar todas as concessionárias únicas
-      const { data: concessionariaData } = await supabase
+      // Buscar todos os status únicos
+      const { data: statusData } = await supabase
         .from('leads')
-        .select('concessionaria')
-        .not('concessionaria', 'is', null)
-        .neq('concessionaria', '');
+        .select('status')
+        .not('status', 'is', null)
+        .neq('status', '');
 
-      const concessionarias = Array.from(
-        new Set(concessionariaData?.map(item => item.concessionaria).filter(Boolean))
+      const statuses = Array.from(
+        new Set(statusData?.map(item => item.status).filter(Boolean))
       ).sort();
 
-      // Buscar todos os grupos únicos
-      const { data: grupoData } = await supabase
-        .from('leads')
-        .select('grupo')
-        .not('grupo', 'is', null)
-        .neq('grupo', '');
-
-      const grupos = Array.from(
-        new Set(grupoData?.map(item => item.grupo).filter(Boolean))
-      ).sort();
-
-      setAllConcessionarias(concessionarias);
-      setAllGrupos(grupos);
+      setAllStatuses(statuses);
     } catch (error) {
       logError('Erro ao carregar opções de filtro', {
         error: error instanceof Error ? error.message : String(error),
@@ -104,7 +100,7 @@ export const LeadList = memo(function LeadList({ onLeadSelect, selectedLeadId, o
     }
   };
 
-  const fetchLeads = async () => {
+  const fetchLeads = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -116,9 +112,8 @@ export const LeadList = memo(function LeadList({ onLeadSelect, selectedLeadId, o
           name: lead.name,
           email: lead.email,
           phone: lead.phone,
-          concessionaria: lead.concessionaria || null,
-          grupo: lead.grupo || null,
           consumo_medio: lead.consumoMedio,
+          status: 'Novo',
           created_at: lead.created_at!,
           updated_at: lead.updated_at!
         }));
@@ -135,12 +130,8 @@ export const LeadList = memo(function LeadList({ onLeadSelect, selectedLeadId, o
           );
         }
         
-        if (filterConcessionaria) {
-          filteredLeads = filteredLeads.filter(lead => lead.concessionaria === filterConcessionaria);
-        }
-        
-        if (filterGrupo) {
-          filteredLeads = filteredLeads.filter(lead => lead.grupo === filterGrupo);
+        if (filterStatus) {
+          filteredLeads = filteredLeads.filter(lead => lead.status === filterStatus);
         }
         
         // Aplicar ordenação
@@ -165,7 +156,7 @@ export const LeadList = memo(function LeadList({ onLeadSelect, selectedLeadId, o
       // Código original para produção
       let query = supabase
         .from('leads')
-        .select('id, name, email, phone, concessionaria, grupo, consumo_medio, created_at, updated_at', { count: 'exact' })
+        .select('id, name, email, phone, consumo_medio, status, created_at, updated_at', { count: 'exact' })
         .order(sortBy, { ascending: sortOrder === 'asc' });
 
       // Aplicar filtros na query
@@ -173,12 +164,8 @@ export const LeadList = memo(function LeadList({ onLeadSelect, selectedLeadId, o
         query = query.or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`);
       }
 
-      if (filterConcessionaria) {
-        query = query.eq('concessionaria', filterConcessionaria);
-      }
-
-      if (filterGrupo) {
-        query = query.eq('grupo', filterGrupo);
+      if (filterStatus) {
+        query = query.eq('status', filterStatus);
       }
 
       // Aplicar paginação
@@ -195,8 +182,7 @@ export const LeadList = memo(function LeadList({ onLeadSelect, selectedLeadId, o
       logError('Erro ao carregar leads', {
         error: error instanceof Error ? error.message : String(error),
         searchTerm,
-        filterConcessionaria,
-        filterGrupo,
+        filterStatus,
         currentPage,
         service: 'LeadList'
       });
@@ -208,15 +194,13 @@ export const LeadList = memo(function LeadList({ onLeadSelect, selectedLeadId, o
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, sortBy, sortOrder, searchTerm, filterStatus, toast]);
 
-  const handleFilterChange = useCallback((type: 'concessionaria' | 'grupo', value: string) => {
+  const handleFilterChange = useCallback((type: 'status', value: string) => {
     const newValue = value === "none" ? "" : value;
     
-    if (type === 'concessionaria') {
-      setFilterConcessionaria(newValue);
-    } else {
-      setFilterGrupo(newValue);
+    if (type === 'status') {
+      setFilterStatus(newValue);
     }
   }, []);
 
@@ -235,7 +219,7 @@ export const LeadList = memo(function LeadList({ onLeadSelect, selectedLeadId, o
       // Buscar dados completos do lead
       const { data: fullLead, error } = await supabase
         .from('leads')
-        .select('*')
+        .select('id, name, email, phone, consumo_medio, status, created_at, updated_at, address, user_id')
         .eq('id', lead.id)
         .single();
 
@@ -312,13 +296,13 @@ export const LeadList = memo(function LeadList({ onLeadSelect, selectedLeadId, o
   };
 
   const getFilterCount = useMemo(() => {
-    const hasFilters = searchTerm || filterConcessionaria || filterGrupo;
+    const hasFilters = searchTerm || filterStatus;
     if (!hasFilters) return `Total: ${totalCount} leads`;
     
     const start = (currentPage - 1) * pageSize + 1;
     const end = Math.min(currentPage * pageSize, totalCount);
     return `Mostrando ${start}-${end} de ${totalCount} leads`;
-  }, [searchTerm, filterConcessionaria, filterGrupo, totalCount, currentPage, pageSize]);
+  }, [searchTerm, filterStatus, totalCount, currentPage, pageSize]);
 
   if (loading) {
     return (
@@ -360,34 +344,21 @@ export const LeadList = memo(function LeadList({ onLeadSelect, selectedLeadId, o
           </div>
 
           <div>
-            <Label htmlFor="concessionaria">Concessionária</Label>
-            <Select value={filterConcessionaria || "none"} onValueChange={(value) => handleFilterChange('concessionaria', value)}>
+            <Label htmlFor="status">Status</Label>
+            <Select value={filterStatus || "none"} onValueChange={(value) => handleFilterChange('status', value)}>
               <SelectTrigger>
-                <SelectValue placeholder="Todas" />
+                <SelectValue placeholder="Todos" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Todas</SelectItem>
-                {allConcessionarias.map(value => (
+                <SelectItem value="none">Todos</SelectItem>
+                {allStatuses.map(value => (
                   <SelectItem key={value} value={value}>{value}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          <div>
-            <Label htmlFor="grupo">Grupo</Label>
-            <Select value={filterGrupo || "none"} onValueChange={(value) => handleFilterChange('grupo', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todos" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Todos</SelectItem>
-                {allGrupos.map(value => (
-                  <SelectItem key={value} value={value}>{value}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <div></div>
 
           <div className="flex items-end">
             <Button onClick={onNewLead} className="w-full">
@@ -405,8 +376,8 @@ export const LeadList = memo(function LeadList({ onLeadSelect, selectedLeadId, o
                 <TableHead>Nome</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Telefone</TableHead>
-                <TableHead>Concessionária</TableHead>
-                <TableHead>Consumo Médio</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Consumo (kWh)</TableHead>
                 <TableHead>Atualizado em</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
@@ -420,7 +391,7 @@ export const LeadList = memo(function LeadList({ onLeadSelect, selectedLeadId, o
                   <TableCell className="font-medium">{lead.name}</TableCell>
                   <TableCell>{lead.email || "-"}</TableCell>
                   <TableCell>{lead.phone || "-"}</TableCell>
-                  <TableCell>{lead.concessionaria || "-"}</TableCell>
+                  <TableCell>{lead.status || "-"}</TableCell>
                   <TableCell>
                     {lead.consumo_medio ? `${lead.consumo_medio} kWh` : "-"}
                   </TableCell>

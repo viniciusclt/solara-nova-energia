@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -94,21 +94,7 @@ export const PerformanceSettings: React.FC<PerformanceSettingsProps> = ({ onSett
     optimizeImages: true
   });
 
-  useEffect(() => {
-    loadSettings();
-    loadMetrics();
-    
-    // Simular atualização de métricas em tempo real
-    const interval = setInterval(() => {
-      if (settings.enableMonitoring) {
-        updateCurrentMetrics();
-      }
-    }, settings.monitoringInterval * 1000);
-    
-    return () => clearInterval(interval);
-  }, [settings.enableMonitoring, settings.monitoringInterval]);
-
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('performance_settings')
@@ -127,7 +113,7 @@ export const PerformanceSettings: React.FC<PerformanceSettingsProps> = ({ onSett
     } catch (error) {
       logError('Erro ao carregar configurações de performance', 'PerformanceSettings', { error: (error as Error).message });
     }
-  };
+  }, []);
 
   const saveSettings = async () => {
     setIsLoading(true);
@@ -181,7 +167,7 @@ export const PerformanceSettings: React.FC<PerformanceSettingsProps> = ({ onSett
     }
   };
 
-  const loadMetrics = async () => {
+  const loadMetrics = useCallback(async () => {
     setIsLoadingMetrics(true);
     
     try {
@@ -206,7 +192,23 @@ export const PerformanceSettings: React.FC<PerformanceSettingsProps> = ({ onSett
     } finally {
       setIsLoadingMetrics(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
+
+  useEffect(() => {
+    loadMetrics();
+  }, [loadMetrics]);
+
+  useEffect(() => {
+    if (settings.enableMonitoring) {
+      updateCurrentMetrics();
+      const interval = setInterval(updateCurrentMetrics, settings.monitoringInterval * 1000);
+      return () => clearInterval(interval);
+    }
+  }, [settings.enableMonitoring, settings.monitoringInterval]);
 
   const updateCurrentMetrics = () => {
     const newMetrics: PerformanceMetrics = {

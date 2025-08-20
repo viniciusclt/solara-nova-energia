@@ -37,10 +37,10 @@ export function useEquipmentWithRetry(type: EquipmentType): UseEquipmentWithRetr
       
       if (queryError) {
         logError(`Erro na query ${type}`, {
-          service: 'useEquipmentWithRetry',
-          type: type,
-          error: queryError.message || 'Erro desconhecido'
-        });
+        service: 'useEquipmentWithRetry',
+        type: type,
+        error: queryError.message || 'Erro desconhecido'
+      });
         throw queryError;
       }
       

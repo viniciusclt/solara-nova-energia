@@ -413,7 +413,7 @@ function NotificationFilters({
       
       <Select 
         value={filter.type} 
-        onValueChange={(value: any) => onFilterChange({ ...filter, type: value })}
+        onValueChange={(value: string) => onFilterChange({ ...filter, type: value })}
       >
         <SelectTrigger className="w-32">
           <SelectValue />
@@ -429,7 +429,7 @@ function NotificationFilters({
       
       <Select 
         value={filter.status} 
-        onValueChange={(value: any) => onFilterChange({ ...filter, status: value })}
+        onValueChange={(value: string) => onFilterChange({ ...filter, status: value })}
       >
         <SelectTrigger className="w-32">
           <SelectValue />
@@ -443,7 +443,7 @@ function NotificationFilters({
       
       <Select 
         value={filter.priority} 
-        onValueChange={(value: any) => onFilterChange({ ...filter, priority: value })}
+        onValueChange={(value: string) => onFilterChange({ ...filter, priority: value })}
       >
         <SelectTrigger className="w-32">
           <SelectValue />
@@ -459,7 +459,7 @@ function NotificationFilters({
       
       <Select 
         value={filter.dateRange} 
-        onValueChange={(value: any) => onFilterChange({ ...filter, dateRange: value })}
+        onValueChange={(value: string) => onFilterChange({ ...filter, dateRange: value })}
       >
         <SelectTrigger className="w-32">
           <SelectValue />
@@ -936,7 +936,7 @@ function NotificationSettingsModal({
   settings: NotificationSettings;
   onSettingsChange: (settings: NotificationSettings) => void;
 }) {
-  const handleSettingChange = (key: keyof NotificationSettings, value: any) => {
+  const handleSettingChange = (key: keyof NotificationSettings, value: boolean | string | { enabled: boolean; start: string; end: string }) => {
     onSettingsChange({ ...settings, [key]: value });
   };
   
@@ -1059,7 +1059,7 @@ function NotificationSettingsModal({
             
             <Select 
               value={settings.reminderFrequency} 
-              onValueChange={(value: any) => handleSettingChange('reminderFrequency', value)}
+              onValueChange={(value: string) => handleSettingChange('reminderFrequency', value)}
             >
               <SelectTrigger>
                 <SelectValue />
