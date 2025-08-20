@@ -1,5 +1,19 @@
 # Solara Nova Energia - Versões
 
+## Versão 2.0.6 - Janeiro 2025
+
+- ✅ Sistema de Diagramas: Implementação completa do OrganogramNode com suporte a hierarquias (CEO, Director, Manager, Employee, Team)
+- ✅ UX (Hover Buttons): Corrigido z-index dos botões de hover para ficarem visíveis acima dos Handles do ReactFlow
+- ✅ Drag-and-Drop: Implementado funcionalidade completa de arrastar e soltar do NodePalette para o canvas
+- ✅ Cores Dinâmicas: Sistema de cores automáticas baseado na posição hierárquica do organograma
+- ✅ Ícones Específicos: Ícones únicos para cada nível hierárquico (Crown, Shield, Users, User, UserCheck)
+- ✅ Integração Completa: OrganogramNode integrado ao sistema de tipos, NodePalette e mapeamento de nós
+- ✅ Interface Intuitiva: Sistema 100% funcional com experiência de usuário otimizada
+
+Status: ✅ 100% concluído
+
+---
+
 ## Versão 2.0.5 - Agosto 2025
 
 - ✅ UX (FlowchartEditor): Seleção por arrasto habilitada (selectNodesOnDrag) quando não estiver em modo somente leitura, facilitando seleção múltipla no canvas.
