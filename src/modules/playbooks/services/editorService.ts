@@ -751,48 +751,90 @@ export class EditorService {
     return { ...this.state.settings };
   }
 
-  // Collaboration (placeholder for future implementation)
-  enableCollaboration(websocketUrl: string): void {
-    if (this.collaborationSocket) {
-      this.collaborationSocket.close();
-    }
+  // Collaboration - Integração com sistema de colaboração em tempo real
+  enableCollaboration(diagramId: string): void {
+    // A colaboração agora é gerenciada pelo hook useCollaboration
+    // Este método mantém compatibilidade com a interface existente
+    console.log('Collaboration enabled for diagram:', diagramId);
     
-    this.collaborationSocket = new WebSocket(websocketUrl);
-    
-    this.collaborationSocket.onopen = () => {
-      console.log('Collaboration connected');
-    };
-    
-    this.collaborationSocket.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-        this.handleCollaborationMessage(message);
-      } catch (error) {
-        console.error('Failed to parse collaboration message:', error);
-      }
-    };
-    
-    this.collaborationSocket.onclose = () => {
-      console.log('Collaboration disconnected');
-    };
+    // Emitir evento para componentes que usam o editorService
+    this.emit({ 
+      type: 'collaboration-enabled', 
+      diagramId,
+      timestamp: new Date()
+    });
   }
 
-  private handleCollaborationMessage(message: Record<string, unknown>): void {
-    // Handle real-time collaboration messages
-    switch (message.type) {
-      case 'operation':
-        this.applyOperation(message.operation);
-        break;
-      case 'cursor':
-        // Update cursor positions
-        break;
-      case 'user-joined':
-        this.emit({ type: 'collaboration-user-joined', user: message.user });
-        break;
-      case 'user-left':
-        this.emit({ type: 'collaboration-user-left', userId: message.userId });
-        break;
+  disableCollaboration(): void {
+    console.log('Collaboration disabled');
+    
+    this.emit({ 
+      type: 'collaboration-disabled',
+      timestamp: new Date()
+    });
+  }
+
+  // Método para aplicar operações colaborativas
+  applyCollaborativeOperation(operation: {
+    type: string;
+    data: Record<string, unknown>;
+    userId: string;
+    timestamp: Date;
+  }): void {
+    try {
+      switch (operation.type) {
+        case 'block_add':
+          if (operation.data.block) {
+            this.addBlock(operation.data.block as Block);
+          }
+          break;
+        case 'block_update':
+          if (operation.data.blockId && operation.data.changes) {
+            this.updateBlock(
+              operation.data.blockId as string, 
+              operation.data.changes as Partial<Block>
+            );
+          }
+          break;
+        case 'block_delete':
+          if (operation.data.blockId) {
+            this.deleteBlock(operation.data.blockId as string);
+          }
+          break;
+        default:
+          console.warn('Unknown collaborative operation type:', operation.type);
+      }
+      
+      // Emitir evento de operação aplicada
+      this.emit({ 
+        type: 'collaborative-operation-applied', 
+        operation,
+        timestamp: new Date()
+      });
+      
+    } catch (error) {
+      console.error('Failed to apply collaborative operation:', error);
+      this.emit({ 
+        type: 'collaborative-operation-error', 
+        operation,
+        error,
+        timestamp: new Date()
+      });
     }
+  }
+
+  // Método para broadcast de operações locais
+  broadcastOperation(operation: {
+    type: string;
+    data: Record<string, unknown>;
+  }): void {
+    this.emit({ 
+      type: 'operation-broadcast', 
+      operation: {
+        ...operation,
+        timestamp: new Date()
+      }
+    });
   }
 
   // Cleanup
@@ -801,9 +843,11 @@ export class EditorService {
       clearInterval(this.autoSaveTimer);
     }
     
-    if (this.collaborationSocket) {
-      this.collaborationSocket.close();
-    }
+    // Emitir evento de cleanup para componentes de colaboração
+    this.emit({ 
+      type: 'editor-service-destroyed',
+      timestamp: new Date()
+    });
     
     this.eventListeners.clear();
   }

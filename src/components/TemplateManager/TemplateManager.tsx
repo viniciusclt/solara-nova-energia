@@ -394,7 +394,7 @@ export function TemplateManager() {
                   Novo Template
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="w-[90vw] max-w-4xl h-[85vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Criar Novo Template</DialogTitle>
                   <DialogDescription>
@@ -565,7 +565,7 @@ export function TemplateManager() {
 
       {/* Edit Template Dialog */}
       <Dialog open={!!editingTemplate} onOpenChange={() => setEditingTemplate(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="w-[90vw] max-w-4xl h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Template</DialogTitle>
             <DialogDescription>

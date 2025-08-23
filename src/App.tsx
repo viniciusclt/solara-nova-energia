@@ -11,6 +11,7 @@ import Index from '@/pages/Index';
 import Auth from '@/pages/Auth';
 import NotFound from '@/pages/NotFound';
 import FlowchartEditorPage from '@/pages/flowcharteditorpage';
+import { ModernFlowchartEditor } from '@/pages/ModernFlowchartEditor';
 import ProposalEditorPage from '@/pages/ProposalEditorPage';
 import PlaybookEditorPage from '@/pages/PlaybookEditorPage';
 import VideoUpload from '@/pages/VideoUpload';
@@ -18,6 +19,7 @@ import RoadmapPage from '@/pages/RoadmapPage';
 import TrainingPage from '@/pages/TrainingPage';
 import SolarWorkflowPage from '@/pages/SolarWorkflowPage';
 import EquipmentManagementPage from '@/pages/EquipmentManagementPage';
+import DiagramTestPage from '@/pages/DiagramTestPage';
 
 // Styles
 import './App.css';
@@ -86,11 +88,18 @@ function App() {
               {/* Flowchart Editor Routes */}
               <Route path="/flowcharts/editor" element={
                 <ProtectedRoute requiredAccess={['admin', 'super_admin', 'engenheiro']}>
-                  <FlowchartEditorPage />
+                  <ModernFlowchartEditor />
                 </ProtectedRoute>
               } />
               
               <Route path="/flowcharts/editor/:id" element={
+                <ProtectedRoute requiredAccess={['admin', 'super_admin', 'engenheiro']}>
+                  <ModernFlowchartEditor />
+                </ProtectedRoute>
+              } />
+              
+              {/* Legacy Flowchart Editor */}
+              <Route path="/flowcharts/legacy" element={
                 <ProtectedRoute requiredAccess={['admin', 'super_admin', 'engenheiro']}>
                   <FlowchartEditorPage />
                 </ProtectedRoute>
@@ -126,6 +135,13 @@ function App() {
               <Route path="/videos/upload" element={
                 <ProtectedRoute requiredAccess={['admin', 'super_admin']}>
                   <VideoUpload />
+                </ProtectedRoute>
+              } />
+              
+              {/* Diagram Test Route */}
+              <Route path="/diagrams/test" element={
+                <ProtectedRoute requiredAccess={['admin', 'super_admin', 'engenheiro']}>
+                  <DiagramTestPage />
                 </ProtectedRoute>
               } />
               

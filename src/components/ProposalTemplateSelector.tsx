@@ -363,7 +363,7 @@ export function ProposalTemplateSelector({
 
       {/* Template Customization Dialog */}
       <Dialog open={customizationDialogOpen} onOpenChange={setCustomizationDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] h-[95vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               Customizar Template: {selectedTemplateForCustomization?.name}

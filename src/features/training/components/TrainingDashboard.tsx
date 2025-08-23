@@ -94,6 +94,8 @@ export function TrainingDashboard() {
   const canUploadVideo = profile?.access_type === 'admin' || profile?.access_type === 'super_admin' || 
                         profile?.access_type === 'engenheiro';
 
+  
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Header */}

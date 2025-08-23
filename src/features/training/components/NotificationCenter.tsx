@@ -942,7 +942,7 @@ function NotificationSettingsModal({
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-[80vw] max-w-2xl h-[75vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Configurações de Notificação</DialogTitle>
           <DialogDescription>

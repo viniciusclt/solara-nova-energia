@@ -1,4 +1,6 @@
 // types/editor.ts
+import type { CollaborationUser } from '@/services/collaboration/types';
+
 export type BlockType = 
   | 'paragraph'
   | 'heading1'
@@ -596,15 +598,7 @@ export interface CollaborationState {
   suggestions: Suggestion[];
 }
 
-export interface CollaborationUser {
-  id: string;
-  name: string;
-  avatar?: string;
-  color: string;
-  isOnline: boolean;
-  lastSeen: Date;
-  permissions: UserPermissions;
-}
+// CollaborationUser agora é importado de services/collaboration/types
 
 export interface UserPermissions {
   canEdit: boolean;

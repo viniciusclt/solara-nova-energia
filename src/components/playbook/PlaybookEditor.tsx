@@ -689,7 +689,7 @@ export const PlaybookEditor: React.FC<PlaybookEditorProps> = ({
       {/* Block Menu */}
       {showBlockMenu && (
         <Dialog open={showBlockMenu} onOpenChange={setShowBlockMenu}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="w-[70vw] max-w-xl h-[60vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Adicionar bloco</DialogTitle>
               <DialogDescription>

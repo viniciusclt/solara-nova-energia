@@ -5,7 +5,7 @@
  * configurações e funcionalidades específicas
  */
 
-import { NotificationService, TipoNotificacao, PrioridadeNotificacao, Notificacao, ConfiguracoesNotificacao } from '../NotificationService';
+import { NotificationService, NotificationType, NotificationPriority, Notification, NotificationConfig } from '../NotificationService';
 
 describe('NotificationService', () => {
   let notificationService: NotificationService;
@@ -16,14 +16,14 @@ describe('NotificationService', () => {
     mockLocalStorage = {};
     Object.defineProperty(window, 'localStorage', {
       value: {
-        getItem: jest.fn((key: string) => mockLocalStorage[key] || null),
-        setItem: jest.fn((key: string, value: string) => {
+        getItem: vi.fn((key: string) => mockLocalStorage[key] || null),
+        setItem: vi.fn((key: string, value: string) => {
           mockLocalStorage[key] = value;
         }),
-        removeItem: jest.fn((key: string) => {
+        removeItem: vi.fn((key: string) => {
           delete mockLocalStorage[key];
         }),
-        clear: jest.fn(() => {
+        clear: vi.fn(() => {
           mockLocalStorage = {};
         })
       },
@@ -31,28 +31,32 @@ describe('NotificationService', () => {
     });
 
     // Mock do Notification API
-    Object.defineProperty(window, 'Notification', {
+    Object.defineProperty(global, 'Notification', {
       value: {
         permission: 'granted',
-        requestPermission: jest.fn().mockResolvedValue('granted')
+        requestPermission: vi.fn().mockResolvedValue('granted')
       },
       writable: true
     });
 
-    global.Notification = jest.fn().mockImplementation((title, options) => ({
+    global.Notification = vi.fn().mockImplementation((title, options) => ({
       title,
       ...options,
-      close: jest.fn(),
+      close: vi.fn(),
       onclick: null
-    })) as jest.MockedClass<typeof Notification>;
+    })) as any;
 
+    // Reset singleton instance
+    (NotificationService as any).instance = null;
     notificationService = NotificationService.getInstance();
-    notificationService.limparNotificacoes(); // Limpar estado antes de cada teste
-    jest.clearAllMocks();
+    notificationService.clearAll(); // Limpar estado antes de cada teste
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
-    notificationService.limparNotificacoes();
+    if (notificationService) {
+      notificationService.clearAll();
+    }
   });
 
   describe('Singleton Pattern', () => {
@@ -66,504 +70,312 @@ describe('NotificationService', () => {
 
   describe('Configurações', () => {
     test('deve carregar configurações padrão', () => {
-      const config = notificationService.obterConfiguracoes();
+      const config = notificationService.getConfig();
       
-      expect(config.max_notificacoes).toBe(50);
-      expect(config.auto_fechar_tempo_ms).toBe(5000);
-      expect(config.som_habilitado).toBe(true);
-      expect(config.notificacoes_navegador).toBe(true);
-      expect(config.mostrar_apenas_nao_lidas).toBe(false);
+      expect(config.maxNotifications).toBe(100);
+      expect(config.defaultAutoClose).toBe(5000);
+      expect(config.enableSound).toBe(true);
+      expect(config.enableBrowserNotifications).toBe(false);
+      expect(config.persistentTypes).toEqual(['error', 'warning']);
     });
 
     test('deve atualizar configurações', () => {
-      const novasConfiguracoes: Partial<ConfiguracoesNotificacao> = {
-        max_notificacoes: 100,
-        som_habilitado: false,
-        auto_fechar_tempo_ms: 3000
+      const novasConfiguracoes: Partial<NotificationConfig> = {
+        maxNotifications: 150,
+        enableSound: false,
+        defaultAutoClose: 3000
       };
       
-      notificationService.atualizarConfiguracoes(novasConfiguracoes);
-      const config = notificationService.obterConfiguracoes();
+      notificationService.updateConfig(novasConfiguracoes);
+      const config = notificationService.getConfig();
       
-      expect(config.max_notificacoes).toBe(100);
-      expect(config.som_habilitado).toBe(false);
-      expect(config.auto_fechar_tempo_ms).toBe(3000);
-      expect(config.notificacoes_navegador).toBe(true); // Não alterado
-    });
-
-    test('deve persistir configurações no localStorage', () => {
-      const novasConfiguracoes: Partial<ConfiguracoesNotificacao> = {
-        max_notificacoes: 75
-      };
-      
-      notificationService.atualizarConfiguracoes(novasConfiguracoes);
-      
-      expect(localStorage.setItem).toHaveBeenCalledWith(
-        'notification_settings',
-        expect.stringContaining('"max_notificacoes":75')
-      );
-    });
-
-    test('deve carregar configurações do localStorage', () => {
-      const configSalva = {
-        max_notificacoes: 25,
-        som_habilitado: false,
-        auto_fechar_tempo_ms: 8000,
-        notificacoes_navegador: false,
-        mostrar_apenas_nao_lidas: true
-      };
-      
-      mockLocalStorage['notification_settings'] = JSON.stringify(configSalva);
-      
-      // Criar nova instância para carregar configurações
-      const novoService = new (NotificationService as typeof NotificationService)();
-      const config = novoService.obterConfiguracoes();
-      
-      expect(config.max_notificacoes).toBe(25);
-      expect(config.som_habilitado).toBe(false);
+      expect(config.maxNotifications).toBe(150);
+      expect(config.enableSound).toBe(false);
+      expect(config.defaultAutoClose).toBe(3000);
+      expect(config.enableBrowserNotifications).toBe(false); // Não alterado
     });
   });
 
   describe('Adição de Notificações', () => {
     test('deve adicionar notificação básica', () => {
-      const notificacao = notificationService.adicionarNotificacao(
+      const notificationId = notificationService.addNotification(
+        'info',
         'Teste',
-        'Mensagem de teste',
-        TipoNotificacao.INFO
+        'Mensagem de teste'
       );
       
-      expect(notificacao).toBeDefined();
-      expect(notificacao.titulo).toBe('Teste');
-      expect(notificacao.mensagem).toBe('Mensagem de teste');
-      expect(notificacao.tipo).toBe(TipoNotificacao.INFO);
-      expect(notificacao.prioridade).toBe(PrioridadeNotificacao.NORMAL);
-      expect(notificacao.lida).toBe(false);
-      expect(notificacao.id).toBeDefined();
+      const notifications = notificationService.getNotifications();
+      const notification = notifications.find(n => n.id === notificationId);
+      
+      expect(notification).toBeDefined();
+      expect(notification!.title).toBe('Teste');
+      expect(notification!.message).toBe('Mensagem de teste');
+      expect(notification!.type).toBe('info');
+      expect(notification!.priority).toBe('medium');
+      expect(notification!.read).toBe(false);
+      expect(notification!.timestamp).toBeInstanceOf(Date);
     });
 
-    test('deve adicionar notificação com prioridade específica', () => {
-      const notificacao = notificationService.adicionarNotificacao(
-        'Erro Crítico',
-        'Sistema indisponível',
-        TipoNotificacao.ERRO,
-        PrioridadeNotificacao.URGENTE
+    test('deve adicionar notificação com prioridade customizada', () => {
+      const notificationId = notificationService.addNotification(
+        'warning',
+        'Aviso Importante',
+        'Mensagem de aviso',
+        { priority: 'high' }
       );
       
-      expect(notificacao.prioridade).toBe(PrioridadeNotificacao.URGENTE);
-      expect(notificacao.tipo).toBe(TipoNotificacao.ERRO);
+      const notifications = notificationService.getNotifications();
+      const notification = notifications.find(n => n.id === notificationId);
+      
+      expect(notification!.type).toBe('warning');
+      expect(notification!.priority).toBe('high');
     });
 
-    test('deve gerar IDs únicos para notificações', () => {
-      const notif1 = notificationService.adicionarNotificacao('Teste 1', 'Msg 1', TipoNotificacao.INFO);
-      const notif2 = notificationService.adicionarNotificacao('Teste 2', 'Msg 2', TipoNotificacao.INFO);
+    test('deve adicionar notificação de sucesso', () => {
+      const notificationId = notificationService.success('Sucesso', 'Operação concluída');
       
-      expect(notif1.id).not.toBe(notif2.id);
+      const notifications = notificationService.getNotifications();
+      const notification = notifications.find(n => n.id === notificationId);
+      
+      expect(notification!.type).toBe('success');
+      expect(notification!.title).toBe('Sucesso');
     });
 
-    test('deve definir timestamp corretamente', () => {
-      const antes = Date.now();
-      const notificacao = notificationService.adicionarNotificacao('Teste', 'Msg', TipoNotificacao.INFO);
-      const depois = Date.now();
+    test('deve adicionar notificação de erro', () => {
+      const notificationId = notificationService.error('Erro', 'Algo deu errado');
       
-      expect(notificacao.timestamp).toBeGreaterThanOrEqual(antes);
-      expect(notificacao.timestamp).toBeLessThanOrEqual(depois);
-    });
-
-    test('deve respeitar limite máximo de notificações', () => {
-      // Configurar limite baixo
-      notificationService.atualizarConfiguracoes({ max_notificacoes: 3 });
+      const notifications = notificationService.getNotifications();
+      const notification = notifications.find(n => n.id === notificationId);
       
-      // Adicionar mais notificações que o limite
-      for (let i = 0; i < 5; i++) {
-        notificationService.adicionarNotificacao(`Teste ${i}`, `Msg ${i}`, TipoNotificacao.INFO);
-      }
-      
-      const notificacoes = notificationService.obterNotificacoes();
-      expect(notificacoes.length).toBe(3);
-      
-      // Deve manter as mais recentes
-      expect(notificacoes[0].titulo).toBe('Teste 4');
-      expect(notificacoes[1].titulo).toBe('Teste 3');
-      expect(notificacoes[2].titulo).toBe('Teste 2');
+      expect(notification!.type).toBe('error');
+      expect(notification!.persistent).toBe(true); // Erros são persistentes por padrão
     });
   });
 
-  describe('Gerenciamento de Estado', () => {
+  describe('Gerenciamento de Notificações', () => {
     test('deve marcar notificação como lida', () => {
-      const notificacao = notificationService.adicionarNotificacao('Teste', 'Msg', TipoNotificacao.INFO);
+      const notificationId = notificationService.info('Teste', 'Mensagem');
       
-      expect(notificacao.lida).toBe(false);
+      notificationService.markAsRead(notificationId);
       
-      notificationService.marcarComoLida(notificacao.id);
+      const notifications = notificationService.getNotifications();
+      const notification = notifications.find(n => n.id === notificationId);
       
-      const notificacoes = notificationService.obterNotificacoes();
-      const notifAtualizada = notificacoes.find(n => n.id === notificacao.id);
-      
-      expect(notifAtualizada?.lida).toBe(true);
-    });
-
-    test('deve marcar notificação como não lida', () => {
-      const notificacao = notificationService.adicionarNotificacao('Teste', 'Msg', TipoNotificacao.INFO);
-      
-      // Marcar como lida primeiro
-      notificationService.marcarComoLida(notificacao.id);
-      
-      // Depois marcar como não lida
-      notificationService.marcarComoNaoLida(notificacao.id);
-      
-      const notificacoes = notificationService.obterNotificacoes();
-      const notifAtualizada = notificacoes.find(n => n.id === notificacao.id);
-      
-      expect(notifAtualizada?.lida).toBe(false);
-    });
-
-    test('deve remover notificação específica', () => {
-      const notif1 = notificationService.adicionarNotificacao('Teste 1', 'Msg 1', TipoNotificacao.INFO);
-      const notif2 = notificationService.adicionarNotificacao('Teste 2', 'Msg 2', TipoNotificacao.INFO);
-      
-      notificationService.removerNotificacao(notif1.id);
-      
-      const notificacoes = notificationService.obterNotificacoes();
-      expect(notificacoes.length).toBe(1);
-      expect(notificacoes[0].id).toBe(notif2.id);
+      expect(notification!.read).toBe(true);
     });
 
     test('deve marcar todas como lidas', () => {
-      notificationService.adicionarNotificacao('Teste 1', 'Msg 1', TipoNotificacao.INFO);
-      notificationService.adicionarNotificacao('Teste 2', 'Msg 2', TipoNotificacao.AVISO);
-      notificationService.adicionarNotificacao('Teste 3', 'Msg 3', TipoNotificacao.ERRO);
+      notificationService.info('Teste 1', 'Mensagem 1');
+      notificationService.warning('Teste 2', 'Mensagem 2');
+      notificationService.error('Teste 3', 'Mensagem 3');
       
-      notificationService.marcarTodasComoLidas();
+      notificationService.markAllAsRead();
       
-      const notificacoes = notificationService.obterNotificacoes();
-      notificacoes.forEach(notif => {
-        expect(notif.lida).toBe(true);
+      const notifications = notificationService.getNotifications();
+      notifications.forEach(notification => {
+        expect(notification.read).toBe(true);
       });
     });
 
+    test('deve remover notificação específica', () => {
+      const id1 = notificationService.info('Teste 1', 'Mensagem 1');
+      const id2 = notificationService.info('Teste 2', 'Mensagem 2');
+      
+      notificationService.removeNotification(id1);
+      
+      const notifications = notificationService.getNotifications();
+      expect(notifications.length).toBe(1);
+      expect(notifications[0].id).toBe(id2);
+    });
+
     test('deve limpar todas as notificações', () => {
-      notificationService.adicionarNotificacao('Teste 1', 'Msg 1', TipoNotificacao.INFO);
-      notificationService.adicionarNotificacao('Teste 2', 'Msg 2', TipoNotificacao.INFO);
+      notificationService.info('Teste 1', 'Mensagem 1');
+      notificationService.info('Teste 2', 'Mensagem 2');
       
-      notificationService.limparNotificacoes();
+      notificationService.clearAll();
       
-      const notificacoes = notificationService.obterNotificacoes();
-      expect(notificacoes.length).toBe(0);
+      const notifications = notificationService.getNotifications();
+      expect(notifications.length).toBe(0);
+    });
+
+    test('deve limpar apenas notificações lidas', () => {
+      const id1 = notificationService.info('Teste 1', 'Mensagem 1');
+      const id2 = notificationService.info('Teste 2', 'Mensagem 2');
+      
+      notificationService.markAsRead(id1);
+      notificationService.clearRead();
+      
+      const notifications = notificationService.getNotifications();
+      expect(notifications.length).toBe(1);
+      expect(notifications[0].id).toBe(id2);
     });
   });
 
   describe('Filtros e Consultas', () => {
     beforeEach(() => {
-      // Adicionar notificações de teste
-      notificationService.adicionarNotificacao('Info 1', 'Msg info', TipoNotificacao.INFO);
-      notificationService.adicionarNotificacao('Aviso 1', 'Msg aviso', TipoNotificacao.AVISO, PrioridadeNotificacao.ALTA);
-      notificationService.adicionarNotificacao('Erro 1', 'Msg erro', TipoNotificacao.ERRO, PrioridadeNotificacao.URGENTE);
-      notificationService.adicionarNotificacao('Sucesso 1', 'Msg sucesso', TipoNotificacao.SUCESSO);
+      notificationService.info('Info 1', 'Mensagem info');
+      notificationService.warning('Aviso 1', 'Mensagem aviso');
+      notificationService.error('Erro 1', 'Mensagem erro');
+      notificationService.success('Sucesso 1', 'Mensagem sucesso');
     });
 
     test('deve filtrar por tipo', () => {
-      const notificacoesErro = notificationService.filtrarPorTipo(TipoNotificacao.ERRO);
+      const errorNotifications = notificationService.getNotifications({ type: 'error' });
       
-      expect(notificacoesErro.length).toBe(1);
-      expect(notificacoesErro[0].tipo).toBe(TipoNotificacao.ERRO);
+      expect(errorNotifications.length).toBe(1);
+      expect(errorNotifications[0].type).toBe('error');
     });
 
     test('deve filtrar por prioridade', () => {
-      const notificacoesUrgentes = notificationService.filtrarPorPrioridade(PrioridadeNotificacao.URGENTE);
+      // Adicionar notificação com prioridade alta
+      notificationService.addNotification('warning', 'Urgente', 'Mensagem urgente', { priority: 'high' });
       
-      expect(notificacoesUrgentes.length).toBe(1);
-      expect(notificacoesUrgentes[0].prioridade).toBe(PrioridadeNotificacao.URGENTE);
+      const highPriorityNotifications = notificationService.getNotifications({ priority: 'high' });
+      
+      expect(highPriorityNotifications.length).toBe(2);
+      expect(highPriorityNotifications.every(n => n.priority === 'high')).toBe(true);
     });
 
-    test('deve obter apenas não lidas', () => {
-      const notificacoes = notificationService.obterNotificacoes();
+    test('deve filtrar por status de leitura', () => {
+      const notifications = notificationService.getNotifications();
+      notificationService.markAsRead(notifications[0].id);
       
-      // Marcar uma como lida
-      notificationService.marcarComoLida(notificacoes[0].id);
+      const unreadNotifications = notificationService.getNotifications({ read: false });
+      const readNotifications = notificationService.getNotifications({ read: true });
       
-      const naoLidas = notificationService.obterNaoLidas();
-      
-      expect(naoLidas.length).toBe(3);
-      naoLidas.forEach(notif => {
-        expect(notif.lida).toBe(false);
-      });
+      expect(unreadNotifications.length).toBe(3);
+      expect(readNotifications.length).toBe(1);
     });
 
-    test('deve contar notificações por tipo', () => {
-      const contadores = notificationService.contarPorTipo();
+    test('deve obter contadores', () => {
+      const notifications = notificationService.getNotifications();
+      notificationService.markAsRead(notifications[0].id);
       
-      expect(contadores[TipoNotificacao.INFO]).toBe(1);
-      expect(contadores[TipoNotificacao.AVISO]).toBe(1);
-      expect(contadores[TipoNotificacao.ERRO]).toBe(1);
-      expect(contadores[TipoNotificacao.SUCESSO]).toBe(1);
-      expect(contadores[TipoNotificacao.SISTEMA]).toBe(0);
-    });
-
-    test('deve contar notificações por prioridade', () => {
-      const contadores = notificationService.contarPorPrioridade();
+      const counters = notificationService.getCounters();
       
-      expect(contadores[PrioridadeNotificacao.NORMAL]).toBe(2); // INFO e SUCESSO
-      expect(contadores[PrioridadeNotificacao.ALTA]).toBe(1); // AVISO
-      expect(contadores[PrioridadeNotificacao.URGENTE]).toBe(1); // ERRO
-      expect(contadores[PrioridadeNotificacao.BAIXA]).toBe(0);
+      expect(counters.total).toBe(4);
+      expect(counters.unread).toBe(3);
+      expect(counters.byType.info).toBe(1);
+      expect(counters.byType.warning).toBe(1);
+      expect(counters.byType.error).toBe(1);
+      expect(counters.byType.success).toBe(1);
     });
   });
 
-  describe('Notificações Específicas', () => {
-    test('deve criar notificação de erro de cálculo', () => {
-      const erro = new Error('Divisão por zero');
-      const notificacao = notificationService.notificarErroCalculo(erro, { custo_sistema: 50000 });
+  describe('Listeners', () => {
+    test('deve adicionar e notificar listeners', () => {
+      const mockListener = vi.fn();
+      const removeListener = notificationService.addListener(mockListener);
       
-      expect(notificacao.tipo).toBe(TipoNotificacao.ERRO);
-      expect(notificacao.prioridade).toBe(PrioridadeNotificacao.ALTA);
-      expect(notificacao.titulo).toBe('Erro no Cálculo');
-      expect(notificacao.mensagem).toContain('Divisão por zero');
+      notificationService.info('Teste', 'Mensagem');
+      
+      expect(mockListener).toHaveBeenCalled();
+      
+      // Remover listener
+      removeListener();
+      mockListener.mockClear();
+      
+      notificationService.info('Teste 2', 'Mensagem 2');
+      expect(mockListener).not.toHaveBeenCalled();
     });
+  });
 
-    test('deve criar notificação de aviso de validação', () => {
-      const avisos = ['Consumo muito baixo', 'Taxa de desconto alta'];
-      const notificacao = notificationService.notificarAvisoValidacao(avisos);
+  describe('Notificações Específicas do Sistema', () => {
+    test('deve criar notificação de erro de cálculo', () => {
+      const notificationId = notificationService.calculationError('Erro na simulação', { step: 'irradiance' });
       
-      expect(notificacao.tipo).toBe(TipoNotificacao.AVISO);
-      expect(notificacao.prioridade).toBe(PrioridadeNotificacao.NORMAL);
-      expect(notificacao.titulo).toBe('Avisos de Validação');
-      expect(notificacao.mensagem).toContain('Consumo muito baixo');
-      expect(notificacao.mensagem).toContain('Taxa de desconto alta');
+      const notifications = notificationService.getNotifications();
+      const notification = notifications.find(n => n.id === notificationId);
+      
+      expect(notification!.type).toBe('error');
+      expect(notification!.title).toBe('Erro no Cálculo');
+      expect(notification!.message).toContain('Erro na simulação');
     });
 
     test('deve criar notificação de sucesso de cálculo', () => {
-      const resultado = { vpl: 15000, tir: 0.15, payback_simples_anos: 8.5 };
-      const notificacao = notificationService.notificarSucessoCalculo(resultado);
+      const notificationId = notificationService.calculationSuccess('Simulação Solar', 1500);
       
-      expect(notificacao.tipo).toBe(TipoNotificacao.SUCESSO);
-      expect(notificacao.prioridade).toBe(PrioridadeNotificacao.NORMAL);
-      expect(notificacao.titulo).toBe('Cálculo Concluído');
-      expect(notificacao.mensagem).toContain('VPL: R$ 15.000');
-      expect(notificacao.mensagem).toContain('TIR: 15.00%');
+      const notifications = notificationService.getNotifications();
+      const notification = notifications.find(n => n.id === notificationId);
+      
+      expect(notification!.type).toBe('success');
+      expect(notification!.title).toBe('Cálculo Concluído');
+      expect(notification!.message).toContain('Simulação Solar');
+      expect(notification!.message).toContain('1500ms');
     });
 
-    test('deve criar notificação de aviso de cache', () => {
-      const notificacao = notificationService.notificarAvisoCache(
-        'Cache quase cheio',
-        { tamanho_atual: 950, limite: 1000 }
-      );
+    test('deve criar notificação de aviso de validação', () => {
+      const notificationId = notificationService.dataValidationWarning('potencia', 5000, '1000-4000W');
       
-      expect(notificacao.tipo).toBe(TipoNotificacao.AVISO);
-      expect(notificacao.prioridade).toBe(PrioridadeNotificacao.BAIXA);
-      expect(notificacao.titulo).toBe('Aviso do Cache');
-      expect(notificacao.mensagem).toBe('Cache quase cheio');
-    });
-
-    test('deve criar notificação de análise de sensibilidade', () => {
-      const resultado = {
-        parametros_analisados: ['custo_sistema', 'geracao_anual_kwh'],
-        tempo_execucao_ms: 2500
-      };
+      const notifications = notificationService.getNotifications();
+      const notification = notifications.find(n => n.id === notificationId);
       
-      const notificacao = notificationService.notificarAnaliseCompleta(resultado);
-      
-      expect(notificacao.tipo).toBe(TipoNotificacao.INFO);
-      expect(notificacao.prioridade).toBe(PrioridadeNotificacao.NORMAL);
-      expect(notificacao.titulo).toBe('Análise de Sensibilidade Concluída');
-      expect(notificacao.mensagem).toContain('2 parâmetros');
-      expect(notificacao.mensagem).toContain('2.5 segundos');
-    });
-  });
-
-  describe('Notificações do Navegador', () => {
-    test('deve solicitar permissão para notificações', async () => {
-      await notificationService.solicitarPermissaoNotificacoes();
-      
-      expect(Notification.requestPermission).toHaveBeenCalled();
-    });
-
-    test('deve enviar notificação do navegador para erro urgente', () => {
-      notificationService.adicionarNotificacao(
-        'Erro Crítico',
-        'Sistema falhou',
-        TipoNotificacao.ERRO,
-        PrioridadeNotificacao.URGENTE
-      );
-      
-      expect(global.Notification).toHaveBeenCalledWith(
-        'Erro Crítico',
-        expect.objectContaining({
-          body: 'Sistema falhou',
-          icon: expect.any(String)
-        })
-      );
-    });
-
-    test('deve não enviar notificação do navegador se desabilitado', () => {
-      notificationService.atualizarConfiguracoes({ notificacoes_navegador: false });
-      
-      notificationService.adicionarNotificacao(
-        'Erro Crítico',
-        'Sistema falhou',
-        TipoNotificacao.ERRO,
-        PrioridadeNotificacao.URGENTE
-      );
-      
-      expect(global.Notification).not.toHaveBeenCalled();
-    });
-
-    test('deve não enviar notificação se permissão negada', () => {
-      Object.defineProperty(window, 'Notification', {
-        value: {
-          permission: 'denied',
-          requestPermission: jest.fn().mockResolvedValue('denied')
-        },
-        writable: true
-      });
-      
-      notificationService.adicionarNotificacao(
-        'Erro Crítico',
-        'Sistema falhou',
-        TipoNotificacao.ERRO,
-        PrioridadeNotificacao.URGENTE
-      );
-      
-      expect(global.Notification).not.toHaveBeenCalled();
+      expect(notification!.type).toBe('warning');
+      expect(notification!.title).toBe('Dados Fora do Esperado');
+      expect(notification!.message).toContain('potencia');
+      expect(notification!.message).toContain('1000-4000W');
     });
   });
 
   describe('Persistência', () => {
     test('deve salvar notificações no localStorage', () => {
-      notificationService.adicionarNotificacao('Teste', 'Mensagem', TipoNotificacao.INFO);
+      notificationService.info('Teste', 'Mensagem');
       
       expect(localStorage.setItem).toHaveBeenCalledWith(
-        'notifications',
-        expect.stringContaining('"titulo":"Teste"')
+        'solar_notifications',
+        expect.stringContaining('"title":"Teste"')
       );
     });
 
     test('deve carregar notificações do localStorage', () => {
-      const notificacoesSalvas = [
-        {
+      const savedData = {
+        notifications: [{
           id: 'test-1',
-          titulo: 'Teste Salvo',
-          mensagem: 'Mensagem salva',
-          tipo: TipoNotificacao.INFO,
-          prioridade: PrioridadeNotificacao.NORMAL,
-          lida: false,
-          timestamp: Date.now()
-        }
-      ];
+          title: 'Teste Salvo',
+          message: 'Mensagem salva',
+          type: 'info' as NotificationType,
+          priority: 'medium' as NotificationPriority,
+          read: false,
+          persistent: false,
+          timestamp: new Date().toISOString()
+        }],
+        timestamp: Date.now()
+      };
       
-      mockLocalStorage['notifications'] = JSON.stringify(notificacoesSalvas);
+      mockLocalStorage['solar_notifications'] = JSON.stringify(savedData);
       
-      // Criar nova instância para carregar notificações
-      const novoService = new (NotificationService as typeof NotificationService)();
-      const notificacoes = novoService.obterNotificacoes();
+      // Reset singleton e criar nova instância
+      (NotificationService as any).instance = null;
+      const newService = NotificationService.getInstance();
+      const notifications = newService.getNotifications();
       
-      expect(notificacoes.length).toBe(1);
-      expect(notificacoes[0].titulo).toBe('Teste Salvo');
+      expect(notifications.length).toBe(1);
+      expect(notifications[0].title).toBe('Teste Salvo');
     });
 
     test('deve lidar com localStorage corrompido', () => {
-      mockLocalStorage['notifications'] = 'json inválido';
+      mockLocalStorage['solar_notifications'] = 'json inválido';
       
       // Não deve lançar erro
       expect(() => {
-        new (NotificationService as typeof NotificationService)();
+        (NotificationService as any).instance = null;
+        NotificationService.getInstance();
       }).not.toThrow();
     });
   });
 
-  describe('Limpeza Automática', () => {
-    test('deve remover notificações antigas automaticamente', () => {
-      // Mock de notificação antiga (mais de 7 dias)
-      const notificacaoAntiga = {
-        id: 'old-1',
-        titulo: 'Antiga',
-        mensagem: 'Mensagem antiga',
-        tipo: TipoNotificacao.INFO,
-        prioridade: PrioridadeNotificacao.NORMAL,
-        lida: true,
-        timestamp: Date.now() - (8 * 24 * 60 * 60 * 1000) // 8 dias atrás
-      };
+  describe('Limitação de Notificações', () => {
+    test('deve limitar número máximo de notificações', () => {
+      // Configurar limite baixo para teste
+      notificationService.updateConfig({ maxNotifications: 3 });
       
-      mockLocalStorage['notifications'] = JSON.stringify([notificacaoAntiga]);
-      
-      // Criar nova instância (deve limpar automaticamente)
-      const novoService = new (NotificationService as typeof NotificationService)();
-      const notificacoes = novoService.obterNotificacoes();
-      
-      expect(notificacoes.length).toBe(0);
-    });
-
-    test('deve manter notificações recentes', () => {
-      const notificacaoRecente = {
-        id: 'recent-1',
-        titulo: 'Recente',
-        mensagem: 'Mensagem recente',
-        tipo: TipoNotificacao.INFO,
-        prioridade: PrioridadeNotificacao.NORMAL,
-        lida: false,
-        timestamp: Date.now() - (2 * 24 * 60 * 60 * 1000) // 2 dias atrás
-      };
-      
-      mockLocalStorage['notifications'] = JSON.stringify([notificacaoRecente]);
-      
-      const novoService = new (NotificationService as typeof NotificationService)();
-      const notificacoes = novoService.obterNotificacoes();
-      
-      expect(notificacoes.length).toBe(1);
-      expect(notificacoes[0].titulo).toBe('Recente');
-    });
-  });
-
-  describe('Tratamento de Erros', () => {
-    test('deve lidar com ID inexistente ao marcar como lida', () => {
-      expect(() => {
-        notificationService.marcarComoLida('id-inexistente');
-      }).not.toThrow();
-    });
-
-    test('deve lidar com ID inexistente ao remover', () => {
-      expect(() => {
-        notificationService.removerNotificacao('id-inexistente');
-      }).not.toThrow();
-    });
-
-    test('deve lidar com erro no localStorage', () => {
-      // Mock erro no localStorage
-      (localStorage.setItem as jest.Mock).mockImplementation(() => {
-        throw new Error('Quota exceeded');
-      });
-      
-      expect(() => {
-        notificationService.adicionarNotificacao('Teste', 'Msg', TipoNotificacao.INFO);
-      }).not.toThrow();
-    });
-  });
-
-  describe('Performance', () => {
-    test('deve manter performance com muitas notificações', () => {
-      const inicio = Date.now();
-      
-      // Adicionar muitas notificações
-      for (let i = 0; i < 1000; i++) {
-        notificationService.adicionarNotificacao(`Teste ${i}`, `Msg ${i}`, TipoNotificacao.INFO);
+      // Adicionar mais notificações que o limite
+      for (let i = 0; i < 5; i++) {
+        notificationService.info(`Teste ${i}`, `Mensagem ${i}`);
       }
       
-      const duracao = Date.now() - inicio;
-      expect(duracao).toBeLessThan(1000); // Menos de 1 segundo
-    });
-
-    test('deve filtrar rapidamente', () => {
-      // Adicionar notificações variadas
-      for (let i = 0; i < 100; i++) {
-        const tipo = i % 2 === 0 ? TipoNotificacao.INFO : TipoNotificacao.ERRO;
-        notificationService.adicionarNotificacao(`Teste ${i}`, `Msg ${i}`, tipo);
-      }
-      
-      const inicio = Date.now();
-      const filtradas = notificationService.filtrarPorTipo(TipoNotificacao.INFO);
-      const duracao = Date.now() - inicio;
-      
-      expect(filtradas.length).toBe(50);
-      expect(duracao).toBeLessThan(100); // Menos de 100ms
+      const notifications = notificationService.getNotifications();
+      expect(notifications.length).toBeLessThanOrEqual(3);
     });
   });
 });

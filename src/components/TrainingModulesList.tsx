@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { BookOpen, Clock, Users, CheckCircle, AlertCircle } from 'lucide-react';
+import { 
+  BookOpen, 
+  Clock, 
+  Users, 
+  CheckCircle, 
+  AlertCircle,
+  Play,
+  Star,
+  PlayCircle,
+  Award,
+  BarChart3,
+  ChevronRight
+} from 'lucide-react';
 
 // Configuração do Supabase
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -23,6 +35,10 @@ interface TrainingModule {
   created_at: string;
   updated_at: string;
   created_by: string;
+  progress?: number;
+  completed?: boolean;
+  rating?: number;
+  enrolled_users?: number;
 }
 
 interface TrainingContentData {
@@ -57,6 +73,7 @@ const TrainingModulesList: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
   const [moduleContent, setModuleContent] = useState<TrainingContent[]>([]);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   useEffect(() => {
     fetchTrainingModules();
@@ -77,7 +94,16 @@ const TrainingModulesList: React.FC = () => {
         throw new Error(`Erro ao buscar módulos: ${fetchError.message}`);
       }
 
-      setModules(data || []);
+      // Adicionar dados mock de progresso
+      const modulesWithProgress = (data || []).map((module, index) => ({
+        ...module,
+        progress: [75, 0, 45, 100, 20][index] || 0,
+        completed: [false, false, false, true, false][index] || false,
+        rating: [4.8, 4.5, 4.7, 4.9, 4.6][index] || 4.5,
+        enrolled_users: [156, 89, 234, 78, 145][index] || 100
+      }));
+      
+      setModules(modulesWithProgress);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
       console.error('Erro ao carregar módulos:', err);
@@ -108,13 +134,26 @@ const TrainingModulesList: React.FC = () => {
   const getDifficultyColor = (level: string) => {
     switch (level) {
       case 'beginner':
-        return 'bg-green-100 text-green-800';
+        return 'bg-emerald-100 text-emerald-700 border-emerald-200';
       case 'intermediate':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-amber-100 text-amber-700 border-amber-200';
       case 'advanced':
-        return 'bg-red-100 text-red-800';
+        return 'bg-rose-100 text-rose-700 border-rose-200';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-700 border-gray-200';
+    }
+  };
+  
+  const getDifficultyIcon = (level: string) => {
+    switch (level) {
+      case 'beginner':
+        return '🌱';
+      case 'intermediate':
+        return '⚡';
+      case 'advanced':
+        return '🚀';
+      default:
+        return '📚';
     }
   };
 
@@ -154,29 +193,35 @@ const TrainingModulesList: React.FC = () => {
     }
     return `${mins}min`;
   };
+  
+  const getProgressColor = (progress: number) => {
+    if (progress === 100) return 'from-green-500 to-emerald-600';
+    if (progress >= 50) return 'from-blue-500 to-indigo-600';
+    if (progress > 0) return 'from-yellow-500 to-orange-600';
+    return 'from-gray-400 to-gray-500';
+  };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2 text-gray-600">Carregando módulos de treinamento...</span>
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="animate-pulse">
+            <div className="bg-gray-200 rounded-2xl h-48"></div>
+          </div>
+        ))}
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <div className="flex items-center">
-          <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-          <span className="text-red-700">Erro ao carregar módulos</span>
-        </div>
-        <p className="text-red-600 text-sm mt-1">{error}</p>
-        <button
+      <div className="text-center py-12 bg-red-50 rounded-2xl border border-red-200">
+        <div className="text-red-600 mb-4 text-lg font-medium">❌ {error}</div>
+        <button 
           onClick={fetchTrainingModules}
-          className="mt-2 px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200"
+          className="px-6 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-medium"
         >
-          Tentar novamente
+          Tentar Novamente
         </button>
       </div>
     );
@@ -189,48 +234,186 @@ const TrainingModulesList: React.FC = () => {
           <BookOpen className="h-6 w-6 mr-2 text-blue-600" />
           Módulos de Treinamento
         </h2>
-        <div className="text-sm text-gray-500">
-          {modules.length} módulo{modules.length !== 1 ? 's' : ''} disponível{modules.length !== 1 ? 'is' : ''}
+        <div className="flex items-center gap-4">
+          <div className="text-sm text-gray-500">
+            {modules.length} módulo{modules.length !== 1 ? 's' : ''} disponível{modules.length !== 1 ? 'is' : ''}
+          </div>
+          <div className="h-4 w-px bg-gray-300"></div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-2 rounded-lg transition-colors ${
+                viewMode === 'grid' 
+                  ? 'bg-blue-100 text-blue-600' 
+                  : 'text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              <div className="w-4 h-4 grid grid-cols-2 gap-0.5">
+                <div className="bg-current rounded-sm"></div>
+                <div className="bg-current rounded-sm"></div>
+                <div className="bg-current rounded-sm"></div>
+                <div className="bg-current rounded-sm"></div>
+              </div>
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 rounded-lg transition-colors ${
+                viewMode === 'list' 
+                  ? 'bg-blue-100 text-blue-600' 
+                  : 'text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 
       {modules.length === 0 ? (
-        <div className="text-center py-8">
-          <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum módulo encontrado</h3>
-          <p className="text-gray-500">Não há módulos de treinamento disponíveis no momento.</p>
+        <div className="text-center py-16 bg-gray-50 rounded-2xl border border-gray-200">
+          <div className="p-4 bg-gray-100 rounded-2xl w-fit mx-auto mb-6">
+            <BookOpen className="h-12 w-12 text-gray-400" />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">Nenhum módulo encontrado</h3>
+          <p className="text-gray-600 max-w-md mx-auto">Os módulos de treinamento aparecerão aqui quando estiverem disponíveis. Entre em contato com o administrador para mais informações.</p>
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className={`grid gap-6 ${
+          viewMode === 'grid' 
+            ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' 
+            : 'grid-cols-1'
+        }`}>
           {modules.map((module) => (
             <div
               key={module.id}
-              className="bg-white rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer"
+              className={`group bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden relative ${
+                viewMode === 'list' ? 'flex items-center' : ''
+              }`}
               onClick={() => fetchModuleContent(module.id)}
             >
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-3">
-                  <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
-                    {module.title}
-                  </h3>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(module.difficulty_level)}`}>
-                    {getDifficultyLabel(module.difficulty_level)}
-                  </span>
-                </div>
-
-                <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                  {module.description}
-                </p>
-
-                <div className="flex items-center justify-between text-sm text-gray-500">
-                  <div className="flex items-center">
-                    <Clock className="h-4 w-4 mr-1" />
-                    {formatDuration(module.estimated_duration)}
+              {/* Progress Indicator */}
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gray-100">
+                <div 
+                  className={`h-full bg-gradient-to-r ${getProgressColor(module.progress || 0)} transition-all duration-500`}
+                  style={{ width: `${module.progress || 0}%` }}
+                ></div>
+              </div>
+              
+              <div className={`p-6 ${viewMode === 'list' ? 'flex-1 flex items-center gap-6' : ''}`}>
+                {/* Module Icon & Status */}
+                <div className={`${viewMode === 'list' ? 'flex-shrink-0' : 'mb-4'}`}>
+                  <div className="relative">
+                    <div className={`p-3 rounded-2xl ${
+                      module.completed 
+                        ? 'bg-green-100 text-green-600' 
+                        : module.progress && module.progress > 0
+                        ? 'bg-blue-100 text-blue-600'
+                        : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {module.completed ? (
+                        <CheckCircle className="h-6 w-6" />
+                      ) : module.progress && module.progress > 0 ? (
+                        <PlayCircle className="h-6 w-6" />
+                      ) : (
+                        <BookOpen className="h-6 w-6" />
+                      )}
+                    </div>
+                    {module.completed && (
+                      <div className="absolute -top-1 -right-1 p-1 bg-green-500 rounded-full">
+                        <Award className="h-3 w-3 text-white" />
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center">
-                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
-                      {module.category}
-                    </span>
+                </div>
+                
+                {/* Content */}
+                <div className={`${viewMode === 'list' ? 'flex-1' : ''}`}>
+                  <div className={`${viewMode === 'list' ? 'flex items-start justify-between' : ''}`}>
+                    <div className={`${viewMode === 'list' ? 'flex-1 pr-4' : 'mb-4'}`}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                          {module.title}
+                        </h3>
+                        {module.progress === 100 && (
+                          <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
+                            Concluído
+                          </span>
+                        )}
+                      </div>
+                      <p className={`text-gray-600 text-sm ${
+                        viewMode === 'list' ? 'line-clamp-1' : 'line-clamp-2'
+                      }`}>
+                        {module.description}
+                      </p>
+                      
+                      {/* Progress Text */}
+                      {module.progress && module.progress > 0 && (
+                        <div className="mt-2">
+                          <div className="text-xs text-gray-500">
+                            Progresso: {module.progress}%
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {viewMode === 'list' && (
+                      <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-blue-600 transition-colors" />
+                    )}
+                  </div>
+
+                  {/* Metadata */}
+                  <div className={`flex items-center justify-between ${
+                    viewMode === 'list' ? 'mt-2' : 'mb-4'
+                  }`}>
+                    <div className="flex items-center gap-3">
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getDifficultyColor(module.difficulty_level)}`}>
+                        {getDifficultyIcon(module.difficulty_level)} 
+                        {getDifficultyLabel(module.difficulty_level)}
+                      </span>
+                      <div className="flex items-center text-gray-500 text-xs">
+                        <Clock className="h-3 w-3 mr-1" />
+                        {formatDuration(module.estimated_duration)}
+                      </div>
+                    </div>
+                    
+                    {viewMode === 'grid' && (
+                      <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-blue-600 transition-colors" />
+                    )}
+                  </div>
+
+                  {/* Stats */}
+                  <div className={`flex items-center justify-between text-xs text-gray-500 ${
+                    viewMode === 'list' ? '' : ''
+                  }`}>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center">
+                        <Users className="h-3 w-3 mr-1" />
+                        {module.enrolled_users} alunos
+                      </div>
+                      <div className="flex items-center">
+                        <Star className="h-3 w-3 mr-1 text-yellow-500" />
+                        {module.rating}
+                      </div>
+                    </div>
+                    
+                    <button className="flex items-center text-blue-600 hover:text-blue-700 font-medium transition-colors">
+                      {module.completed ? (
+                        <>
+                          <Award className="h-3 w-3 mr-1" />
+                          Revisar
+                        </>
+                      ) : module.progress && module.progress > 0 ? (
+                        <>
+                          <Play className="h-3 w-3 mr-1" />
+                          Continuar
+                        </>
+                      ) : (
+                        <>
+                          <PlayCircle className="h-3 w-3 mr-1" />
+                          Iniciar
+                        </>
+                      )}
+                    </button>
                   </div>
                 </div>
 

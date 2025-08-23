@@ -973,7 +973,7 @@ function FilterDialog({
           Filtros Avançados
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-[80vw] max-w-2xl h-[70vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Filtros Avançados</DialogTitle>
           <DialogDescription>

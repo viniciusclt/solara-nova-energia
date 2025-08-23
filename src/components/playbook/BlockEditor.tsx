@@ -924,7 +924,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
       
       {/* Comment Dialog */}
       <Dialog open={showCommentDialog} onOpenChange={setShowCommentDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[60vw] max-w-lg h-[50vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Adicionar comentário</DialogTitle>
             <DialogDescription>

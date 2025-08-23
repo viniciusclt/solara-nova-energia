@@ -63,25 +63,13 @@ class EnvironmentManager {
     if (isProd) environment = 'production';
     else if (isStaging) environment = 'staging';
 
-    // Validar variáveis obrigatórias
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-    if (!supabaseUrl || !supabaseAnonKey) {
-      logError('Variáveis de ambiente do Supabase não configuradas', 'EnvironmentManager');
-      
-      // Fallback para desenvolvimento (se existir configuração local)
-      if (isDev) {
-        logWarn('Usando configuração de fallback para desenvolvimento', 'EnvironmentManager');
-      } else {
-        throw new Error('Configuração de ambiente inválida para produção');
-      }
-    }
+    // DESABILITADO: Usar apenas banco local
+    logInfo('Usando configuração local - Supabase desabilitado', 'EnvironmentManager');
 
     return {
       supabase: {
-        url: supabaseUrl || 'http://localhost:54321',
-        anonKey: supabaseAnonKey || 'fallback-key-for-dev'
+        url: 'http://localhost:3000/api/mock',
+        anonKey: 'local-mock-key'
       },
       app: {
         environment,

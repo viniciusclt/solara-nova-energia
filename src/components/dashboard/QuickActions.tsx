@@ -236,7 +236,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({
         disabled={action.disabled}
         className={cn(
           'h-auto p-4 flex flex-col items-center space-y-2 relative transition-all duration-200',
-          'hover:shadow-md hover:scale-105',
+          'hover:shadow-md hover:scale-105 overflow-visible',
           colorClasses[action.color]
         )}
         onKeyDown={handleKeyDown}
@@ -244,7 +244,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({
         {action.badge && (
           <Badge 
             variant={action.badge.variant} 
-            className="absolute -top-2 -right-2 text-xs"
+            className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs flex items-center justify-center z-10"
           >
             {action.badge.text}
           </Badge>
@@ -287,7 +287,8 @@ const QuickActions: React.FC<QuickActionsProps> = ({
           <div className={cn(
             variant === 'grid' 
               ? 'grid grid-cols-2 md:grid-cols-4 gap-4'
-              : 'space-y-2'
+              : 'space-y-2',
+            'relative'
           )}>
             {actions.map((action) => (
               <ActionButton 

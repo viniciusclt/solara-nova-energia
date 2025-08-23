@@ -307,7 +307,7 @@ export function StatusManager({
                     Ver Histórico
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                <DialogContent className="w-[90vw] max-w-4xl h-[85vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Histórico de Status</DialogTitle>
                     <DialogDescription>

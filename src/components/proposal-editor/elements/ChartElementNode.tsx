@@ -298,7 +298,7 @@ export const ChartElementNode: React.FC<NodeProps<ChartElementData>> = ({
                 <Edit3 className="h-3 w-3" />
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md">
+            <DialogContent className="w-[80vw] max-w-2xl h-[70vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Editar dados do gráfico</DialogTitle>
               </DialogHeader>

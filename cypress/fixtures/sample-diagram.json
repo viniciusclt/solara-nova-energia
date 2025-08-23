@@ -1,0 +1,212 @@
+{
+  "id": "sample-diagram-123",
+  "title": "Sample Flowchart Diagram",
+  "type": "flowchart",
+  "description": "A sample diagram for testing purposes",
+  "nodes": [
+    {
+      "id": "start-node",
+      "type": "circle",
+      "position": { "x": 100, "y": 50 },
+      "size": { "width": 80, "height": 80 },
+      "data": {
+        "label": "Start",
+        "color": "#4CAF50",
+        "textColor": "#ffffff"
+      },
+      "style": {
+        "backgroundColor": "#4CAF50",
+        "border": "2px solid #388E3C",
+        "borderRadius": "50%"
+      }
+    },
+    {
+      "id": "decision-node",
+      "type": "diamond",
+      "position": { "x": 200, "y": 200 },
+      "size": { "width": 120, "height": 80 },
+      "data": {
+        "label": "Decision?",
+        "color": "#FF9800",
+        "textColor": "#ffffff"
+      },
+      "style": {
+        "backgroundColor": "#FF9800",
+        "border": "2px solid #F57C00",
+        "transform": "rotate(45deg)"
+      }
+    },
+    {
+      "id": "process-node-1",
+      "type": "rectangle",
+      "position": { "x": 50, "y": 350 },
+      "size": { "width": 140, "height": 60 },
+      "data": {
+        "label": "Process A",
+        "color": "#2196F3",
+        "textColor": "#ffffff"
+      },
+      "style": {
+        "backgroundColor": "#2196F3",
+        "border": "2px solid #1976D2",
+        "borderRadius": "8px"
+      }
+    },
+    {
+      "id": "process-node-2",
+      "type": "rectangle",
+      "position": { "x": 250, "y": 350 },
+      "size": { "width": 140, "height": 60 },
+      "data": {
+        "label": "Process B",
+        "color": "#9C27B0",
+        "textColor": "#ffffff"
+      },
+      "style": {
+        "backgroundColor": "#9C27B0",
+        "border": "2px solid #7B1FA2",
+        "borderRadius": "8px"
+      }
+    },
+    {
+      "id": "end-node",
+      "type": "circle",
+      "position": { "x": 200, "y": 500 },
+      "size": { "width": 80, "height": 80 },
+      "data": {
+        "label": "End",
+        "color": "#F44336",
+        "textColor": "#ffffff"
+      },
+      "style": {
+        "backgroundColor": "#F44336",
+        "border": "2px solid #D32F2F",
+        "borderRadius": "50%"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-start-decision",
+      "source": "start-node",
+      "target": "decision-node",
+      "type": "default",
+      "data": {
+        "label": ""
+      },
+      "style": {
+        "stroke": "#666",
+        "strokeWidth": 2,
+        "markerEnd": {
+          "type": "arrowclosed",
+          "color": "#666"
+        }
+      },
+      "animated": false
+    },
+    {
+      "id": "edge-decision-process-a",
+      "source": "decision-node",
+      "target": "process-node-1",
+      "type": "default",
+      "data": {
+        "label": "Yes"
+      },
+      "style": {
+        "stroke": "#4CAF50",
+        "strokeWidth": 2,
+        "markerEnd": {
+          "type": "arrowclosed",
+          "color": "#4CAF50"
+        }
+      },
+      "animated": false
+    },
+    {
+      "id": "edge-decision-process-b",
+      "source": "decision-node",
+      "target": "process-node-2",
+      "type": "default",
+      "data": {
+        "label": "No"
+      },
+      "style": {
+        "stroke": "#F44336",
+        "strokeWidth": 2,
+        "markerEnd": {
+          "type": "arrowclosed",
+          "color": "#F44336"
+        }
+      },
+      "animated": false
+    },
+    {
+      "id": "edge-process-a-end",
+      "source": "process-node-1",
+      "target": "end-node",
+      "type": "default",
+      "data": {
+        "label": ""
+      },
+      "style": {
+        "stroke": "#666",
+        "strokeWidth": 2,
+        "markerEnd": {
+          "type": "arrowclosed",
+          "color": "#666"
+        }
+      },
+      "animated": false
+    },
+    {
+      "id": "edge-process-b-end",
+      "source": "process-node-2",
+      "target": "end-node",
+      "type": "default",
+      "data": {
+        "label": ""
+      },
+      "style": {
+        "stroke": "#666",
+        "strokeWidth": 2,
+        "markerEnd": {
+          "type": "arrowclosed",
+          "color": "#666"
+        }
+      },
+      "animated": false
+    }
+  ],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 1
+  },
+  "settings": {
+    "gridSize": 20,
+    "snapToGrid": true,
+    "showGrid": true,
+    "autoLayout": false,
+    "theme": "light"
+  },
+  "metadata": {
+    "createdAt": "2024-01-01T00:00:00Z",
+    "updatedAt": "2024-01-01T12:00:00Z",
+    "createdBy": "test-user",
+    "version": "1.0.0",
+    "tags": ["sample", "flowchart", "test"],
+    "isPublic": false,
+    "collaborators": [
+      {
+        "userId": "user-1",
+        "role": "editor",
+        "joinedAt": "2024-01-01T00:00:00Z"
+      },
+      {
+        "userId": "user-2",
+        "role": "viewer",
+        "joinedAt": "2024-01-01T06:00:00Z"
+      }
+    ]
+  }
+}

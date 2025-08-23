@@ -121,7 +121,7 @@ export function PlaybookViewer({ playbooks, className }: PlaybookViewerProps) {
       {/* Modal de visualização */}
       {selectedPlaybook && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full h-[80vh] flex flex-col">
+          <div className="bg-white rounded-lg w-[95vw] h-[95vh] flex flex-col">
             {/* Header do modal */}
             <div className="flex items-center justify-between p-4 border-b">
               <div className="flex items-center space-x-2">

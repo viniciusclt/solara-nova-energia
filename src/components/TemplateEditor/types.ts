@@ -1,3 +1,5 @@
+import type { CollaborationUser } from '@/services/collaboration/types';
+
 export interface Position {
   x: number;
   y: number;
@@ -216,14 +218,7 @@ export interface TemplatePreview {
   componentCount: number;
 }
 
-export interface CollaborationUser {
-  id: string;
-  name: string;
-  avatar?: string;
-  cursor?: Position;
-  selection?: string[];
-  color: string;
-}
+// CollaborationUser agora é importado de services/collaboration/types
 
 export interface Comment {
   id: string;

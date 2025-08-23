@@ -22,6 +22,7 @@ import {
   BookOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ModuleDetailProps {
   module: ModuleWithContent;
@@ -34,6 +35,8 @@ export function ModuleDetail({ module, onBack, onVideoSelect }: ModuleDetailProp
   const [selectedVideo, setSelectedVideo] = useState<TrainingVideo | null>(null);
   const [showAssessment, setShowAssessment] = useState(false);
   const { getModuleProgress, isVideoCompleted } = useTrainingProgress(module.id);
+  const { profile } = useAuth();
+  const canCreateContent = ['admin', 'super_admin', 'engenheiro'].includes(profile?.access_type || '');
 
   const moduleProgress = getModuleProgress(module.id);
   const completedVideos = module.videos?.filter(video => isVideoCompleted(video.id)).length || 0;
@@ -342,7 +345,7 @@ export function ModuleDetail({ module, onBack, onVideoSelect }: ModuleDetailProp
           <DiagramEditor 
             diagrams={module.diagrams} 
             moduleId={module.id}
-            readOnly={true}
+            readOnly={!canCreateContent}
           />
         </TabsContent>
 

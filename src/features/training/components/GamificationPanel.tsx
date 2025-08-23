@@ -1096,7 +1096,7 @@ function BadgeDetailsModal({
   
   return (
     <Dialog open={!!badgeId} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-[70vw] max-w-xl h-[60vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-center">
             Detalhes do Badge

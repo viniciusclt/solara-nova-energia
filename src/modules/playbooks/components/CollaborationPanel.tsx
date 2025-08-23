@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Button,
   Card,
@@ -36,22 +36,13 @@ import {
   CheckCircle,
   Circle,
   AlertCircle,
+  Wifi,
+  WifiOff,
+  AlertTriangle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-interface CollaborationUser {
-  id: string;
-  name: string;
-  email: string;
-  avatar?: string;
-  role: 'owner' | 'editor' | 'viewer';
-  status: 'online' | 'away' | 'offline';
-  lastSeen?: string;
-  cursor?: {
-    blockId: string;
-    position: number;
-  };
-}
+import { useCollaboration } from '@/hooks/useCollaboration';
+import { toast } from 'sonner';
 
 interface Comment {
   id: string;
@@ -64,57 +55,109 @@ interface Comment {
 }
 
 interface CollaborationPanelProps {
+  diagramId: string;
   onClose: () => void;
-  users: CollaborationUser[];
-  comments: Comment[];
-  currentUserId: string;
-  onInviteUser: (email: string) => void;
-  onAddComment: (blockId: string, content: string) => void;
-  onResolveComment: (commentId: string) => void;
-  onReplyToComment: (commentId: string, content: string) => void;
+  comments?: Comment[];
+  onAddComment?: (blockId: string, content: string) => void;
+  onResolveComment?: (commentId: string) => void;
+  onReplyToComment?: (commentId: string, content: string) => void;
 }
 
 export const CollaborationPanel: React.FC<CollaborationPanelProps> = ({
+  diagramId,
   onClose,
-  users,
-  comments,
-  currentUserId,
-  onInviteUser,
+  comments = [],
   onAddComment,
   onResolveComment,
   onReplyToComment,
 }) => {
-  const [activeTab, setActiveTab] = useState<'users' | 'comments'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'comments' | 'conflicts'>('users');
   const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<'editor' | 'viewer'>('viewer');
   const [newComment, setNewComment] = useState('');
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
 
-  const handleInviteUser = () => {
-    if (inviteEmail.trim()) {
-      onInviteUser(inviteEmail.trim());
-      setInviteEmail('');
-    }
-  };
+  // Hook de colaboração
+  const collaboration = useCollaboration({
+    diagramId,
+    autoResolveConflicts: false,
+    enableCursorBroadcast: true,
+    enablePresence: true,
+    syncInterval: 1000
+  });
 
-  const handleAddComment = () => {
+  // Handlers
+  const handleConnect = useCallback(async () => {
+    try {
+      await collaboration.connect();
+      toast.success('Conectado à colaboração!');
+    } catch (error) {
+      toast.error('Erro ao conectar à colaboração');
+    }
+  }, [collaboration]);
+
+  const handleDisconnect = useCallback(() => {
+    collaboration.disconnect();
+    toast.info('Desconectado da colaboração');
+  }, [collaboration]);
+
+  const handleInviteUser = useCallback(async () => {
+    if (!inviteEmail.trim()) {
+      toast.error('Digite um email válido');
+      return;
+    }
+    
+    try {
+      await collaboration.inviteUser(inviteEmail.trim(), inviteRole);
+      setInviteEmail('');
+      toast.success(`Convite enviado para ${inviteEmail}`);
+    } catch (error) {
+      toast.error('Erro ao enviar convite');
+    }
+  }, [collaboration, inviteEmail, inviteRole]);
+
+  const handleRemoveUser = useCallback(async (userId: string) => {
+    try {
+      await collaboration.removeUser(userId);
+      toast.success('Usuário removido da colaboração');
+    } catch (error) {
+      toast.error('Erro ao remover usuário');
+    }
+  }, [collaboration]);
+
+  const handleUpdateUserRole = useCallback(async (userId: string, role: 'editor' | 'viewer') => {
+    try {
+      await collaboration.updateUserRole(userId, role);
+      toast.success('Papel do usuário atualizado');
+    } catch (error) {
+      toast.error('Erro ao atualizar papel do usuário');
+    }
+  }, [collaboration]);
+
+  const handleAddComment = useCallback(() => {
     if (newComment.trim() && selectedBlockId) {
-      onAddComment(selectedBlockId, newComment.trim());
+      onAddComment?.(selectedBlockId, newComment.trim());
       setNewComment('');
       setSelectedBlockId(null);
     }
-  };
+  }, [newComment, selectedBlockId, onAddComment]);
 
-  const handleReplyToComment = (commentId: string) => {
+  const handleReplyToComment = useCallback((commentId: string) => {
     if (replyContent.trim()) {
-      onReplyToComment(commentId, replyContent.trim());
+      onReplyToComment?.(commentId, replyContent.trim());
       setReplyContent('');
       setReplyingTo(null);
     }
-  };
+  }, [replyContent, onReplyToComment]);
 
-  const getStatusColor = (status: CollaborationUser['status']) => {
+  const handleResolveConflict = useCallback((conflictId: string, resolution: 'accept' | 'reject' | 'merge') => {
+    collaboration.resolveConflict(conflictId, resolution);
+    toast.success(`Conflito resolvido: ${resolution}`);
+  }, [collaboration]);
+
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'online':
         return 'bg-green-500';
@@ -127,7 +170,7 @@ export const CollaborationPanel: React.FC<CollaborationPanelProps> = ({
     }
   };
 
-  const getRoleIcon = (role: CollaborationUser['role']) => {
+  const getRoleIcon = (role: string) => {
     switch (role) {
       case 'owner':
         return <Crown className="h-3 w-3 text-yellow-600" />;
@@ -158,37 +201,70 @@ export const CollaborationPanel: React.FC<CollaborationPanelProps> = ({
     <div className="w-80 h-full border-l bg-background flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b">
-        <h2 className="font-semibold text-lg">Colaboração</h2>
-        <Button variant="ghost" size="sm" onClick={onClose}>
-          <X className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center space-x-2">
+          <h2 className="font-semibold text-lg">Colaboração</h2>
+          <Badge variant={collaboration.isConnected ? 'default' : 'secondary'}>
+            {collaboration.isConnected ? (
+              <><Wifi className="h-3 w-3 mr-1" />Conectado</>
+            ) : (
+              <><WifiOff className="h-3 w-3 mr-1" />Desconectado</>
+            )}
+          </Badge>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          {!collaboration.isConnected ? (
+            <Button size="sm" onClick={handleConnect}>
+              Conectar
+            </Button>
+          ) : (
+            <Button size="sm" variant="outline" onClick={handleDisconnect}>
+              Desconectar
+            </Button>
+          )}
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Tabs */}
       <div className="flex border-b">
         <button
           className={cn(
-            'flex-1 px-4 py-2 text-sm font-medium border-b-2 transition-colors',
+            'flex-1 px-3 py-2 text-sm font-medium border-b-2 transition-colors',
             activeTab === 'users'
               ? 'border-primary text-primary'
               : 'border-transparent text-muted-foreground hover:text-foreground'
           )}
           onClick={() => setActiveTab('users')}
         >
-          <Users className="h-4 w-4 mr-2 inline" />
-          Usuários ({users.length})
+          <Users className="h-4 w-4 mr-1 inline" />
+          Usuários ({collaboration.users.length})
         </button>
         <button
           className={cn(
-            'flex-1 px-4 py-2 text-sm font-medium border-b-2 transition-colors',
+            'flex-1 px-3 py-2 text-sm font-medium border-b-2 transition-colors',
             activeTab === 'comments'
               ? 'border-primary text-primary'
               : 'border-transparent text-muted-foreground hover:text-foreground'
           )}
           onClick={() => setActiveTab('comments')}
         >
-          <MessageSquare className="h-4 w-4 mr-2 inline" />
+          <MessageSquare className="h-4 w-4 mr-1 inline" />
           Comentários ({unresolvedComments.length})
+        </button>
+        <button
+          className={cn(
+            'flex-1 px-3 py-2 text-sm font-medium border-b-2 transition-colors',
+            activeTab === 'conflicts'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          )}
+          onClick={() => setActiveTab('conflicts')}
+        >
+          <AlertTriangle className="h-4 w-4 mr-1 inline" />
+          Conflitos ({collaboration.pendingConflicts.length})
         </button>
       </div>
 
@@ -212,9 +288,17 @@ export const CollaborationPanel: React.FC<CollaborationPanelProps> = ({
                     onChange={(e) => setInviteEmail(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleInviteUser()}
                   />
+                  <select 
+                    value={inviteRole} 
+                    onChange={(e) => setInviteRole(e.target.value as 'editor' | 'viewer')}
+                    className="w-full px-3 py-2 border rounded-md text-sm"
+                  >
+                    <option value="viewer">Viewer (apenas visualização)</option>
+                    <option value="editor">Editor (pode editar)</option>
+                  </select>
                   <Button
                     onClick={handleInviteUser}
-                    disabled={!inviteEmail.trim()}
+                    disabled={!inviteEmail.trim() || !collaboration.isConnected}
                     className="w-full"
                     size="sm"
                   >
@@ -226,66 +310,168 @@ export const CollaborationPanel: React.FC<CollaborationPanelProps> = ({
               {/* Active Users */}
               <div className="space-y-3">
                 <h3 className="text-sm font-medium text-muted-foreground">
-                  Usuários Ativos
+                  Usuários Conectados ({collaboration.activeUsers.length} online)
                 </h3>
-                {users.map((user) => (
-                  <div
-                    key={user.id}
-                    className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50"
-                  >
-                    <div className="relative">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={user.avatar} alt={user.name} />
-                        <AvatarFallback className="text-xs">
-                          {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div
-                        className={cn(
-                          'absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background',
-                          getStatusColor(user.status)
+                {collaboration.users.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">
+                    <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-sm">Nenhum usuário conectado</p>
+                    <p className="text-xs">Convide colaboradores para começar</p>
+                  </div>
+                ) : (
+                  collaboration.users.map((user) => (
+                    <div
+                      key={user.id}
+                      className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50"
+                    >
+                      <div className="relative">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={user.avatar} alt={user.name} />
+                          <AvatarFallback className="text-xs">
+                            {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div
+                          className={cn(
+                            'absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background',
+                            getStatusColor(user.status)
+                          )}
+                        />
+                      </div>
+                    
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1">
+                          <span className="text-sm font-medium truncate">
+                            {user.name}
+                          </span>
+                          {getRoleIcon(user.role)}
+                          {user.id === collaboration.currentUser?.id && (
+                            <Badge variant="secondary" className="text-xs ml-1">
+                              Você
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {user.status === 'online' ? 'Online' : 
+                           user.status === 'away' ? 'Ausente' :
+                           user.lastSeen ? `Visto ${formatTime(user.lastSeen.toISOString())}` : 'Offline'}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {user.id !== collaboration.currentUser?.id && collaboration.canEdit && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleUpdateUserRole(
+                                user.id, 
+                                user.role === 'editor' ? 'viewer' : 'editor'
+                              )}
+                            >
+                              {user.role === 'editor' ? 'Tornar Viewer' : 'Tornar Editor'}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleRemoveUser(user.id)}
+                            >
+                              Remover
+                            </Button>
+                          </>
                         )}
-                      />
+                        
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem>Ver perfil</DropdownMenuItem>
+                            <DropdownMenuItem>Enviar mensagem</DropdownMenuItem>
+                            {user.cursor && (
+                              <DropdownMenuItem>
+                                Ir para cursor
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'conflicts' && (
+            <div className="space-y-4">
+              {collaboration.pendingConflicts.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <AlertTriangle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>Nenhum conflito pendente</p>
+                </div>
+              ) : (
+                collaboration.pendingConflicts.map((conflict) => (
+                  <div key={conflict.id} className="p-4 border rounded-lg bg-yellow-50 border-yellow-200">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                        <div>
+                          <h4 className="font-medium text-yellow-800">
+                            Conflito: {conflict.type}
+                          </h4>
+                          <p className="text-sm text-yellow-700">
+                            {conflict.description}
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="text-yellow-700 border-yellow-300">
+                        {formatTime(conflict.timestamp.toISOString())}
+                      </Badge>
                     </div>
                     
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1">
-                        <span className="text-sm font-medium truncate">
-                          {user.name}
-                        </span>
-                        {getRoleIcon(user.role)}
-                        {user.id === currentUserId && (
-                          <Badge variant="secondary" className="text-xs ml-1">
-                            Você
-                          </Badge>
-                        )}
+                    <div className="space-y-2 mb-3">
+                      <div className="text-sm">
+                        <span className="font-medium">Versão Local:</span>
+                        <pre className="mt-1 p-2 bg-white rounded text-xs overflow-x-auto">
+                          {JSON.stringify(conflict.localVersion, null, 2)}
+                        </pre>
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        {user.status === 'online' ? 'Online' : 
-                         user.status === 'away' ? 'Ausente' :
-                         user.lastSeen ? `Visto ${formatTime(user.lastSeen)}` : 'Offline'}
+                      <div className="text-sm">
+                        <span className="font-medium">Versão Remota:</span>
+                        <pre className="mt-1 p-2 bg-white rounded text-xs overflow-x-auto">
+                          {JSON.stringify(conflict.remoteVersion, null, 2)}
+                        </pre>
                       </div>
                     </div>
-
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>Ver perfil</DropdownMenuItem>
-                        <DropdownMenuItem>Enviar mensagem</DropdownMenuItem>
-                        {user.id !== currentUserId && (
-                          <DropdownMenuItem className="text-destructive">
-                            Remover acesso
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    
+                    <div className="flex gap-2">
+                      <Button
+                         size="sm"
+                         variant="outline"
+                         onClick={() => handleResolveConflict(conflict.id, 'local')}
+                       >
+                         Manter Local
+                       </Button>
+                       <Button
+                         size="sm"
+                         variant="outline"
+                         onClick={() => handleResolveConflict(conflict.id, 'remote')}
+                       >
+                         Aceitar Remoto
+                       </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => handleResolveConflict(conflict.id, 'merge')}
+                      >
+                        Tentar Merge
+                      </Button>
+                    </div>
                   </div>
-                ))}
-              </div>
+                ))
+              )}
             </div>
           )}
 
@@ -313,7 +499,7 @@ export const CollaborationPanel: React.FC<CollaborationPanelProps> = ({
                   />
                   <Button
                     onClick={handleAddComment}
-                    disabled={!newComment.trim() || !selectedBlockId}
+                    disabled={!newComment.trim() || !selectedBlockId || !collaboration.isConnected}
                     className="w-full"
                     size="sm"
                   >
@@ -328,10 +514,10 @@ export const CollaborationPanel: React.FC<CollaborationPanelProps> = ({
                 <div className="space-y-3">
                   <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                     <Circle className="h-4 w-4" />
-                    Comentários Pendentes ({unresolvedComments.length})
+                    Comentários Pendentes ({(comments || []).filter(c => !c.resolved).length})
                   </h3>
-                  {unresolvedComments.map((comment) => {
-                    const user = users.find(u => u.id === comment.userId);
+                  {(comments || []).filter(c => !c.resolved).map((comment) => {
+                    const user = collaboration.users.find(u => u.id === comment.userId);
                     return (
                       <Card key={comment.id} className="border-l-4 border-l-yellow-500">
                         <CardContent className="p-3">
@@ -411,7 +597,7 @@ export const CollaborationPanel: React.FC<CollaborationPanelProps> = ({
                               {comment.replies && comment.replies.length > 0 && (
                                 <div className="mt-3 pl-4 border-l-2 border-muted space-y-2">
                                   {comment.replies.map((reply) => {
-                                    const replyUser = users.find(u => u.id === reply.userId);
+                                    const replyUser = collaboration.users.find(u => u.id === reply.userId);
                                     return (
                                       <div key={reply.id} className="flex items-start gap-2">
                                         <Avatar className="h-5 w-5">
@@ -453,10 +639,10 @@ export const CollaborationPanel: React.FC<CollaborationPanelProps> = ({
                   <Separator />
                   <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                     <CheckCircle className="h-4 w-4" />
-                    Comentários Resolvidos ({resolvedComments.length})
+                    Comentários Resolvidos ({(comments || []).filter(c => c.resolved).length})
                   </h3>
-                  {resolvedComments.map((comment) => {
-                    const user = users.find(u => u.id === comment.userId);
+                  {(comments || []).filter(c => c.resolved).map((comment) => {
+                    const user = collaboration.users.find(u => u.id === comment.userId);
                     return (
                       <Card key={comment.id} className="border-l-4 border-l-green-500 opacity-75">
                         <CardContent className="p-3">

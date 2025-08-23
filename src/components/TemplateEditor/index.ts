@@ -26,7 +26,6 @@ export type {
   ValidationError,
   ExportOptions,
   TemplatePreview,
-  CollaborationUser,
   Comment,
   TableColumn,
   TableRow

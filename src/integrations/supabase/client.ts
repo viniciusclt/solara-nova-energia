@@ -1,40 +1,28 @@
 /**
- * Cliente Supabase Seguro
- * Configuração centralizada e segura para conexão com Supabase
+ * Cliente Mock Supabase
+ * Substituição local para evitar conexões remotas
  */
-import { createClient } from '@supabase/supabase-js';
-import type { Database } from './types';
-import { getSupabaseConfig } from '../../config/environment';
-import { logAuth, logError } from '../../utils/secureLogger';
+import { mockSupabase } from '../../services/mockSupabaseService';
+import { logAuth } from '../../utils/secureLogger';
 
-// Obter configuração segura do ambiente
-const config = getSupabaseConfig();
-
-// Validar configuração
-if (!config.url || !config.anonKey) {
-  logError('Configuração do Supabase inválida', 'SupabaseClient');
-  throw new Error('Configuração do Supabase não encontrada. Verifique as variáveis de ambiente.');
-}
-
-logAuth('Inicializando cliente Supabase', 'SupabaseClient');
+logAuth('Inicializando cliente Mock Supabase (modo local)', 'MockSupabaseClient');
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(config.url, config.anonKey, {
-  auth: {
-    storage: localStorage,
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-    flowType: 'pkce'
-  },
-  global: {
-    headers: {
-      'X-Client-Info': 'solara-nova-energia'
-    }
-  }
-});
+// Exportar o mock como se fosse o cliente real
+export const supabase = mockSupabase;
 
 // Log de inicialização bem-sucedida
-logAuth('Cliente Supabase inicializado com sucesso', 'SupabaseClient');
+logAuth('Cliente Mock Supabase inicializado com sucesso', 'MockSupabaseClient');
+
+// Manter compatibilidade com código existente
+export default supabase;
+
+// Função para verificar se está usando banco local
+export const isUsingLocalDatabase = () => true;
+
+// Função para forçar uso do banco local
+export const switchToLocalDatabase = async () => {
+  // Já está usando mock local
+};

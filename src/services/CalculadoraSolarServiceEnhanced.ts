@@ -1,5 +1,13 @@
 import { TarifaService, TarifaConcessionaria, CalculoTarifa } from './TarifaService';
 import { logError, logWarn } from '@/utils/secureLogger';
+import { 
+  LEI_14300, 
+  RENS_ANEEL, 
+  COMPONENTES_TARIFARIOS, 
+  CONCESSIONARIAS_RJ,
+  RegulatoryUtils,
+  REGULATORY_METADATA 
+} from '@/constants/regulatory';
 
 // Interfaces aprimoradas para os cálculos
 export interface ParametrosSistemaEnhanced {
@@ -60,10 +68,20 @@ export interface TabelaMensal {
   economia_acumulada_rs: number;
   fluxo_caixa_mensal_rs: number;
   fluxo_caixa_acumulado_rs: number;
-  // Lei 14.300
+  // Lei 14.300/2022 - Marco Legal da Geração Distribuída
   percentual_fio_b: number;
   anos_desde_instalacao: number;
   isento_fio_b: boolean;
+  base_legal_fio_b: string;
+  observacoes_regulamentares: string[];
+  // Conformidade ANEEL
+  ren_aplicavel: string; // REN 1000/2021
+  tipo_geracao: 'micro' | 'mini'; // Baseado na potência
+  concessionaria_codigo: string; // Ex: 'LIGHT-RJ'
+  // Auditoria e Compliance
+  calculo_validado: boolean;
+  timestamp_calculo: string;
+  versao_regulamentacao: string;
 }
 
 export interface ResultadoFinanceiroEnhanced {
@@ -119,61 +137,84 @@ export class CalculadoraSolarServiceEnhanced {
   }
 
   /**
-   * Calcula o percentual do Fio B conforme Lei 14.300 com regras de transição
+   * Calcula o percentual do Fio B conforme Lei 14.300/2022 com regras de transição
    * 
-   * REGRAS:
-   * - Instalado antes de 2023: Isento por 25 anos
+   * BASE LEGAL: Lei 14.300/2022, Art. 7º - Marco Legal da Geração Distribuída
+   * REGULAMENTAÇÃO: REN ANEEL 1000/2021
+   * 
+   * REGRAS DE APLICAÇÃO:
+   * - Instalado antes de 2023: Isento por 25 anos (Art. 26 - Regras de transição)
    * - Instalado 2023-2028: Regra de transição por 7 anos, depois 100%
    * - Instalado 2029+: 100% desde o início
+   * 
+   * CRONOGRAMA GRADUAL (Lei 14.300/2022):
+   * 2023: 15% | 2024: 30% | 2025: 45% | 2026: 60% | 2027: 75% | 2028-2031: 90% | 2032+: 100%
    */
   private calcularPercentualFioB(ano_instalacao: number, ano_calculo: number): {
     percentual: number;
     anos_desde_instalacao: number;
     isento: boolean;
+    base_legal: string;
+    observacoes: string[];
   } {
     const anos_desde_instalacao = ano_calculo - ano_instalacao;
+    const observacoes: string[] = [];
     
-    // Instalado antes de 2023: isento por 25 anos
+    // Instalado antes de 2023: isento por 25 anos (Lei 14.300/2022, Art. 26)
     if (ano_instalacao < 2023) {
+      const isento = anos_desde_instalacao < 25;
+      observacoes.push(`Sistema instalado antes de ${LEI_14300.periodos.transicao.inicio}`);
+      observacoes.push(`Período de isenção: 25 anos (até ${ano_instalacao + 25})`);
+      
       return {
         percentual: 0,
         anos_desde_instalacao,
-        isento: anos_desde_instalacao < 25
+        isento,
+        base_legal: `${LEI_14300.numero}/${LEI_14300.data.split('-')[0]}, Art. 26`,
+        observacoes
       };
     }
 
-    // Instalado em 2023-2028: regra de transição
+    // Instalado em 2023-2028: regra de transição (Lei 14.300/2022)
     if (ano_instalacao >= 2023 && ano_instalacao <= 2028) {
-      // Primeiros 7 anos: percentual baseado no ano de instalação
+      // Primeiros 7 anos: percentual baseado no cronograma da Lei 14.300
       if (anos_desde_instalacao < 7) {
-        const percentuais: Record<number, number> = {
-          2023: 0.15, // 15%
-          2024: 0.30, // 30%
-          2025: 0.45, // 45%
-          2026: 0.60, // 60%
-          2027: 0.75, // 75%
-          2028: 0.90  // 90%
-        };
+        const percentual = RegulatoryUtils.getPercentualFioB(ano_instalacao) / 100;
+        observacoes.push(`Período de transição: 7 anos com percentual fixo`);
+        observacoes.push(`Percentual baseado no ano de instalação: ${ano_instalacao}`);
+        
         return {
-          percentual: percentuais[ano_instalacao] || 1.0,
+          percentual,
           anos_desde_instalacao,
-          isento: false
+          isento: false,
+          base_legal: `${LEI_14300.numero}/${LEI_14300.data.split('-')[0]}, Art. 7º`,
+          observacoes
         };
       }
       
-      // Após 7 anos: 100%
+      // Após 7 anos: 100% (fim do período de transição)
+      observacoes.push('Fim do período de transição (7 anos)');
+      observacoes.push('Aplicação plena do Fio B');
+      
       return {
         percentual: 1.0,
         anos_desde_instalacao,
-        isento: false
+        isento: false,
+        base_legal: `${LEI_14300.numero}/${LEI_14300.data.split('-')[0]}, Art. 7º`,
+        observacoes
       };
     }
 
     // Instalado em 2029 ou depois: 100% desde o início
+    observacoes.push('Sistema instalado após período de transição');
+    observacoes.push('Aplicação plena do Fio B desde a instalação');
+    
     return {
       percentual: 1.0,
       anos_desde_instalacao,
-      isento: false
+      isento: false,
+      base_legal: `${LEI_14300.numero}/${LEI_14300.data.split('-')[0]}, Art. 7º`,
+      observacoes
     };
   }
 
