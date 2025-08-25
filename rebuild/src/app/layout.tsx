@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import AppShell from "@/app/_components/AppShell";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -21,13 +22,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR">
-      <body className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}>
-        {children}
+    <html lang="pt-BR" className="h-full" data-theme="light">
+      <body className={`${inter.variable} ${jetbrainsMono.variable} antialiased h-full`}>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

@@ -13,12 +13,12 @@ export default function NewLeadPage() {
   }
 
   return (
-    <main className="min-h-dvh p-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Novo Lead</h1>
-        <Link href="/leads" className="rounded border px-3 py-1">Voltar</Link>
+        <Link href="/leads" className="rounded-md border border-sidebar-border bg-sidebar-accent px-3 py-1 hover:bg-sidebar-accent/70">Voltar</Link>
       </div>
       <LeadForm onSuccess={handleSuccess} />
-    </main>
+    </div>
   );
 }

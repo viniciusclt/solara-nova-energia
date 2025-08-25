@@ -38,12 +38,12 @@ export default function LeadsPage() {
   }, []);
 
   return (
-    <main className="min-h-dvh p-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Leads</h1>
         <div className="flex items-center gap-2">
-          <button onClick={load} className="rounded border px-3 py-1">Recarregar</button>
-          <Link href="/leads/new" className="rounded bg-blue-600 px-3 py-1 text-white">Novo Lead</Link>
+          <button onClick={load} className="rounded-md border border-sidebar-border bg-sidebar-accent px-3 py-1 hover:bg-sidebar-accent/70">Recarregar</button>
+          <Link href="/leads/new" className="rounded-md bg-primary px-3 py-1 text-primary-foreground">Novo Lead</Link>
         </div>
       </div>
 
@@ -52,39 +52,39 @@ export default function LeadsPage() {
 
       {!loading && !error && (
         <div className="overflow-auto">
-          <table className="min-w-full border text-sm">
-            <thead className="bg-neutral-100">
+          <table className="min-w-full border border-sidebar-border text-sm">
+            <thead className="bg-sidebar-accent">
               <tr>
-                <th className="border px-2 py-1 text-left">Nome</th>
-                <th className="border px-2 py-1 text-left">Email</th>
-                <th className="border px-2 py-1 text-left">Telefone</th>
-                <th className="border px-2 py-1 text-left">Status</th>
-                <th className="border px-2 py-1 text-left">Criado em</th>
-                <th className="border px-2 py-1">Ações</th>
+                <th className="border border-sidebar-border px-2 py-1 text-left">Nome</th>
+                <th className="border border-sidebar-border px-2 py-1 text-left">Email</th>
+                <th className="border border-sidebar-border px-2 py-1 text-left">Telefone</th>
+                <th className="border border-sidebar-border px-2 py-1 text-left">Status</th>
+                <th className="border border-sidebar-border px-2 py-1 text-left">Criado em</th>
+                <th className="border border-sidebar-border px-2 py-1">Ações</th>
               </tr>
             </thead>
             <tbody>
               {leads.map((lead) => (
-                <tr key={lead.id} className="hover:bg-neutral-50">
-                  <td className="border px-2 py-1">{lead.name}</td>
-                  <td className="border px-2 py-1">{lead.email ?? "-"}</td>
-                  <td className="border px-2 py-1">{lead.phone ?? "-"}</td>
-                  <td className="border px-2 py-1">{lead.status ?? "new"}</td>
-                  <td className="border px-2 py-1">{lead.createdAt ? new Date(lead.createdAt).toLocaleString() : "-"}</td>
-                  <td className="border px-2 py-1 text-center">
-                    <Link href={`/leads/${lead.id}`} className="text-blue-600 underline">Editar</Link>
+                <tr key={lead.id} className="hover:bg-sidebar-accent/60">
+                  <td className="border border-sidebar-border px-2 py-1">{lead.name}</td>
+                  <td className="border border-sidebar-border px-2 py-1">{lead.email ?? "-"}</td>
+                  <td className="border border-sidebar-border px-2 py-1">{lead.phone ?? "-"}</td>
+                  <td className="border border-sidebar-border px-2 py-1">{lead.status ?? "new"}</td>
+                  <td className="border border-sidebar-border px-2 py-1">{lead.createdAt ? new Date(lead.createdAt).toLocaleString() : "-"}</td>
+                  <td className="border border-sidebar-border px-2 py-1 text-center">
+                    <Link href={`/leads/${lead.id}`} className="text-primary underline">Editar</Link>
                   </td>
                 </tr>
               ))}
               {leads.length === 0 && (
                 <tr>
-                  <td className="border px-2 py-4 text-center" colSpan={6}>Nenhum lead encontrado</td>
+                  <td className="border border-sidebar-border px-2 py-4 text-center" colSpan={6}>Nenhum lead encontrado</td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
       )}
-    </main>
+    </div>
   );
 }

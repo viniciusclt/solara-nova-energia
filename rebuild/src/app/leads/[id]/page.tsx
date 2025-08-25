@@ -22,7 +22,7 @@ export default function EditLeadPage() {
       const res = await fetch(`/api/leads/${id}`, { cache: "no-store" });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || "Falha ao carregar lead");
-      setLead(data);
+      setLead(data?.data ?? data);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Erro inesperado");
     } finally {
@@ -40,12 +40,12 @@ export default function EditLeadPage() {
   }
 
   return (
-    <main className="min-h-dvh p-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Editar Lead</h1>
         <div className="flex items-center gap-2">
-          <button onClick={load} className="rounded border px-3 py-1">Recarregar</button>
-          <Link href="/leads" className="rounded border px-3 py-1">Voltar</Link>
+          <button onClick={load} className="rounded-md border border-sidebar-border bg-sidebar-accent px-3 py-1 hover:bg-sidebar-accent/70">Recarregar</button>
+          <Link href="/leads" className="rounded-md border border-sidebar-border bg-sidebar-accent px-3 py-1 hover:bg-sidebar-accent/70">Voltar</Link>
         </div>
       </div>
 
@@ -55,6 +55,6 @@ export default function EditLeadPage() {
       {!loading && !error && lead && (
         <LeadForm initialData={lead} onSuccess={handleSuccess} />
       )}
-    </main>
+    </div>
   );
 }
