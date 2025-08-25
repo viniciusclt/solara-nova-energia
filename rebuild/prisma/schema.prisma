@@ -1,0 +1,210 @@
+// Prisma schema — Solara Nova Energia (core models)
+// Generator and datasource
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+
+enum LeadStatus {
+  new
+  contacted
+  qualified
+  proposal_won
+  proposal_lost
+  archived
+}
+
+enum ProposalStatus {
+  draft
+  sent
+  accepted
+  rejected
+  archived
+}
+
+enum TrainingContentType {
+  video
+  article
+  quiz
+  diagram
+  playbook
+}
+
+enum RoadmapStatus {
+  todo
+  in_progress
+  done
+  archived
+}
+
+enum Priority {
+  low
+  medium
+  high
+}
+
+enum Phase {
+  MONO
+  TRIF
+}
+
+// Models
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  role      String?  // e.g., SUPER_ADMIN, MANAGER, ENGINEER, SALES, INSTALLER
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  leads     Lead[]
+  proposals Proposal[]
+  trainingProgress UserTrainingProgress[]
+}
+
+model Lead {
+  id            String     @id @default(cuid())
+  name          String
+  email         String?
+  phone         String?
+  consumoMedio  Decimal?   @db.Decimal(10,2)
+  status        LeadStatus @default(new)
+  address       Json?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  // Relations
+  ownerId String?
+  owner   User?      @relation(fields: [ownerId], references: [id])
+  proposals Proposal[]
+}
+
+model Proposal {
+  id          String          @id @default(cuid())
+  title       String
+  status      ProposalStatus  @default(draft)
+  data        Json?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  // Relations
+  leadId String
+  lead   Lead    @relation(fields: [leadId], references: [id])
+
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
+
+  @@index([leadId])
+  @@index([authorId])
+}
+
+model TrainingModule {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  ordering    Int        @default(0)
+  published   Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  contents    TrainingContent[]
+  progress    UserTrainingProgress[]
+}
+
+model TrainingContent {
+  id          String              @id @default(cuid())
+  moduleId    String
+  module      TrainingModule      @relation(fields: [moduleId], references: [id])
+  type        TrainingContentType
+  title       String
+  body        Json?
+  mediaUrl    String?
+  durationSec Int?
+  ordering    Int                 @default(0)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([moduleId])
+}
+
+model UserTrainingProgress {
+  id           String         @id @default(cuid())
+  userId       String
+  user         User           @relation(fields: [userId], references: [id])
+  moduleId     String
+  module       TrainingModule @relation(fields: [moduleId], references: [id])
+  progressPerc Int            @default(0) // 0-100
+  completed    Boolean        @default(false)
+  lastAccessed DateTime?      @default(now())
+
+  @@unique([userId, moduleId])
+  @@index([userId])
+  @@index([moduleId])
+}
+
+model SolarModule {
+  id             String   @id @default(cuid())
+  manufacturer   String
+  model          String
+  powerW         Int      // rated power in watts
+  efficiencyPerc Decimal? @db.Decimal(5,2)
+  dimensions     String?  // e.g., "1722x1134x30 mm"
+  warrantyYears  Int?     @default(10)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([manufacturer, model])
+}
+
+model Inverter {
+  id             String   @id @default(cuid())
+  manufacturer   String
+  model          String
+  powerW         Int
+  mpptCount      Int?     @default(1)
+  efficiencyPerc Decimal? @db.Decimal(5,2)
+  phases         Phase    @default(MONO)
+  warrantyYears  Int?     @default(5)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([manufacturer, model])
+}
+
+model TarifaConcessionaria {
+  id             String   @id @default(cuid())
+  uf             String   // e.g., RJ
+  distribuidora  String   // e.g., Light, Enel
+  tipo           String   // e.g., residencial, comercial
+  vigenciaInicio DateTime
+  vigenciaFim    DateTime?
+  tusd           Decimal  @db.Decimal(10,6)
+  te             Decimal  @db.Decimal(10,6)
+  pisCofins      Decimal? @db.Decimal(5,4)
+  icms           Decimal? @db.Decimal(5,4)
+  cosip          Decimal? @db.Decimal(10,2)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([uf, distribuidora, tipo])
+}
+
+model RoadmapItem {
+  id          String        @id @default(cuid())
+  title       String
+  description String?
+  status      RoadmapStatus @default(todo)
+  priority    Priority      @default(medium)
+  dueDate     DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}

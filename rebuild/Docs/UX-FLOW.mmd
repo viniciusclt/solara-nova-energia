@@ -1,0 +1,50 @@
+flowchart TD
+    A[Visitante] -->|Acessa| B[Login/Onboarding]
+    B -->|Sucesso| C[Dashboard]
+    B -->|Falha| B
+
+    C --> D[Leads]
+    C --> E[Solar - Simulação]
+    C --> F[Propostas]
+    C --> G[Treinamentos]
+    C --> H[Diagramas]
+    C --> I[Admin]
+
+    %% Leads
+    D --> D1[Ver lista de leads]
+    D1 --> D2[Pesquisar/Filtrar]
+    D1 --> D3[Criar lead]
+    D3 --> D4[Salvar no banco]
+    D2 --> D5[Ver detalhes do lead]
+
+    %% Solar
+    E --> E1[Preencher dados de entrada]
+    E1 --> E2[Executar cálculo (Fio B, créditos, tarifas, indicadores)]
+    E2 --> E3[Ver resultados e gráficos]
+    E3 --> E4[Salvar simulação]
+    E3 --> F1[Gerar proposta a partir da simulação]
+
+    %% Propostas
+    F --> F1[Gerar proposta]
+    F1 --> F2[Editar/Personalizar]
+    F2 --> F3[Exportar PDF / Gerar link]
+    F3 --> F4[Compartilhar e rastrear visualizações]
+    F --> F5[Ver histórico/versões]
+
+    %% Treinamentos
+    G --> G1[Listar módulos e conteúdos]
+    G1 --> G2[Assistir conteúdo]
+    G2 --> G3[Marcar progresso/Concluir]
+    G3 --> G4[Realizar avaliação]
+    G4 --> G5[Emitir certificado]
+
+    %% Diagramas
+    H --> H1[Canvas + Paleta]
+    H1 --> H2[Adicionar nós/conexões]
+    H2 --> H3[Salvar/Exportar]
+    H3 --> H4[Reabrir e editar]
+
+    %% Admin
+    I --> I1[Gerenciar usuários/papéis]
+    I --> I2[Configurações]
+    I --> I3[Dados de referência (tarifas, equipamentos)]
