@@ -1,127 +1,108 @@
-Resumo:
-- Criar um plano de implementação detalhado com fases bem definidas, baseado no Descritivo Técnico e no PRD.
-- Desenvolver um fluxograma Mermaid cobrindo a UX ponta a ponta.
-- Implementar uma nova versão minimalista e funcional do projeto na pasta rebuild/, usando PostgreSQL com Prisma e preparada para deploy via Coolify.
+# Plano de Implementação — Status Atual e Próximos Passos
 
-Proposta de Plano de Implementação por Fases (alto nível)
-Baseado no Descritivo Técnico e PRD:
-- Referência técnica: <mcfile name="Descritivo Técnico Real e Atualizado - Solara Nova Energia.md" path="c:\Users\vinic\OneDrive\Documentos\01 - Profissional\08- Plataformas\atualizacao nova energia plataforma\solara-nova-energia\rebuild\Docs\Descritivo Técnico Real e Atualizado - Solara Nova Energia.md"></mcfile>
-- PRD: <mcfile name="Product Requirements Document (PRD) - Solara Nova Energia (Vibe Coding Edition) (1).md" path="c:\Users\vinic\OneDrive\Documentos\01 - Profissional\08- Plataformas\atualizacao nova energia plataforma\solara-nova-energia\rebuild\Docs\Product Requirements Document (PRD) - Solara Nova Energia (Vibe Coding Edition) (1).md"></mcfile>
+Legenda de status:
+- ✅ Concluído
+- ⌛ Em andamento / Backlog imediato
 
-Fase 0 — Fundação (estrutura e ambiente)
-- Decisões e setup:
-  - Criar um projeto Next.js 15+ (ou versão mais atual) com TypeScript e App Router diretamente na pasta rebuild/ (mantendo rebuild/Docs/ intocado).
-  - Estrutura modular: src/core, src/modules, src/shared, alinhada ao PRD.
-  - Adicionar Tailwind CSS básico e página inicial de dashboard.
-  - Adicionar rota /api/health para verificação de status do app.
-- Entregáveis:
-  - package.json, tsconfig, next.config, estrutura de pastas, página / e /api/health.
+Painel de Status por Fase
+- Fase 0 — Fundação: ✅
+# (pular essa etapa) - Fase 1 — Persistência (Prisma + PostgreSQL): ⌛
+- Fase 2 — UX Base e Navegação: ✅
+- Fase 3 — Módulo Solar (Cálculo e Regras): ⌛
+- Fase 4 — Propostas (MVP): ⌛
+- Fase 5 — Treinamentos (MVP): ⌛
+- Fase 6 — Diagramas (MVP): ⌛
+- Fase 7 — Deploy (Coolify + Docker): ⌛
+- Fase 8 — Qualidade e Segurança: ⌛
 
-Fase 1 — Persistência (Prisma + PostgreSQL)****
-- Configuração:
-  - Adicionar Prisma, .env.example, prisma/schema.prisma.
-  - Modelos mínimos: users, leads, proposals, training_modules, training_content, user_training_progress, solar_modules, inverters, tarifas_concessionarias, roadmap_items.
-  - Cliente Prisma singleton (lib/prisma.ts) e checagem de conexão no /api/health.
-- Entregáveis:
-  - schema.prisma inicial e comandos de geração/migração preparados.
+Resumo do que já foi entregue
+- ✅ Projeto Next.js com TypeScript e App Router na pasta rebuild/, com Tailwind CSS configurado e layout base funcional.
+- ✅ Rota de saúde do app em /api/health checando uptime/versão e conectividade condicional com DB: <mcfile name="route.ts" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\src\\app\\api\\health\\route.ts"></mcfile>
+- ✅ Navegação unificada via AppShell (Sidebar, Header, Breadcrumbs) com itens e ícones padronizados, incluindo estados de seleção e breadcrumbs por rota: <mcfile name="AppShell.tsx" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\src\\app\\_components\\AppShell.tsx"></mcfile>
+- ✅ Páginas base criadas/validadas para módulos: Dashboard (/), Leads, Solar, Proposals, Training, Diagrams, Playbooks, AQB, AQP, Wallbox e Admin (todas com placeholders consistentes).
+- ✅ Alternância de tema (claro/escuro) com persistência em localStorage e aplicação via atributo data-theme no elemento html (toggle no Header, compatível com tokens definidos em globals.css).
+- ✅ Prisma configurado com cliente singleton e schema inicial abrangendo entidades principais: <mcfile name="prisma.ts" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\src\\lib\\prisma.ts"></mcfile>, <mcfile name="schema.prisma" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\prisma\\schema.prisma"></mcfile>
+- ✅ Scripts npm para Prisma e lifecycle do app (dev/build/start/lint/type-check/Prisma Studio): <mcfile name="package.json" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\package.json"></mcfile>
+- ✅ Dockerfile multi-stage preparado para build e runtime, com geração do Prisma Client em build: <mcfile name="Dockerfile" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\Dockerfile"></mcfile>
 
-Fase 2 — UX Base e Navegação
-- Páginas mínimas com navegação e placeholders:
-  - Dashboard (home), Leads, Solar (Simulação), Proposals, Training, Diagrams, Admin.
-  - Layout básico responsivo com Tailwind.
-- Entregáveis:
-  - Páginas e links funcionais, sem lógica de domínio pesada.
+Decisões técnicas consolidadas
+- Framework: Next.js 14.2.13 com TypeScript e App Router.
+- Node: 20 LTS (engines e Volta fixados em package.json).
+- Gerenciador de pacotes: npm.
+- Estilos: Tailwind CSS 4 e tokens/light–dark via data-theme em globals.
+- Estrutura atual: src/app (rotas e layout), src/lib (utilitários/clients), src/server (esquemas/serviços) — aderente ao plano e evolutiva para src/core e src/modules quando iniciarmos regras de domínio mais densas.
 
-Fase 3 — Módulo Solar (Cálculo e Regras)
-- Implementar core de cálculo conforme PRD/Descritivo:
-  - Fio B (Lei 14.300/2022): regras de transição (isentos pré-2023, percentuais progressivos 2023–2028, 100% a partir de 2029) e aplicação ao custo final.
-  - Compensação e créditos (validade 60 meses, FIFO).
-  - Tarifa final (TUSD + TE, PIS/COFINS, ICMS por faixa, COSIP por faixa, custo de disponibilidade).
-  - Indicadores financeiros: VPL, TIR (Newton-Raphson com fallback), Paybacks.
-- Entregáveis:
-  - Serviço CalculationService em src/core/services com testes mínimos e “resultados-espelho” para validação.
+Status detalhado por Fase
 
-Fase 4 — Propostas (MVP)
-- CRUD básico (listar/criar/editar rascunho), geração de PDF mínima (placeholders).
-- Exportar/Salvar versões e status.
-- Entregáveis:
-  - API mínima de proposals, UI simples de criação, exportação inicial.
+Fase 0 — Fundação (estrutura e ambiente) — ✅
+- ✅ Projeto criado em rebuild/ com App Router + TS.
+- ✅ Tailwind e tipografia/cores base aplicadas ao layout.
+- ✅ Página inicial (Dashboard) e layout com Sidebar/Header/Breadcrumbs.
+- ✅ Rota /api/health implementada e validada.
 
-Fase 5 — Treinamentos (MVP)
-- Módulo básico: listar módulos/conteúdos e marcar progresso.
-- Player placeholder (sem MinIO ainda), status de conclusão, certificado placeholder.
-- Entregáveis:
-  - APIs e UI iniciais com persistência Prisma.
+Fase 1 — Persistência (Prisma + PostgreSQL) — ⌛
+- ✅ Prisma instalado e configurado; cliente singleton exposto em <mcfile name="prisma.ts" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\src\\lib\\prisma.ts"></mcfile>.
+- ✅ Schema abrangente inicial em <mcfile name="schema.prisma" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\prisma\\schema.prisma"></mcfile> (Users, Leads, Proposals, Training, Catálogos de Solar e Tarifas, Roadmap).
+- ✅ Scripts: db:generate, db:push, db:migrate, db:studio em <mcfile name="package.json" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\package.json"></mcfile>.
+- ⌛ Criar .env.example com DATABASE_URL (sem valores reais) e instruções mínimas.
+- ⌛ Rodar migrações/local (ou db push) após configurar DATABASE_URL.
+- ⌛ Ativar checagem de conexão real no /api/health em ambientes com DB (hoje condicional ao env).
 
-Fase 6 — Diagramas (MVP)
-- Integração React Flow básica:
-  - Canvas, paleta básica, salvar JSON de grafo no banco.
-- Entregáveis:
-  - Editor mínimo com salvar/abrir.
+Fase 2 — UX Base e Navegação — ✅
+- ✅ Páginas mínimas com navegação e placeholders:
+  - Dashboard (/), Leads, Solar, Proposals, Training, Diagrams, Playbooks, AQB, AQP, Wallbox e Admin.
+- ✅ AppShell unificado: Sidebar com estados ativo/inativo, Breadcrumb por rota (inclui rota dinâmica de Leads), Header com ações (incl. toggle de tema).
+- ✅ Tema claro/escuro: toggle no Header, persistência em localStorage e aplicação via data-theme (compatível com tokens em globals.css).
+# (pular essa etapa) - ⌛ Ajustes finos de acessibilidade (foco/ARIA/contraste), QA responsivo e microinterações.
 
-Fase 7 — Deploy Coolify e Docker****
-- Dockerfile multi-stage, .dockerignore, variável PORT=3000.
-- Scripts de build/start.
-- Entregáveis:
-  - App buildando e subindo no Coolify.
+Fase 3 — Módulo Solar (Cálculo e Regras) — ⌛
+- ⌛ Implementar CalculationService (src/core/services) com regras do PRD/Descritivo:
+  - Fio B (Lei 14.300/2022 — transições 2023–2028 e 100% em 2029), compensação/créditos (60 meses, FIFO), tarifa (TUSD/TE, PIS/COFINS, ICMS, COSIP, disponibilidade), indicadores (VPL, TIR com Newton-Raphson + fallback, paybacks).
+- ⌛ Testes mínimos e “resultados-espelho” para validação.
 
-Fase 8 — Qualidade e Segurança****
-- Testes mínimos para cálculos e APIs críticas.
-- ESLint/Prettier e tipo-strict TypeScript.
-- Observabilidade inicial (logs estruturados), checklist de segurança básica.
+Fase 4 — Propostas (MVP) — ⌛
+- ⌛ CRUD básico (listar/criar/editar rascunho) + exportação PDF inicial (placeholders).
+- ⌛ Versionamento e status.
 
-Fluxograma Mermaid da UX
-O fluxograma foi movido para um arquivo exclusivo para melhor organização:
-<mcfile name="UX-FLOW.mmd" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\Docs\\UX-FLOW.mmd"></mcfile>
+Fase 5 — Treinamentos (MVP) — ⌛
+- ⌛ Listagem de módulos/conteúdos e marcação de progresso.
+- ⌛ Player placeholder e certificado placeholder.
 
-Decisões técnicas propostas para a implementação
-- Framework: Next.js 15+ com TypeScript e App Router, com src/ habilitado.
-- Estrutura de pastas:
-  - src/core/{services,types,utils}
-  - src/modules/{solar,leads,proposals,training,diagrams,admin}
-  - src/shared/{ui,layouts,constants}
-- Estilos: Tailwind CSS mínimo já configurado no projeto.
-- Banco de dados: PostgreSQL (Hostinger) com Prisma.
-  - .env.example com DATABASE_URL, e scripts npm para prisma generate/migrate.
-- APIs:
-  - /api/health (status, versão, ping ao DB opcional)
-  - Demais APIs serão incrementalmente adicionadas em cada fase.
-- Deploy (Coolify):
-  - Dockerfile multi-stage (build + runtime) e start via npm run start.
-  - Porta 3000 exposta; sem dependência de features específicas de Vercel.
-- Gerenciador de pacotes: npm (podemos trocar para pnpm/bun se preferir).
-- Node: 20 LTS.
+Fase 6 — Diagramas (MVP) — ⌛
+- ⌛ Integração React Flow (canvas, paleta, salvar/abrir JSON no DB).
 
-O que vou fazer após sua validação
-1) Criar dois arquivos na pasta rebuild/Docs:
-   - Plano-Implementacao.md com o plano detalhado por fases (conteúdo acima expandido com entregáveis e critérios de aceite).
-   - UX-FLOW.mmd contendo o Mermaid do fluxograma UX.
+Fase 7 — Deploy Coolify e Docker — ⌛
+- ✅ Dockerfile multi-stage e .dockerignore prontos.
+- ⌛ Provisionar app no Coolify, configurar envs e pipeline de deploy.
+- ⌛ Validar build e start (PORT=3000) no ambiente.
 
-2) Iniciar o projeto minimalista dentro de rebuild/:
-   - Criar package.json, tsconfig.json, next.config, pastas src/, app/, páginas iniciais e /api/health.
-   - Adicionar Tailwind CSS básico (tailwind.config, postcss.config, globals.css).
-   - Adicionar Prisma:
-     - prisma/schema.prisma com os modelos mínimos.
-     - .env.example com DATABASE_URL.
-     - lib/prisma.ts e scripts no package.json.
+Fase 8 — Qualidade e Segurança — ⌛
+- ⌛ Lint/Prettier e TS estritos em toda a base (parcial hoje; lint já configurado).
+- ⌛ Testes (unitários/integração/E2E) para cálculos e APIs críticas.
+- ⌛ Observabilidade inicial (logs estruturados) e checklist de segurança.
 
-3) Preparar para deploy no Coolify:
-   - Dockerfile e .dockerignore prontos para build e start.
-   - Documentar as variáveis de ambiente e comandos.
+Próximos passos (priorizados)
+1) Persistência (F1)
+   - ⌛ Criar .env.example (DATABASE_URL, NODE_ENV, PORT) e documentação curta no topo do arquivo.
+   - ⌛ Configurar DATABASE_URL local e executar db:generate/db:push ou db:migrate.
+   - ⌛ Ajustar /api/health para refletir estado do DB (mensagens amigáveis e latência do ping).
 
-4) Não vou instalar dependências ou rodar migrações ainda, até você validar. Depois da validação, posso executar a instalação e checar o servidor local.
+2) UX/UI (F2)
+   - ⌛ QA visual e responsivo das páginas base; revisar tokens de cor em dark mode para contraste AA.
+   - ⌛ Melhorias de acessibilidade (foco visível, ARIA nos itens da Sidebar, ordem de tab, labels).
 
-Pedidos de validação
-- Confirmar estas decisões:
-  - Next.js 14 com App Router e TypeScript na pasta rebuild/ (raiz do novo projeto).
-  - npm como gerenciador de pacotes.
-  - Node 20 LTS.
-  - Estrutura modular proposta.
-- Confirmar que posso salvar:
-  - rebuild/Docs/Plano-Implementacao.md
-  - rebuild/Docs/UX-FLOW.mmd
-- Confirmar que posso criar o esqueleto do projeto em rebuild/ com:
-  - Next.js + Tailwind + Prisma + /api/health + Dockerfile.
+3) Solar (F3)
+   - ⌛ Criar esqueleto de src/core/services/CalculationService e fixtures de validação.
+   - ⌛ Definir tipos/dtos em src/core/types para entrada/saída dos cálculos.
 
-Se estiver tudo ok, eu sigo imediatamente com a criação dos arquivos e o scaffolding do projeto na pasta rebuild/, mantendo o plano e o fluxograma versionados em rebuild/Docs.
+4) Propostas (F4) e Treinamentos (F5)
+   - ⌛ Definir rotas de API mínimas e modelos de UI para CRUD e progresso.
+
+5) Deploy (F7)
+   - ⌛ Configurar app no Coolify, variáveis de ambiente e primeiro deploy.
+
+Referências
+- Descritivo Técnico: <mcfile name="Descritivo Técnico Real e Atualizado - Solara Nova Energia.md" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\Docs\\Descritivo Técnico Real e Atualizado - Solara Nova Energia.md"></mcfile>
+- PRD: <mcfile name="Product Requirements Document (PRD) - Solara Nova Energia (Vibe Coding Edition) (1).md" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\Docs\\Product Requirements Document (PRD) - Solara Nova Energia (Vibe Coding Edition) (1).md"></mcfile>
+- Fluxo UX: <mcfile name="UX-FLOW.mmd" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\Docs\\UX-FLOW.mmd"></mcfile>
         
