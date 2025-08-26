@@ -1,17 +1,16 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { LeadForm, type Lead } from "../_components/LeadForm";
+import { useParams } from "next/navigation";
+import { OpportunityForm, type Opportunity } from "../_components/OpportunityForm";
 import { api } from "@/lib/api";
 
-export default function EditLeadPage() {
+export default function EditOpportunityPage() {
   const params = useParams<{ id: string }>();
-  const id = params?.id as string;
-  const router = useRouter();
+  const id = params?.id as string | undefined;
 
-  const [lead, setLead] = useState<Lead | null>(null);
+  const [item, setItem] = useState<Opportunity | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,8 +19,8 @@ export default function EditLeadPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await api.get<{ data: Lead }>(`/api/leads/${id}`);
-      setLead((data?.data as Lead) ?? (data as unknown as Lead));
+      const data = await api.get<{ data: Opportunity }>(`/api/opportunities/${id}`);
+      setItem(data?.data ?? null);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Erro inesperado");
     } finally {
@@ -34,25 +33,20 @@ export default function EditLeadPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  function handleSuccess() {
-    router.push("/leads");
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Editar Contato</h1>
+        <h1 className="text-2xl font-semibold">Editar Oportunidade</h1>
         <div className="flex items-center gap-2">
           <button onClick={load} className="rounded-md border border-sidebar-border bg-sidebar-accent px-3 py-1 hover:bg-sidebar-accent/70">Recarregar</button>
-          <Link href="/leads" className="rounded-md border border-sidebar-border bg-sidebar-accent px-3 py-1 hover:bg-sidebar-accent/70">Voltar</Link>
+          <Link href="/opportunities" className="rounded-md border border-sidebar-border bg-sidebar-accent px-3 py-1 hover:bg-sidebar-accent/70">Voltar</Link>
         </div>
       </div>
 
       {loading && <p>Carregando...</p>}
       {error && <p className="text-red-700">{error}</p>}
-
-      {!loading && !error && lead && (
-        <LeadForm initialData={lead} onSuccess={handleSuccess} />
+      {!loading && !error && item && (
+        <OpportunityForm initialData={item} onSuccess={setItem} />
       )}
     </div>
   );

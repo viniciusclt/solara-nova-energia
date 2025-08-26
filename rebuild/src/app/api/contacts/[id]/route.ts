@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { leadUpdateSchema } from '@/server/leads/schemas';
-import { getLeadById, updateLead, deleteLead } from '@/server/leads/service';
+import { contactUpdateSchema } from '@/server/contacts/schemas';
+import { getContactById, updateContact, deleteContact } from '@/server/contacts/service';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,11 +9,11 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const lead = await getLeadById(params.id);
-    if (!lead) return NextResponse.json({ error: 'Contato não encontrado' }, { status: 404 });
-    return NextResponse.json({ data: lead });
+    const contact = await getContactById(params.id);
+    if (!contact) return NextResponse.json({ error: 'Contato não encontrado' }, { status: 404 });
+    return NextResponse.json({ data: contact });
   } catch (err) {
-    console.error('GET /api/leads/[id] error:', err);
+    console.error('GET /api/contacts/[id] error:', err);
     return NextResponse.json({ error: 'Erro ao buscar contato' }, { status: 500 });
   }
 }
@@ -24,7 +24,7 @@ export async function PATCH(
 ) {
   try {
     const json = await request.json().catch(() => ({}));
-    const parsed = leadUpdateSchema.safeParse(json);
+    const parsed = contactUpdateSchema.safeParse(json);
     if (!parsed.success) {
       return NextResponse.json(
         { error: 'Payload inválido', details: parsed.error.flatten() },
@@ -32,10 +32,10 @@ export async function PATCH(
       );
     }
 
-    const updated = await updateLead(params.id, parsed.data);
+    const updated = await updateContact(params.id, parsed.data);
     return NextResponse.json({ data: updated });
   } catch (err) {
-    console.error('PATCH /api/leads/[id] error:', err);
+    console.error('PATCH /api/contacts/[id] error:', err);
     return NextResponse.json({ error: 'Erro ao atualizar contato' }, { status: 500 });
   }
 }
@@ -45,10 +45,10 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await deleteLead(params.id);
+    await deleteContact(params.id);
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error('DELETE /api/leads/[id] error:', err);
+    console.error('DELETE /api/contacts/[id] error:', err);
     return NextResponse.json({ error: 'Erro ao remover contato' }, { status: 500 });
   }
 }

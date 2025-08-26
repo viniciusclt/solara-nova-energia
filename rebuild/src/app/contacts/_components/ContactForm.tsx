@@ -3,19 +3,18 @@
 import React, { useMemo, useState } from "react";
 import { api } from "@/lib/api";
 
-// Tipos mínimos para alinhar com a API
-export type Lead = {
+export type Contact = {
   id?: string;
   name: string;
   email?: string | null;
   phone?: string | null;
   consumoMedio?: number | null;
-  status?: LeadStatus;
+  status?: ContactStatus;
   address?: unknown;
   ownerId?: string | null;
 };
 
-export type LeadStatus =
+export type ContactStatus =
   | "new"
   | "contacted"
   | "qualified"
@@ -23,7 +22,7 @@ export type LeadStatus =
   | "proposal_lost"
   | "archived";
 
-const STATUS_OPTIONS: { value: LeadStatus; label: string }[] = [
+const STATUS_OPTIONS: { value: ContactStatus; label: string }[] = [
   { value: "new", label: "Novo" },
   { value: "contacted", label: "Contactado" },
   { value: "qualified", label: "Qualificado" },
@@ -32,14 +31,14 @@ const STATUS_OPTIONS: { value: LeadStatus; label: string }[] = [
   { value: "archived", label: "Arquivado" },
 ];
 
-export function LeadForm({
+export function ContactForm({
   initialData,
   onSuccess,
 }: {
-  initialData?: Lead | null;
-  onSuccess?: (lead: Lead) => void;
+  initialData?: Contact | null;
+  onSuccess?: (contact: Contact) => void;
 }) {
-  const [form, setForm] = useState<Lead>(() => ({
+  const [form, setForm] = useState<Contact>(() => ({
     name: initialData?.name ?? "",
     email: initialData?.email ?? "",
     phone: initialData?.phone ?? "",
@@ -49,7 +48,7 @@ export function LeadForm({
         : initialData?.consumoMedio
         ? Number(initialData?.consumoMedio)
         : undefined,
-    status: (initialData?.status as LeadStatus | undefined) ?? "new",
+    status: (initialData?.status as ContactStatus | undefined) ?? "new",
     address: initialData?.address ?? undefined,
     ownerId: initialData?.ownerId ?? undefined,
   }));
@@ -82,7 +81,7 @@ export function LeadForm({
     setMessage(null);
 
     try {
-      const payload: Partial<Lead> = {
+      const payload: Partial<Contact> = {
         name: form.name.trim(),
         email: form.email || undefined,
         phone: form.phone || undefined,
@@ -93,11 +92,11 @@ export function LeadForm({
       };
 
       const resp = await (isEdit
-        ? api.patch<{ data: Lead }>(`/api/leads/${initialData?.id}`, payload)
-        : api.post<{ data: Lead }>("/api/leads", payload));
+        ? api.patch<{ data: Contact }>(`/api/contacts/${initialData?.id}`, payload)
+        : api.post<{ data: Contact }>("/api/contacts", payload));
 
-      setMessage(isEdit ? "Lead atualizado com sucesso" : "Lead criado com sucesso");
-      onSuccess?.(resp.data ?? ({} as Lead));
+      setMessage(isEdit ? "Contato atualizado com sucesso" : "Contato criado com sucesso");
+      onSuccess?.(resp.data);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Erro inesperado");
     } finally {
@@ -107,14 +106,14 @@ export function LeadForm({
 
   async function handleDelete() {
     if (!initialData?.id) return;
-    if (!confirm("Tem certeza que deseja deletar este lead?")) return;
+    if (!confirm("Tem certeza que deseja deletar este contato?")) return;
 
     setSubmitting(true);
     setError(null);
     setMessage(null);
     try {
-      await api.del<{ success: boolean }>(`/api/leads/${initialData.id}`);
-      setMessage("Lead deletado com sucesso");
+      await api.del<{ success: boolean }>(`/api/contacts/${initialData.id}`);
+      setMessage("Contato deletado com sucesso");
       onSuccess?.(initialData);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Erro inesperado");

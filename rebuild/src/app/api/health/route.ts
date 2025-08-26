@@ -8,14 +8,16 @@ export async function GET() {
   const now = new Date();
   const version = process.env.npm_package_version || '0.0.0';
 
-  const db = { connected: false as boolean, error: undefined as string | undefined };
+  const db: { connected: boolean; error?: string; latency_ms?: number } = { connected: false };
   const hasDatabaseUrl = Boolean(process.env.DATABASE_URL && process.env.DATABASE_URL.trim());
 
   if (hasDatabaseUrl) {
     try {
-      // Verifica conectividade básica com o banco
+      const start = Date.now();
+      // Verifica conectividade básica com o banco e mede latência
       await prisma.$queryRaw`SELECT 1`;
       db.connected = true;
+      db.latency_ms = Date.now() - start;
     } catch (err) {
       db.error = err instanceof Error ? err.message : 'Unknown database error';
     }
@@ -29,6 +31,10 @@ export async function GET() {
     time: now.toISOString(),
     uptime_seconds: Math.round(uptime),
     node_env: process.env.NODE_ENV,
-    database: db,
+    database: {
+      ...db,
+      hasDatabaseUrl,
+      provider: 'postgresql',
+    },
   });
 }

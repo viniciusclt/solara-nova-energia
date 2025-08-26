@@ -16,7 +16,9 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { label: "Início", href: "/", icon: Home },
-  { label: "Leads", href: "/leads", icon: Users },
+  { label: "Leads", href: "/leads" },
+  { label: "Contatos", href: "/contacts", icon: Users },
+  { label: "Oportunidades", href: "/opportunities" },
   { label: "Fotovoltaico", href: "/solar", icon: Sun },
   { label: "Propostas", href: "/proposals", icon: FileText },
   { label: "Treinamentos", href: "/training", icon: GraduationCap },
@@ -157,6 +159,10 @@ function useBreadcrumb() {
     "/": "Início",
     "/leads": "Leads",
     "/leads/new": "Novo Lead",
+    "/contacts": "Contatos",
+    "/contacts/new": "Novo Contato",
+    "/opportunities": "Oportunidades",
+    "/opportunities/new": "Nova Oportunidade",
     "/solar": "Fotovoltaico",
     "/proposals": "Propostas",
     "/training": "Treinamentos",
@@ -167,9 +173,17 @@ function useBreadcrumb() {
     "/wallbox": "Wallbox",
     "/admin": "Admin",
   };
-  // Tratar rota dinâmica de edição de lead
+  // Tratar rotas dinâmicas
   const isLeadDetail = pathname?.startsWith("/leads/") && pathname !== "/leads" && pathname !== "/leads/new";
-  const current = isLeadDetail ? "Editar Lead" : map[pathname ?? "/"] ?? "Página";
+  const isContactDetail = pathname?.startsWith("/contacts/") && pathname !== "/contacts" && pathname !== "/contacts/new";
+  const isOpportunityDetail = pathname?.startsWith("/opportunities/") && pathname !== "/opportunities" && pathname !== "/opportunities/new";
+  const current = isLeadDetail
+    ? "Editar Lead"
+    : isContactDetail
+    ? "Editar Contato"
+    : isOpportunityDetail
+    ? "Editar Oportunidade"
+    : map[pathname ?? "/"] ?? "Página";
   const segments = pathname?.split("/").filter(Boolean) ?? [];
   return {
     segments,

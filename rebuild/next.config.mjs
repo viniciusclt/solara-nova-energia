@@ -1,4 +1,4 @@
-// Next.js config for v14 (ESM)
+// Next.js config for v15 (ESM)
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,

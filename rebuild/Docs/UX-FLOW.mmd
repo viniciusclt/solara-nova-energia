@@ -3,19 +3,26 @@ flowchart TD
     B -->|Sucesso| C[Dashboard]
     B -->|Falha| B
 
-    C --> D[Leads]
+    C --> D[Contatos]
     C --> E[Solar - Simulação]
     C --> F[Propostas]
     C --> G[Treinamentos]
     C --> H[Diagramas]
     C --> I[Admin]
+    C --> J[Roadmap]
 
-    %% Leads
-    D --> D1[Ver lista de leads]
+    %% Contatos (antes: Leads)
+    D --> D1[Ver lista de contatos]
     D1 --> D2[Pesquisar/Filtrar]
-    D1 --> D3[Criar lead]
+    D1 --> D3[Criar contato]
     D3 --> D4[Salvar no banco]
-    D2 --> D5[Ver detalhes do lead]
+    D2 --> D5[Ver detalhes do contato]
+
+    %% Oportunidades do Contato
+    D5 --> O1[Oportunidades do contato]
+    O1 --> O2[Criar oportunidade]
+    O1 --> O3[Ver detalhes da oportunidade]
+    O3 --> E
 
     %% Solar
     E --> E1[Preencher dados de entrada]
@@ -48,3 +55,6 @@ flowchart TD
     I --> I1[Gerenciar usuários/papéis]
     I --> I2[Configurações]
     I --> I3[Dados de referência (tarifas, equipamentos)]
+
+    %% Roadmap
+    J --> J1[Visualizar roadmap]

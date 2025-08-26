@@ -66,8 +66,10 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Relations
-  leads     Lead[]
-  proposals Proposal[]
+  leads         Lead[]
+  contacts      Contact[]
+  opportunities Opportunity[]
+  proposals     Proposal[]
   trainingProgress UserTrainingProgress[]
 }
 
@@ -207,4 +209,48 @@ model RoadmapItem {
   dueDate     DateTime?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+}
+
+// CRM migration (faseada): novos artefatos mantendo Lead/Proposal existentes
+enum OpportunityStatus {
+  open
+  won
+  lost
+  archived
+}
+
+model Contact {
+  id            String     @id @default(cuid())
+  name          String
+  email         String?
+  phone         String?
+  consumoMedio  Decimal?   @db.Decimal(10,2)
+  status        LeadStatus @default(new)
+  address       Json?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  // Relations
+  ownerId String?
+  owner   User?      @relation(fields: [ownerId], references: [id])
+  opportunities Opportunity[]
+}
+
+model Opportunity {
+  id          String             @id @default(cuid())
+  title       String
+  status      OpportunityStatus  @default(open)
+  amount      Decimal?           @db.Decimal(12,2)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  // Relations
+  contactId String
+  contact   Contact  @relation(fields: [contactId], references: [id])
+
+  ownerId String?
+  owner   User?     @relation(fields: [ownerId], references: [id])
+
+  @@index([contactId])
+  @@index([ownerId])
 }

@@ -25,7 +25,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR" className="h-full" data-theme="light">
-      <body className={`${inter.variable} ${jetbrainsMono.variable} antialiased h-full`}>
+      <body className={`antialiased h-full`}>
         <AppShell>{children}</AppShell>
       </body>
     </html>
