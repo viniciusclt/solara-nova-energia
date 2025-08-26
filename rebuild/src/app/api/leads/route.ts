@@ -2,10 +2,15 @@ import { NextResponse } from 'next/server';
 import { LeadStatus } from '@prisma/client';
 import { leadCreateSchema } from '@/server/leads/schemas';
 import { listLeads, createLead } from '@/server/leads/service';
+import { auth } from "@clerk/nextjs/server";
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
+  if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+    const { userId } = auth();
+    if (!userId) return new Response("Unauthorized", { status: 401 });
+  }
   try {
     const url = new URL(request.url);
     const page = Math.max(1, Number(url.searchParams.get('page') ?? '1'));
@@ -22,6 +27,10 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+    const { userId } = auth();
+    if (!userId) return new Response("Unauthorized", { status: 401 });
+  }
   try {
     const json = await request.json().catch(() => ({}));
     const parsed = leadCreateSchema.safeParse(json);

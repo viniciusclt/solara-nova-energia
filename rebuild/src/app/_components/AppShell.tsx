@@ -27,6 +27,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "AQB", href: "/aqb", icon: Flame },
   { label: "AQP", href: "/aqp", icon: Waves },
   { label: "Wallbox", href: "/wallbox", icon: Zap },
+  { label: "Arquivos", href: "/storage", icon: FileText },
   { label: "Admin", href: "/admin", icon: Wrench },
 ];
 
@@ -171,6 +172,7 @@ function useBreadcrumb() {
     "/aqb": "Aquecimento Banho",
     "/aqp": "Aquecimento Piscina",
     "/wallbox": "Wallbox",
+    "/storage": "Arquivos",
     "/admin": "Admin",
   };
   // Tratar rotas dinâmicas

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { contactUpdateSchema } from '@/server/contacts/schemas';
 import { getContactById, updateContact, deleteContact } from '@/server/contacts/service';
+import { auth } from "@clerk/nextjs/server";
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +23,10 @@ export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+    const { userId } = auth();
+    if (!userId) return new Response("Unauthorized", { status: 401 });
+  }
   try {
     const json = await request.json().catch(() => ({}));
     const parsed = contactUpdateSchema.safeParse(json);
@@ -44,6 +49,10 @@ export async function DELETE(
   _request: Request,
   { params }: { params: { id: string } }
 ) {
+  if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+    const { userId } = auth();
+    if (!userId) return new Response("Unauthorized", { status: 401 });
+  }
   try {
     await deleteContact(params.id);
     return NextResponse.json({ success: true });
