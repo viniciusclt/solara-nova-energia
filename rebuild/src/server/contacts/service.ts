@@ -2,9 +2,20 @@ import { prisma } from '@/lib/prisma';
 import { Prisma, LeadStatus } from '@prisma/client';
 import type { ContactCreateInput, ContactUpdateInput } from './schemas';
 
-export async function listContacts(params: { page: number; limit: number; status?: LeadStatus | null }) {
-  const { page, limit, status } = params;
-  const where: Prisma.ContactWhereInput = status ? { status } : {};
+export async function listContacts(params: { page: number; limit: number; status?: LeadStatus | null; q?: string | null }) {
+  const { page, limit, status, q } = params;
+  const where: Prisma.ContactWhereInput = {
+    ...(status ? { status } : {}),
+    ...(q
+      ? {
+          OR: [
+            { name: { contains: q, mode: 'insensitive' } },
+            { email: { contains: q, mode: 'insensitive' } },
+            { phone: { contains: q, mode: 'insensitive' } },
+          ],
+        }
+      : {}),
+  };
 
   const [total, data] = await Promise.all([
     prisma.contact.count({ where }),

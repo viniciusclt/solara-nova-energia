@@ -2,11 +2,19 @@ import { prisma } from '@/lib/prisma';
 import { Prisma, OpportunityStatus } from '@prisma/client';
 import type { OpportunityCreateInput, OpportunityUpdateInput } from './schemas';
 
-export async function listOpportunities(params: { page: number; limit: number; status?: OpportunityStatus | null; contactId?: string | null }) {
-  const { page, limit, status, contactId } = params;
+export async function listOpportunities(params: { page: number; limit: number; status?: OpportunityStatus | null; contactId?: string | null; q?: string | null }) {
+  const { page, limit, status, contactId, q } = params;
   const where: Prisma.OpportunityWhereInput = {
     ...(status ? { status } : {}),
     ...(contactId ? { contactId } : {}),
+    ...(q
+      ? {
+          OR: [
+            { title: { contains: q, mode: 'insensitive' } },
+            { contact: { name: { contains: q, mode: 'insensitive' } } },
+          ],
+        }
+      : {}),
   };
 
   const [total, data] = await Promise.all([

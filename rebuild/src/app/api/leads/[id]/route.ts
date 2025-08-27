@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { leadUpdateSchema } from '@/server/leads/schemas';
 import { getLeadById, updateLead, deleteLead } from '@/server/leads/service';
 import { auth } from "@clerk/nextjs/server";
@@ -6,11 +6,12 @@ import { auth } from "@clerk/nextjs/server";
 export const dynamic = 'force-dynamic';
 
 export async function GET(
-  _req: Request,
-  { params }: { params: { id: string } }
+  _req: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await context.params;
   try {
-    const lead = await getLeadById(params.id);
+    const lead = await getLeadById(id);
     if (!lead) return NextResponse.json({ error: 'Contato não encontrado' }, { status: 404 });
     return NextResponse.json({ data: lead });
   } catch (err) {
@@ -20,14 +21,15 @@ export async function GET(
 }
 
 export async function PATCH(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
   if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return new Response("Unauthorized", { status: 401 });
   }
   try {
+    const { id } = await context.params;
     const json = await request.json().catch(() => ({}));
     const parsed = leadUpdateSchema.safeParse(json);
     if (!parsed.success) {
@@ -37,7 +39,7 @@ export async function PATCH(
       );
     }
 
-    const updated = await updateLead(params.id, parsed.data);
+    const updated = await updateLead(id, parsed.data);
     return NextResponse.json({ data: updated });
   } catch (err) {
     console.error('PATCH /api/leads/[id] error:', err);
@@ -46,15 +48,16 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: Request,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
   if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return new Response("Unauthorized", { status: 401 });
   }
   try {
-    await deleteLead(params.id);
+    const { id } = await context.params;
+    await deleteLead(id);
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('DELETE /api/leads/[id] error:', err);

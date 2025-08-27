@@ -1,24 +1,13 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import React from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { LeadForm } from "../_components/LeadForm";
-
-export default function NewLeadPage() {
-  const router = useRouter();
-
-  function handleSuccess() {
-    router.push("/leads");
+export default function NewLeadRedirectPage({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
+  const qs = new URLSearchParams();
+  if (searchParams) {
+    for (const [k, v] of Object.entries(searchParams)) {
+      if (Array.isArray(v)) v.forEach((vv) => qs.append(k, String(vv)));
+      else if (v !== undefined) qs.set(k, String(v));
+    }
   }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Novo Contato</h1>
-        <Link href="/leads" className="rounded-md border border-sidebar-border bg-sidebar-accent px-3 py-1 hover:bg-sidebar-accent/70">Voltar</Link>
-      </div>
-      <LeadForm onSuccess={handleSuccess} />
-    </div>
-  );
+  const target = `/contacts/new${qs.toString() ? `?${qs.toString()}` : ""}`;
+  redirect(target);
 }

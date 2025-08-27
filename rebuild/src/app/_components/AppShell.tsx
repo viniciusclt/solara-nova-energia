@@ -16,7 +16,6 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { label: "Início", href: "/", icon: Home },
-  { label: "Leads", href: "/leads" },
   { label: "Contatos", href: "/contacts", icon: Users },
   { label: "Oportunidades", href: "/opportunities" },
   { label: "Fotovoltaico", href: "/solar", icon: Sun },
@@ -67,7 +66,9 @@ function Sidebar({
       if (i.href === "/") {
         map.set(i.href, pathname === "/");
       } else {
-        map.set(i.href, Boolean(pathname?.startsWith(i.href)));
+        const normalActive = Boolean(pathname?.startsWith(i.href));
+        const contactsAliasActive = i.href === "/contacts" && Boolean(pathname?.startsWith("/leads"));
+        map.set(i.href, normalActive || contactsAliasActive);
       }
     }
     return map;
@@ -86,6 +87,7 @@ function Sidebar({
       />
 
       <aside
+        id="app-sidebar"
         className={classNames(
           "fixed lg:static z-50 top-0 left-0 h-dvh w-64 shrink-0 border-r",
           "bg-sidebar-bg text-sidebar-fg border-sidebar-border",
@@ -94,7 +96,6 @@ function Sidebar({
           collapsed ? "lg:w-16" : "lg:w-64"
         )}
         aria-label="Barra lateral de navegação"
-        aria-expanded={open}
       >
         <div className="flex h-14 items-center gap-2 px-4 border-b border-sidebar-border">
           <div className="size-7 rounded-md bg-[radial-gradient(circle_at_30%_30%,hsl(var(--accent)),hsl(var(--primary)))] shadow-[var(--shadow-solar)]" />
@@ -158,8 +159,8 @@ function useBreadcrumb() {
   const pathname = usePathname();
   const map: Record<string, string> = {
     "/": "Início",
-    "/leads": "Leads",
-    "/leads/new": "Novo Lead",
+    "/leads": "Contatos",
+    "/leads/new": "Novo Contato",
     "/contacts": "Contatos",
     "/contacts/new": "Novo Contato",
     "/opportunities": "Oportunidades",
@@ -180,7 +181,7 @@ function useBreadcrumb() {
   const isContactDetail = pathname?.startsWith("/contacts/") && pathname !== "/contacts" && pathname !== "/contacts/new";
   const isOpportunityDetail = pathname?.startsWith("/opportunities/") && pathname !== "/opportunities" && pathname !== "/opportunities/new";
   const current = isLeadDetail
-    ? "Editar Lead"
+    ? "Editar Contato"
     : isContactDetail
     ? "Editar Contato"
     : isOpportunityDetail
@@ -193,7 +194,7 @@ function useBreadcrumb() {
   };
 }
 
-function Header({ onToggleSidebar }: { onToggleSidebar: () => void }) {
+function Header({ onToggleSidebar, isSidebarOpen }: { onToggleSidebar: () => void; isSidebarOpen: boolean }) {
   const { current } = useBreadcrumb();
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   useEffect(() => {
@@ -204,7 +205,7 @@ function Header({ onToggleSidebar }: { onToggleSidebar: () => void }) {
         : (document.documentElement.getAttribute('data-theme') || 'light');
       setTheme(initial as 'light' | 'dark');
       document.documentElement.setAttribute('data-theme', initial);
-    } catch (_) {
+    } catch {
       // noop
     }
   }, []);
@@ -213,7 +214,7 @@ function Header({ onToggleSidebar }: { onToggleSidebar: () => void }) {
     setTheme(next);
     try {
       localStorage.setItem('theme', next);
-    } catch (_) {
+    } catch {
       // noop
     }
     document.documentElement.setAttribute('data-theme', next);
@@ -226,6 +227,8 @@ function Header({ onToggleSidebar }: { onToggleSidebar: () => void }) {
           onClick={onToggleSidebar}
           className="lg:hidden inline-flex items-center justify-center rounded-md border border-sidebar-border bg-sidebar-accent px-2.5 py-1.5 text-sm text-sidebar-fg hover:bg-sidebar-accent/70"
           aria-label="Alternar menu lateral"
+          aria-controls="app-sidebar"
+          aria-expanded={isSidebarOpen}
         >
           <Menu className="h-4 w-4" />
         </button>
@@ -334,7 +337,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         />
 
         <div className={classNames("flex min-h-dvh w-full flex-col", sidebarCollapsed ? "lg:pl-16" : "lg:pl-64")}>
-          <Header onToggleSidebar={toggleSidebar} />
+          <Header onToggleSidebar={toggleSidebar} isSidebarOpen={sidebarOpen} />
 
           <main className="flex-1 p-6">{children}</main>
         </div>

@@ -3,7 +3,8 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ContactForm } from "../_components/ContactForm";
+import dynamic from "next/dynamic";
+const ContactForm = dynamic(() => import("../_components/ContactForm").then(m => m.default), { ssr: false });
 
 export default function NewContactPage() {
   const router = useRouter();

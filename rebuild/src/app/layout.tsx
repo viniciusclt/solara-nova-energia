@@ -1,20 +1,7 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import AppShell from "@/app/_components/AppShell";
 import { ClerkProvider, SignedIn, SignedOut, RedirectToSignIn } from "@clerk/nextjs";
-
-const inter = Inter({
-  variable: "--font-sans",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "Solara Nova Energia",
@@ -51,11 +38,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {publicRoutes.some((p) => typeof window !== "undefined" && window.location.pathname.startsWith(p)) ? (
               children
             ) : (
-              <RedirectToSignIn />
-            )}
+              <RedirectToSignIn />)
+            }
           </SignedOut>
         </ClerkProvider>
       </body>
     </html>
   );
 }
+
+// Removidas importações de fontes não utilizadas (Inter, JetBrains_Mono)

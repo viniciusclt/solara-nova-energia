@@ -34,7 +34,7 @@ async function apiFetch<T>(
     },
   });
 
-  let body: any = null;
+  let body: unknown = null;
   try {
     body = await res.json();
   } catch {
@@ -42,7 +42,12 @@ async function apiFetch<T>(
   }
 
   if (!res.ok) {
-    const message = (body && (body.error || body.message)) || `HTTP ${res.status}`;
+    let message = `HTTP ${res.status}`;
+    if (isRecord(body)) {
+      const errField = typeof body.error === "string" ? body.error : undefined;
+      const msgField = typeof body.message === "string" ? body.message : undefined;
+      message = errField || msgField || message;
+    }
     throw new HttpError(res.status, message, body);
   }
 
@@ -66,3 +71,7 @@ export const api = {
 
 export type ListResponse<T> = { data: T[]; total: number; page: number; limit: number };
 export type ItemResponse<T> = { data: T };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}

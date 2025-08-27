@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return new Response("Unauthorized", { status: 401 });
   }
   try {
@@ -28,7 +28,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return new Response("Unauthorized", { status: 401 });
   }
   try {

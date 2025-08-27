@@ -1,59 +1,6 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import React, { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
-import { LeadForm, type Lead } from "../_components/LeadForm";
-import { api } from "@/lib/api";
-
-export default function EditLeadPage() {
-  const params = useParams<{ id: string }>();
-  const id = params?.id as string;
-  const router = useRouter();
-
-  const [lead, setLead] = useState<Lead | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  async function load() {
-    if (!id) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await api.get<{ data: Lead }>(`/api/leads/${id}`);
-      setLead((data?.data as Lead) ?? (data as unknown as Lead));
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro inesperado");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
-
-  function handleSuccess() {
-    router.push("/leads");
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Editar Contato</h1>
-        <div className="flex items-center gap-2">
-          <button onClick={load} className="rounded-md border border-sidebar-border bg-sidebar-accent px-3 py-1 hover:bg-sidebar-accent/70">Recarregar</button>
-          <Link href="/leads" className="rounded-md border border-sidebar-border bg-sidebar-accent px-3 py-1 hover:bg-sidebar-accent/70">Voltar</Link>
-        </div>
-      </div>
-
-      {loading && <p>Carregando...</p>}
-      {error && <p className="text-red-700">{error}</p>}
-
-      {!loading && !error && lead && (
-        <LeadForm initialData={lead} onSuccess={handleSuccess} />
-      )}
-    </div>
-  );
+export default function LeadDetailRedirectPage({ params }: { params: { id: string } }) {
+  const id = params?.id;
+  redirect(id ? `/contacts/${id}` : "/contacts");
 }

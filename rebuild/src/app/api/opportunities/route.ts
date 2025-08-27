@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return new Response("Unauthorized", { status: 401 });
   }
   try {
@@ -17,8 +17,9 @@ export async function GET(request: Request) {
     const limit = Math.min(100, Math.max(1, Number(url.searchParams.get('limit') ?? '10')));
     const status = (url.searchParams.get('status') as OpportunityStatus | null) ?? null;
     const contactId = url.searchParams.get('contactId');
+    const q = url.searchParams.get('q');
 
-    const { total, data } = await listOpportunities({ page, limit, status, contactId });
+    const { total, data } = await listOpportunities({ page, limit, status, contactId, q });
 
     return NextResponse.json({ data, page, limit, total });
   } catch (err) {
@@ -29,7 +30,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return new Response("Unauthorized", { status: 401 });
   }
   try {

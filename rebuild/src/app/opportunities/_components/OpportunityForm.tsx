@@ -59,8 +59,8 @@ export function OpportunityForm({
           { params: { limit: 100 } }
         );
         const arr = Array.isArray(data?.data) ? data.data : [];
-        setContacts(arr.map((c: any) => ({ id: (c as any).id, name: (c as any).name })));
-      } catch (_) {
+        setContacts(arr.map((c) => ({ id: c.id, name: c.name })));
+      } catch {
         setContacts([]);
       } finally {
         setLoadingContacts(false);
