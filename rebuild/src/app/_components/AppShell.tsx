@@ -14,20 +14,51 @@ type NavItem = {
   icon?: React.ComponentType<{ className?: string }>;
 };
 
-const NAV_ITEMS: NavItem[] = [
-  { label: "Início", href: "/", icon: Home },
-  { label: "Contatos", href: "/contacts", icon: Users },
-  { label: "Oportunidades", href: "/opportunities" },
-  { label: "Fotovoltaico", href: "/solar", icon: Sun },
-  { label: "Propostas", href: "/proposals", icon: FileText },
-  { label: "Treinamentos", href: "/training", icon: GraduationCap },
-  { label: "Diagramas", href: "/diagrams", icon: GitBranch },
-  { label: "Playbooks", href: "/playbooks", icon: BookOpen },
-  { label: "AQB", href: "/aqb", icon: Flame },
-  { label: "AQP", href: "/aqp", icon: Waves },
-  { label: "Wallbox", href: "/wallbox", icon: Zap },
-  { label: "Arquivos", href: "/storage", icon: FileText },
-  { label: "Admin", href: "/admin", icon: Wrench },
+// Novo: grupos de navegação organizados por seções
+type NavGroup = {
+  id: string;
+  label: string;
+  items: NavItem[];
+};
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    id: "inicio",
+    label: "Início",
+    items: [
+      { label: "Início", href: "/", icon: Home },
+    ],
+  },
+  {
+    id: "comercial",
+    label: "Comercial",
+    items: [
+      { label: "Contatos", href: "/contacts", icon: Users },
+      { label: "Oportunidades", href: "/opportunities" },
+      { label: "Propostas", href: "/proposals", icon: FileText },
+      { label: "Arquivos", href: "/storage", icon: FileText },
+    ],
+  },
+  {
+    id: "projetos",
+    label: "Projetos",
+    items: [
+      // Prioridade: Fotovoltaico primeiro dentro de Projetos
+      { label: "Fotovoltaico", href: "/solar", icon: Sun },
+      { label: "AQB", href: "/aqb", icon: Flame },
+      { label: "AQP", href: "/aqp", icon: Waves },
+      { label: "Wallbox", href: "/wallbox", icon: Zap },
+    ],
+  },
+  {
+    id: "treinamentos",
+    label: "Treinamentos",
+    items: [
+      { label: "Treinamentos", href: "/training", icon: GraduationCap },
+      { label: "Diagramas", href: "/diagrams", icon: GitBranch },
+      { label: "Playbooks", href: "/playbooks", icon: BookOpen },
+    ],
+  },
 ];
 
 function classNames(...classes: Array<string | false | null | undefined>) {
@@ -62,13 +93,15 @@ function Sidebar({
   const pathname = usePathname();
   const activeMap = useMemo(() => {
     const map = new Map<string, boolean>();
-    for (const i of NAV_ITEMS) {
-      if (i.href === "/") {
-        map.set(i.href, pathname === "/");
-      } else {
-        const normalActive = Boolean(pathname?.startsWith(i.href));
-        const contactsAliasActive = i.href === "/contacts" && Boolean(pathname?.startsWith("/leads"));
-        map.set(i.href, normalActive || contactsAliasActive);
+    for (const group of NAV_GROUPS) {
+      for (const i of group.items) {
+        if (i.href === "/") {
+          map.set(i.href, pathname === "/");
+        } else {
+          const normalActive = Boolean(pathname?.startsWith(i.href));
+          const contactsAliasActive = i.href === "/contacts" && Boolean(pathname?.startsWith("/leads"));
+          map.set(i.href, normalActive || contactsAliasActive);
+        }
       }
     }
     return map;
@@ -111,43 +144,70 @@ function Sidebar({
           </button>
         </div>
 
-        <nav className="p-2 space-y-1">
-          {NAV_ITEMS.map((item) => {
-            const active = activeMap.get(item.href);
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={onClose}
-                className={classNames(
-                  "flex items-center gap-2 rounded-md px-3 py-2 text-sm",
-                  "transition-colors",
-                  active
-                    ? "bg-sidebar-accent text-sidebar-fg font-medium"
-                    : "hover:bg-sidebar-accent/60",
-                  collapsed ? "lg:justify-center" : ""
-                )}
-                aria-current={active ? "page" : undefined}
-              >
-                {Icon ? (
-                  <Icon className={classNames("h-4 w-4", active ? "text-[hsl(var(--primary))]" : "text-sidebar-fg/70")} />
-                ) : (
-                  <span
-                    className="inline-block size-1.5 rounded-full"
-                    style={{ background: active ? "hsl(var(--primary))" : "hsl(var(--sidebar-ring))" }}
-                  />
-                )}
-                <span className={collapsed ? "lg:hidden" : ""}>{item.label}</span>
-              </Link>
-            );
-          })}
+        {/* Navegação em grupos */}
+        <nav className="p-2 space-y-3">
+          {NAV_GROUPS.map((group, gi) => (
+            <div key={group.id}>
+              {!collapsed && (
+                <div className="px-3 py-1 text-[11px] uppercase tracking-wide text-sidebar-fg/60">{group.label}</div>
+              )}
+              <div className="space-y-1">
+                {group.items.map((item) => {
+                  const active = activeMap.get(item.href);
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={onClose}
+                      className={classNames(
+                        "flex items-center gap-2 rounded-md px-3 py-2 text-sm",
+                        "transition-colors",
+                        active
+                          ? "bg-sidebar-accent text-sidebar-fg font-medium"
+                          : "hover:bg-sidebar-accent/60",
+                        collapsed ? "lg:justify-center" : ""
+                      )}
+                      aria-current={active ? "page" : undefined}
+                    >
+                      {Icon ? (
+                        <Icon className={classNames("h-4 w-4", active ? "text-[hsl(var(--primary))]" : "text-sidebar-fg/70")} />
+                      ) : (
+                        <span
+                          className="inline-block size-1.5 rounded-full"
+                          style={{ background: active ? "hsl(var(--primary))" : "hsl(var(--sidebar-ring))" }}
+                        />
+                      )}
+                      <span className={collapsed ? "lg:hidden" : ""}>{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+              {gi < NAV_GROUPS.length - 1 && (
+                <div className="my-2 border-t border-sidebar-border" aria-hidden="true" />
+              )}
+            </div>
+          ))}
         </nav>
 
-        <div className="mt-auto p-3 text-xs text-sidebar-fg/70 hidden lg:block">
-          <div className="rounded-md border border-sidebar-border p-3 bg-sidebar-accent/40">
-            <p className="font-medium">Dica</p>
-            <p>Use Ctrl/Cmd+B para abrir/fechar. Ctrl/Cmd+Shift+B para colapsar/expandir.</p>
+        {/* Rodapé: Configurações fixo na parte inferior */}
+        <div className="mt-auto p-2 border-t border-sidebar-border">
+          <Link
+            href="/admin"
+            onClick={onClose}
+            className={classNames(
+              "flex items-center gap-2 rounded-md px-3 py-2 text-sm",
+              "transition-colors hover:bg-sidebar-accent/60"
+            )}
+            aria-label="Configurações"
+          >
+            <Settings className="h-4 w-4 text-sidebar-fg/80" />
+            <span className={collapsed ? "lg:hidden" : ""}>Configurações</span>
+          </Link>
+
+          <div className="mt-2 rounded-md border border-sidebar-border p-3 bg-sidebar-accent/40 hidden lg:block">
+            <p className="font-medium text-xs">Dica</p>
+            <p className="text-xs">Use Ctrl/Cmd+B para abrir/fechar. Ctrl/Cmd+Shift+B para colapsar/expandir.</p>
           </div>
         </div>
       </aside>
@@ -174,7 +234,7 @@ function useBreadcrumb() {
     "/aqp": "Aquecimento Piscina",
     "/wallbox": "Wallbox",
     "/storage": "Arquivos",
-    "/admin": "Admin",
+    "/admin": "Configurações",
   };
   // Tratar rotas dinâmicas
   const isLeadDetail = pathname?.startsWith("/leads/") && pathname !== "/leads" && pathname !== "/leads/new";
@@ -253,97 +313,43 @@ function Header({ onToggleSidebar, isSidebarOpen }: { onToggleSidebar: () => voi
           </button>
           <button
             type="button"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-sidebar-border bg-sidebar-accent hover:bg-sidebar-accent/70"
-            aria-label="Configurações"
-          >
-            <Settings className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
             onClick={toggleTheme}
             className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-sidebar-border bg-sidebar-accent hover:bg-sidebar-accent/70"
             aria-label="Alternar tema"
           >
             {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
-          <div
-            className="ml-1 size-8 rounded-full bg-sidebar-accent border border-sidebar-border"
-            aria-label="Usuário"
-            role="img"
-          />
         </div>
       </div>
     </header>
   );
 }
 
-export function AppShell({ children }: { children: React.ReactNode }) {
-  // Inicializa estado da sidebar sem acessar window no SSR; aplica cookie após mount
-  const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
+export default function AppShell({ children }: { children: React.ReactNode }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
+  // Persistir preferências: colapsado (desktop)
   useEffect(() => {
-    const v = getCookie("sidebar_open");
-    if (v === "1" || v === "0") {
-      setSidebarOpen(v === "1");
-    }
-    const c = getCookie("sidebar_collapsed");
-    if (c === "1" || c === "0") {
-      setSidebarCollapsed(c === "1");
-    }
+    const saved = getCookie("sidebar-collapsed");
+    setCollapsed(saved === "1");
   }, []);
-
-  const toggleSidebar = useCallback(() => {
-    setSidebarOpen((v) => {
-      const next = !v;
-      setCookie("sidebar_open", next ? "1" : "0");
-      return next;
-    });
-  }, []);
-
-  const toggleSidebarCollapsed = useCallback(() => {
-    setSidebarCollapsed((v) => {
-      const next = !v;
-      setCookie("sidebar_collapsed", next ? "1" : "0");
-      return next;
-    });
-  }, []);
-
-  // Atalho Ctrl/Cmd + B (Shift para colapsar/expandir)
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      const isMac = navigator.platform.toUpperCase().includes("MAC");
-      if ((isMac ? e.metaKey : e.ctrlKey) && (e.key === "b" || e.key === "B")) {
-        e.preventDefault();
-        if (e.shiftKey) {
-          toggleSidebarCollapsed();
-        } else {
-          toggleSidebar();
-        }
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [toggleSidebar, toggleSidebarCollapsed]);
+    setCookie("sidebar-collapsed", collapsed ? "1" : "0");
+  }, [collapsed]);
 
   return (
-    <div className="min-h-dvh w-full bg-background text-foreground">
-      <div className="flex">
-        <Sidebar
-          open={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-          collapsed={sidebarCollapsed}
-          onToggleCollapsed={toggleSidebarCollapsed}
-        />
-
-        <div className={classNames("flex min-h-dvh w-full flex-col", sidebarCollapsed ? "lg:pl-16" : "lg:pl-64")}>
-          <Header onToggleSidebar={toggleSidebar} isSidebarOpen={sidebarOpen} />
-
-          <main className="flex-1 p-6">{children}</main>
-        </div>
+    <div className="flex min-h-dvh w-full">
+      <Sidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        collapsed={collapsed}
+        onToggleCollapsed={() => setCollapsed((v) => !v)}
+      />
+      <div className="flex-1 flex flex-col">
+        <Header onToggleSidebar={() => setSidebarOpen((v) => !v)} isSidebarOpen={sidebarOpen} />
+        <main className="flex-1 p-4">{children}</main>
       </div>
     </div>
   );
 }
-
-export default AppShell;

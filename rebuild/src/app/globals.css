@@ -163,3 +163,27 @@ body {
   color: var(--color-foreground);
   font-family: var(--font-sans, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif);
 }
+
+/* Regras de impressão (exportação de proposta) */
+@media print {
+  /* Oculta toda a UI da aplicação */
+  body * { visibility: hidden !important; }
+
+  /* Mostra apenas o conteúdo da proposta */
+  #proposal-print, #proposal-print * { visibility: visible !important; }
+
+  /* Garante posicionamento no topo e largura total */
+  #proposal-print {
+    position: absolute;
+    left: 0; top: 0;
+    width: 100% !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Opcional: margens amigáveis para A4 quando o navegador suporta */
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+}

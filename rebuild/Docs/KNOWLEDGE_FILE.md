@@ -57,3 +57,11 @@ Variáveis de Ambiente
 Observações
 - Nunca commitar segredos/chaves. Somente placeholders em .env.example.
 - Ajustes de a11y e lint devem evitar regressões; rodar lint e tsc após mudanças estruturais.
+
+Atualizações Recentes — Módulo Solar
+- Aba "Resultados" aprimorada com:
+  - KPIs de resumo (Potência Recomendada, Geração Mensal, Compensação, Oversize estimado).
+  - Gráfico simples de barras (Geração x Consumo Mensal) acessível (role="img", aria-label por mês).
+- Novos memos derivados em src/app/solar/page.tsx:
+  - monthlyConsumptionTotal, annualConsumptionTotal, computedOversize (DRY e melhor reuso nos cards).
+- Motivações: feedback rápido ao usuário, consistência com F4 (Plan.md) e base para exportar proposta.

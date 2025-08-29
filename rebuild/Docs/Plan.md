@@ -42,6 +42,15 @@ Fase 1 — Base do Projeto — ✅
 - ✅ Página inicial (Dashboard) e layout com Sidebar/Header/Breadcrumbs.
 - ✅ Navegação base via AppShell (Sidebar, Header, Breadcrumbs) e tema claro/escuro.
 - ✅ Rota /api/health implementada e validada (com latência do DB quando disponível).
+- ✅ Sidebar reorganizada por grupos (Início, Comercial, Projetos, Treinamentos), com seção de Configurações fixa no rodapé; ordem de destaque: Fotovoltaico > Treinamentos > Projetos > demais itens.
+
+Confirmação da Solicitação — Organização e Módulo Fotovoltaico
+- Organização das abas em grupos: ✅ Implementado no componente <mcfile name="AppShell.tsx" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\src\\app\\_components\\AppShell.tsx"></mcfile> (grupos Início, Comercial, Projetos, Treinamentos) e seção de Configurações fixa no rodapé. A prioridade dentro de Projetos posiciona Fotovoltaico no topo.
+- Módulo Fotovoltaico — status por subitens requisitados:
+  1.1 Informações do Lead: ⌛ Não implementado o fluxo de seleção de lead com autopreenchimento de endereço (rua, número, complemento, CEP), CPF e telefone; atualmente existem apenas campos básicos (Nome, Email, Telefone, Tipo) em <mcfile name="page.tsx" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\src\\app\\solar\\page.tsx"></mcfile>.
+  1.2 Simulação: ⌛ Parcial — existem abas para Módulos, Inversores e Baterias, com seleção/quantidades e parâmetros técnicos básicos e cálculos simplificados na própria página <mcfile name="page.tsx" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\src\\app\\solar\\page.tsx"></mcfile>. Botão “Gerenciar” para edição de catálogos (módulos/inversores/baterias) ainda não existe. A opção “Aumentar Consumo” está parcial — há consumo extra numérico e uma seção placeholder “Consumo de Equipamentos Extras” em <mcfile name="EquipmentConsumption.tsx" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\src\\app\\solar\\components\\EquipmentConsumption.tsx"></mcfile> (a UI de adicionar equipamentos com uso diário/mensal/anual ainda será implementada).
+  1.3 Orçamento: ⌛ Não implementado — não há etapa dedicada a seleção/gerenciamento de kits, cálculo por BDI/markup nem aplicação de margem de desconto.
+  1.4 Proposta: ⌛ Parcial — já há Pré-visualização e Exportar PDF (A4) na aba Propostas, com regras @media print em <mcfile name="globals.css" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\src\\app\\globals.css"></mcfile>. Link rastreável (com data/hora/IP) e formato 16:9 ainda não foram implementados.
 
 Fase 2 — Backend, Autenticação e Storage — ⌛
 - ✅ Prisma configurado (cliente singleton) e schema inicial abrangente (<mcfile name="prisma.ts" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\src\\lib\\prisma.ts"></mcfile>, <mcfile name="schema.prisma" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\prisma\\schema.prisma"></mcfile>).
@@ -118,25 +127,22 @@ Fase 9 — Qualidade, Testes e Deploy — ⌛
 - ⌛ Atualizar documentação técnica (Docs/KNOWLEDGE_FILE.md) com unificação Leads/Contatos, remoções e padrões de handlers/Clerk.
 
 Próximos passos (priorizados)
-1) F2 — Backend, Autenticação e Storage
-   - ⌛ QA de acessibilidade e responsividade contínuos.
-   - ⌛ Adiar Opções A e C para o final da fila (confirmado pelo solicitante).
-   - ⌛ (As tarefas de integração de Clerk e configuração do MinIO foram movidas para o “Backlog — Final da Fila”.)
+1) F4 — Solar (Simulação)
+   - ⌛ Detalhar Plan.md (F4) conforme requisitos funcionais: Lead (seleção + dados + histórico + “Aumentar Consumo”), Simulação (equipamentos e parâmetros técnicos), Orçamento (kits e margem/BDI) e Proposta (prévia + link rastreável + A4/16:9).
+   - ⌛ Definir tipos/DTOs em src/core/types para entrada/saída dos cálculos e criar esqueleto de src/core/services/CalculationService (normalização, geração kWh, Fio B, compensação 60m FIFO, tarifação e KPIs).
+   - ⌛ UI: implementar etapa “Informações do Lead” com histórico de consumo e botão “Aumentar Consumo”.
 
-2) F3 — CRM (Contatos e Oportunidades)
-   - ⌛ Adicionar modelos Contact e Opportunity ao schema e rotas de API mínimas.
-   - ⌛ UI: em andamento — lista e detalhe de Contatos criados; filtro por status, paginação e busca (q) implementados; lista de Oportunidades com coluna "Responsável" e busca (q) implementadas; seguir com refino e navegação.
+2) F6/F7 — Treinamentos
+   - ⌛ CRUD de módulos e conteúdos; upload de vídeos (MinIO) e leitor de playbooks; interatividade básica (MVP) e avaliação (F7).
 
-3) F4 — Solar (Simulação)
-   - ⌛ Criar esqueleto de src/core/services/CalculationService e fixtures de validação.
-   - ⌛ Definir tipos/DTOs em src/core/types para entrada/saída dos cálculos.
+3) F5 — Propostas (MVP)
+   - ⌛ CRUD de rascunhos, pré-visualização e exportação PDF inicial; geração de link seguro com tracking de visualizações.
 
-4) F5/F6 — Propostas e Treinamentos
-   - ⌛ Definir rotas de API mínimas e modelos de UI para CRUD e progresso.
+4) F3 — CRM (Contatos e Oportunidades)
+   - ⌛ Refinos de navegação e componentes reutilizáveis; padronização de respostas e auth (quando helper estiver pronto).
 
-5) F9 — Qualidade, Testes e Deploy
-   - ⌛ Configurar CI/CD no GitHub Actions e provisionar no Coolify; executar migrações com DATABASE_URL do ambiente.
-   - ⌛ Extrair helper de autorização (checkAuth) e atualizar Docs/KNOWLEDGE_FILE.md.
+5) F2 — Backend, Autenticação e Storage
+   - ⌛ Integrar Clerk (auth) e MinIO (storage) quando variáveis de ambiente forem disponibilizadas; manter no fim da fila conforme decisão.
 
 Referências
 - Descritivo Técnico: <mcfile name="Descritivo Técnico Real e Atualizado - Solara Nova Energia.md" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\Docs\\Descritivo Técnico Real e Atualizado - Solara Nova Energia.md"></mcfile>
@@ -144,6 +150,40 @@ Referências
 - Fluxo UX: <mcfile name="UX-FLOW.mmd" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\Docs\\UX-FLOW.mmd"></mcfile>
         
 Planejamento do Módulo Fotovoltaico (F4) — Sem executar
+
+Detalhamento Funcional — Fluxo e Requisitos (sem executar)
+- Lead
+  - Seleção do lead: busca por nome/telefone/email; ao selecionar, autopreencher dados básicos (nome, endereço/cidade/UF, classe de consumo, distribuidora, tarifa vigente quando conhecida).
+  - Histórico de consumo: exibir 12–24 meses (quando disponível) com gráfico mensal; fallback: média trimestral/últimos 6–12 meses.
+  - “Aumentar Consumo”: botão abre popover/modal para adicionar cargas novas (ar-condicionado, chuveiro, piscina/bomba, veículo elétrico, outros) com estimativa de kWh/mês; aplicar ajuste percentual e registrar evento de rastreio.
+
+- Simulação
+  - Equipamentos: seleção e gerenciamento de Módulos, Inversores e (opcional) Baterias; validações visuais (DC/AC ratio, oversize por MPPT/string, corrente por string, tensão VOC em T°C mínima).
+  - Parâmetros técnicos: Performance Ratio, perdas ambientais/técnicas, orientação/inclinação, irradiação por UF/cidade; níveis de precisão: Básico, Preciso, Importar PV*Sol (anexar arquivo e mapear dados essenciais).
+  - Cálculos automáticos: potência recomendada (kWp), geração (kWh/ano e mensal), compensação %, regras do Fio B (Lei 14.300), custo de disponibilidade, tarifação (TUSD/TE + tributos) e KPIs financeiros.
+  - Baterias (opcional): capacidade (kWh), potência (kW), profundidade de descarga, estratégia de uso (backup/TOU quando aplicável).
+
+- Orçamento
+  - Seleção/gerenciamento de kits fotovoltaicos (catálogo interno): itens, BDI/markup, impostos, custos indiretos (logística, projeto, ART), margem/desc.; cálculo de preço sugerido e margem final.
+  - Variações de proposta por kit e por condições (ex.: com/sem bateria) mantendo rastreabilidade.
+
+- Proposta
+  - Pré-visualização com branding (logo, cores), blocos editáveis (escopo, prazos, garantias, condições); link rastreável (token) com vencimento; exportação em A4 (PDF) e 16:9 (slides).
+  - Eventos de tracking (visualização, tempo, cliques em CTAs); CTA para aceitar/solicitar contato.
+
+- Dados e Integrações
+  - Tarifas: uso de TarifaConcessionaria (schema existente) por UF/distribuidora/classe e vigência; cache in-memory simples.
+  - Catálogos: módulos/inversores/baterias com atributos elétricos completos; seeds mínimos para cenários de teste.
+
+- Critérios de Aceite (funcionais — UI/Serviço)
+  - Lead selecionado autopreenche dados; histórico de consumo reativo à seleção; ajuste de consumo via “Aumentar Consumo” refletido na simulação.
+  - Simulação valida oversize, corrente/tensão por string e MPPT; orientações/inclinação ajustam geração; import PV*Sol preenche parâmetros e dados de geração.
+  - Orçamento calcula preço/margem coerentes com BDI/markup e impostos; variações (com/sem bateria) mantêm rastreio.
+  - Proposta gera link rastreável e exporta A4/16:9 sem erro; visualização registra evento.
+
+- Métricas de Qualidade
+  - Geração: erro ≤ ±2% vs. cenários-espelho (fixtures); KPIs financeiros: TIR ±1 p.p.; validação de limites elétricos por equipamento e por string.
+
 - Arquitetura e Tipos (src/core/types/solar.ts)
   - Input: consumo_mensal_kWh, tarifa_atual, classe/tipo (residencial/comercial), UF/distribuidora, bandeira tarifária, irradiação média, perdas (%), perfil horário opcional.
   - Catálogo: SolarModule, Inverter, TarifaConcessionaria (já no schema), com DTOs de leitura para o serviço.
