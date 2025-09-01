@@ -1,6 +1,9 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState } from "react";
+// REMOVIDO: export const dynamic = 'force-dynamic';
+// REMOVIDO: export const revalidate = 0;
+
+import React, { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
@@ -23,7 +26,7 @@ const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: "archived", label: "Arquivada" },
 ];
 
-export default function OpportunitiesPage() {
+function OpportunitiesPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -220,5 +223,13 @@ export default function OpportunitiesPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function OpportunitiesPage() {
+  return (
+    <Suspense fallback={<div>Carregando...</div>}>
+      <OpportunitiesPageInner />
+    </Suspense>
   );
 }

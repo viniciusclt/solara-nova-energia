@@ -1,11 +1,13 @@
 "use client";
 
-import React from "react";
+export const dynamic = "force-dynamic";
+
+import React, { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { OpportunityForm } from "../_components/OpportunityForm";
 
-export default function NewOpportunityPage() {
+function NewOpportunityInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -23,5 +25,13 @@ export default function NewOpportunityPage() {
       </div>
       <OpportunityForm onSuccess={handleSuccess} initialData={contactId ? ({ title: "", contactId } as any) : undefined} />
     </div>
+  );
+}
+
+export default function NewOpportunityPage() {
+  return (
+    <Suspense fallback={<div>Carregando...</div>}>
+      <NewOpportunityInner />
+    </Suspense>
   );
 }

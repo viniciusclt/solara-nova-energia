@@ -30,3 +30,9 @@
 
 ### chore(deps): atualizar Next para 15.x
 - Atualiza `package.json` para `next@15.x` e `eslint-config-next@15.x`.
+
+## 2025-09-01
+
+### docs(coverage): adicionar Feature Coverage Matrix
+- Cria `rebuild/Docs/Feature Coverage Matrix.md` para rastrear status (✅/⌛/🔜), paths e fontes dos Docs.
+- Inclui instruções de atualização e colunas para Critérios de Aceite e Testes.

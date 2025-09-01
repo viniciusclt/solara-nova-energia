@@ -17,33 +17,39 @@ const DEFAULTS = {
   lossesTechnical_pct: 7,
 };
 
-function getPR(technical?: TechnicalParams): number {
-  const pr = technical?.performanceRatio_pct ?? DEFAULTS.PR;
-  return pr > 1 ? pr / 100 : pr; // aceitar % (ex.: 75) ou fração (0.75)
+function getPR(technical?: TechnicalParams) {
+  const prRaw = technical?.performanceRatio_pct ?? DEFAULTS.PR;
+  // aceita tanto 0.78 quanto 78
+  return prRaw > 1 ? prRaw / 100 : prRaw;
 }
 
-function getLossFactor(technical?: TechnicalParams): number {
+function getLossFactor(technical?: TechnicalParams) {
   const env = technical?.lossesEnvironmental_pct ?? DEFAULTS.lossesEnvironmental_pct;
   const tech = technical?.lossesTechnical_pct ?? DEFAULTS.lossesTechnical_pct;
-  const totalPct = env + tech;
-  return 1 - totalPct / 100;
+  const totalLoss_pct = Math.max(0, Math.min(env + tech, 100));
+  return 1 - totalLoss_pct / 100;
 }
 
-function getMonthlyConsumption(consumption: SimulationInput["consumption"], deltas?: SimulationInput["consumptionDeltas"]) {
+function getMonthlyConsumption(consumption: SimulationInput["consumption"], deltas?: SimulationInput["consumptionDeltas"], level?: SimulationInput["level"]) {
   // normaliza consumo mensal (12 meses); se só houver média, replica
   let baseMonthly = consumption.monthly_kWh;
   if (!baseMonthly || baseMonthly.length !== 12) {
     const avg = consumption.averageMonthly_kWh ?? 0;
     baseMonthly = Array.from({ length: 12 }, () => avg);
   }
-  const delta = (deltas ?? []).reduce((sum, d) => sum + (d.estimated_kWh_per_month || 0), 0);
+
+  // No nível básico, ignoramos deltas (novas cargas) para simplificar o sizing inicial
+  const includeDeltas = level !== 'basic';
+  const delta = includeDeltas ? (deltas ?? []).reduce((sum, d) => sum + (d.estimated_kWh_per_month || 0), 0) : 0;
   return baseMonthly.map((k) => k + delta);
 }
+
+import { computeEffectiveTariff } from './TariffService';
 
 export function simulate(input: SimulationInput): SimulationResult {
   const pr = getPR(input.technical);
   const lossFactor = getLossFactor(input.technical);
-  const monthlyConsumption = getMonthlyConsumption(input.consumption, input.consumptionDeltas);
+  const monthlyConsumption = getMonthlyConsumption(input.consumption, input.consumptionDeltas, input.level);
   const annualConsumption = monthlyConsumption.reduce((a, b) => a + b, 0);
 
   // Irradiação — usar série mensal se houver; senão cair para diária média * 30
@@ -72,8 +78,8 @@ export function simulate(input: SimulationInput): SimulationResult {
   const annualGeneration = monthlyGeneration.reduce((a, b) => a + b, 0);
   const compensation = annualConsumption > 0 ? Math.min((annualGeneration / annualConsumption) * 100, 100) : 0;
 
-  // Economia (placeholder): tarifa efetiva média 0,65 R$/kWh — será substituída por tarifação real
-  const avgTariff = 0.65;
+  // Economia: usar tarifa efetiva do TariffService (fallback 0,65 R$/kWh)
+  const avgTariff = computeEffectiveTariff(input.tariff);
   const estimatedMonthlySavingsBRL = monthlyGeneration.reduce((acc, g, i) => acc + Math.min(g, monthlyConsumption[i]) * avgTariff, 0) / 12;
 
   return {

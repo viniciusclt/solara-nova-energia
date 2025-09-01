@@ -3,10 +3,20 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Sun, Users, Settings, CheckCircle, AlertTriangle, Zap, TrendingUp, Target, DollarSign, PiggyBank, FileText, AlertCircle, Calculator, BarChart3, Wrench, CheckSquare } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import EquipmentConsumption from "./components/EquipmentConsumption";
-import LeadSelector from "./components/LeadSelector";
+import type { EquipItem } from "./components/EquipmentConsumption";
+// Removido LeadSelector (busca inline)
+import TariffForm from "./components/TariffForm";
+import type { ContactOption } from "./components/LeadSelector";
+import { api } from "@/lib/api";
 import { simulate as runSimulation } from "@/core/services/CalculationService";
-import type { SimulationInput } from "@/core/types/solar";
+import type { SimulationInput, SimulationLevel } from "@/core/types/solar";
+import FileUploader from "@/app/_components/FileUploader";
+import Link from "next/link";
+import SimulationSummary from "./components/SimulationSummary";
+import { cardBase, inputBase } from "@/styles/tokens";
 
 interface SimulationResult {
   potenciaRecomendadaKwp: number;
@@ -25,7 +35,6 @@ const steps = [
   { id: "lead", title: "Lead", icon: Users },
   { id: "simulation", title: "Simulação", icon: Calculator },
   { id: "proposals", title: "Propostas", icon: BarChart3 },
-  { id: "finalization", title: "Finalização", icon: CheckSquare },
 ];
 
 function Page() {
@@ -34,21 +43,248 @@ function Page() {
   const [leadName, setLeadName] = useState("");
   const [leadEmail, setLeadEmail] = useState("");
   const [leadPhone, setLeadPhone] = useState("");
+  const [leadCpf, setLeadCpf] = useState("");
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+  const [addressStreet, setAddressStreet] = useState("");
+  const [addressNumber, setAddressNumber] = useState("");
+  const [addressComplement, setAddressComplement] = useState("");
+  const [addressNeighborhood, setAddressNeighborhood] = useState("");
+  const [addressCity, setAddressCity] = useState("");
+  const [addressState, setAddressState] = useState("");
+  const [addressZip, setAddressZip] = useState("");
   const [leadType, setLeadType] = useState("residencial");
-  const [simulationLevel, setSimulationLevel] = useState('basico');
+  const [simulationLevel, setSimulationLevel] = useState<SimulationLevel>('basic');
   const [showPvsolImport, setShowPvsolImport] = useState(false);
+  const [pvsolUploadInfo, setPvsolUploadInfo] = useState("");
+
+  // Estados de equipamentos (controlados)
+  const [modulesBrand, setModulesBrand] = useState("");
+const [modulesModel, setModulesModel] = useState("");
+  const [modulesPower, setModulesPower] = useState("450");
+  const [modulesQuantity, setModulesQuantity] = useState("12");
+  const [modulesEfficiency, setModulesEfficiency] = useState("21.2");
+
+  const [inverterBrand, setInverterBrand] = useState("");
+  const [inverterModel, setInverterModel] = useState("");
+  const [inverterPowerAC, setInverterPowerAC] = useState("5.0");
+  const [inverterPowerDC, setInverterPowerDC] = useState("7.5");
+  const [inverterEfficiency, setInverterEfficiency] = useState("97.1");
+  const [inverterQuantity, setInverterQuantity] = useState("1");
+
+  // CRUD — create (catálogo) Módulos
+  const [newModuleManufacturer, setNewModuleManufacturer] = useState("");
+  const [newModuleModel, setNewModuleModel] = useState("");
+  const [newModulePowerW, setNewModulePowerW] = useState<string>("");
+  const [creatingModule, setCreatingModule] = useState(false);
+  const [moduleCreateError, setModuleCreateError] = useState<string | null>(null);
+
+  // CRUD — create (catálogo) Inversores
+  const [newInverterManufacturer, setNewInverterManufacturer] = useState("");
+  const [newInverterModel, setNewInverterModel] = useState("");
+  const [newInverterPowerKW, setNewInverterPowerKW] = useState<string>("");
+  const [newInverterMppt, setNewInverterMppt] = useState<string>("");
+  const [newInverterEfficiency, setNewInverterEfficiency] = useState<string>("");
+  const [newInverterPhases, setNewInverterPhases] = useState<'MONO' | 'TRIF'>('MONO');
+  const [creatingInverter, setCreatingInverter] = useState(false);
+  const [inverterCreateError, setInverterCreateError] = useState<string | null>(null);
+
+  const [batteryEnabled, setBatteryEnabled] = useState(false);
+  const [batteryTechnology, setBatteryTechnology] = useState("lithium");
+  const [batteryCapacity, setBatteryCapacity] = useState("10");
+  const [batteryVoltage, setBatteryVoltage] = useState("48");
+  const [batteryDOD, setBatteryDOD] = useState("80");
+
+  // Handlers — criação de catálogo
+  const handleCreateModule = useCallback(async () => {
+    setModuleCreateError(null);
+    setCreatingModule(true);
+    try {
+      const body: any = {
+        manufacturer: newModuleManufacturer.trim(),
+        model: newModuleModel.trim(),
+        powerW: Number(newModulePowerW),
+      };
+      if (!body.manufacturer || !body.model || !Number.isFinite(body.powerW) || body.powerW <= 0) {
+        throw new Error("Preencha fabricante, modelo e potência válida (W).");
+      }
+      const res = await fetch('/api/solar/modules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const msg = data?.error || 'Erro ao criar módulo';
+        throw new Error(typeof msg === 'string' ? msg : 'Erro ao criar módulo');
+      }
+      setModuleOptions(prev => [data, ...prev]);
+      setModulesBrand(data.manufacturer);
+      setModulesModel(data.model);
+      setNewModuleManufacturer("");
+      setNewModuleModel("");
+      setNewModulePowerW("");
+    } catch (e: any) {
+      setModuleCreateError(e?.message || 'Falha ao criar módulo');
+    } finally {
+      setCreatingModule(false);
+    }
+  }, [newModuleManufacturer, newModuleModel, newModulePowerW]);
+
+  const handleCreateInverter = useCallback(async () => {
+    setInverterCreateError(null);
+    setCreatingInverter(true);
+    try {
+      const powerKW = Number(newInverterPowerKW);
+      const body: any = {
+        manufacturer: newInverterManufacturer.trim(),
+        model: newInverterModel.trim(),
+        powerW: Number.isFinite(powerKW) && powerKW > 0 ? Math.round(powerKW * 1000) : NaN,
+        mpptCount: newInverterMppt ? Number(newInverterMppt) : undefined,
+        efficiencyPerc: newInverterEfficiency ? Number(newInverterEfficiency) : undefined,
+        phases: newInverterPhases,
+      };
+      if (!body.manufacturer || !body.model || !Number.isFinite(body.powerW) || body.powerW <= 0) {
+        throw new Error("Preencha fabricante, modelo e potência válida (kW).");
+      }
+      const res = await fetch('/api/solar/inverters', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const msg = data?.error || 'Erro ao criar inversor';
+        throw new Error(typeof msg === 'string' ? msg : 'Erro ao criar inversor');
+      }
+      setInverterOptions(prev => [data, ...prev]);
+      setInverterBrand(data.manufacturer);
+      setInverterModel(data.model);
+      setNewInverterManufacturer("");
+      setNewInverterModel("");
+      setNewInverterPowerKW("");
+      setNewInverterMppt("");
+      setNewInverterEfficiency("");
+      setNewInverterPhases('MONO');
+    } catch (e: any) {
+      setInverterCreateError(e?.message || 'Falha ao criar inversor');
+    } finally {
+      setCreatingInverter(false);
+    }
+  }, [newInverterManufacturer, newInverterModel, newInverterPowerKW, newInverterMppt, newInverterEfficiency, newInverterPhases]);
+
+  // Catálogo de equipamentos (via API)
+  type ApiList<T> = { total: number; data: T[] };
+  type ModuleItem = { id: string; manufacturer: string; model: string; powerW: number; efficiencyPerc?: any };
+  type InverterItem = { id: string; manufacturer: string; model: string; powerW: number; efficiencyPerc?: any; mpptCount?: number; phases?: string };
+  const [moduleOptions, setModuleOptions] = useState<ModuleItem[]>([]);
+  const [inverterOptions, setInverterOptions] = useState<InverterItem[]>([]);
+
+  // Listas derivadas
+  const moduleBrands = useMemo(() => Array.from(new Set(moduleOptions.map(m => m.manufacturer))).sort(), [moduleOptions]);
+  const moduleModels = useMemo(() => moduleOptions.filter(m => !modulesBrand || m.manufacturer === modulesBrand), [moduleOptions, modulesBrand]);
+  const inverterBrands = useMemo(() => Array.from(new Set(inverterOptions.map(i => i.manufacturer))).sort(), [inverterOptions]);
+  const inverterModels = useMemo(() => inverterOptions.filter(i => !inverterBrand || i.manufacturer === inverterBrand), [inverterOptions, inverterBrand]);
+
+  // Carregar catálogos ao montar
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/solar/modules?limit=100');
+        if (res.ok) {
+          const json = (await res.json()) as ApiList<ModuleItem>;
+          setModuleOptions(Array.isArray(json?.data) ? json.data : []);
+        }
+      } catch {}
+      try {
+        const res = await fetch('/api/solar/inverters?limit=100');
+        if (res.ok) {
+          const json = (await res.json()) as ApiList<InverterItem>;
+          setInverterOptions(Array.isArray(json?.data) ? json.data : []);
+        }
+      } catch {}
+    })();
+  }, []);
+
+  // Ao trocar módulo selecionado, preencher potência/eficiência
+  useEffect(() => {
+    const sel = moduleOptions.find(m => m.manufacturer === modulesBrand && m.model === modulesModel);
+    if (sel) {
+      if (sel.powerW != null) setModulesPower(String(sel.powerW));
+      if (sel.efficiencyPerc != null) setModulesEfficiency(String(Number(sel.efficiencyPerc)));
+    }
+  }, [modulesBrand, modulesModel, moduleOptions]);
+
+  // Ao trocar inversor selecionado, preencher PAC/PDC e eficiência (kW derivados de W)
+  useEffect(() => {
+    const sel = inverterOptions.find(i => i.manufacturer === inverterBrand && i.model === inverterModel);
+    if (sel) {
+      const kW = sel.powerW != null ? sel.powerW / 1000 : undefined;
+      if (kW != null && !Number.isNaN(kW)) {
+        setInverterPowerAC(String(kW));
+        setInverterPowerDC(String(kW));
+      }
+      if (sel.efficiencyPerc != null) setInverterEfficiency(String(Number(sel.efficiencyPerc)));
+    }
+  }, [inverterBrand, inverterModel, inverterOptions]);
+
+  // Resetar modelo quando a marca mudar e o modelo atual não pertencer à marca
+  useEffect(() => {
+    if (modulesModel && !moduleOptions.some(m => m.manufacturer === modulesBrand && m.model === modulesModel)) {
+      setModulesModel("");
+    }
+  }, [modulesBrand, moduleOptions]);
+  useEffect(() => {
+    if (inverterModel && !inverterOptions.some(i => i.manufacturer === inverterBrand && i.model === inverterModel)) {
+      setInverterModel("");
+    }
+  }, [inverterBrand, inverterOptions]);
+
+  // Toggle de exibição (Gerenciar)
+  const [showModulesManager, setShowModulesManager] = useState(false);
+  const [showInvertersManager, setShowInvertersManager] = useState(false);
+  const [showBatteriesManager, setShowBatteriesManager] = useState(false);
+
   const [consumo, setConsumo] = useState("");
   const [pr, setPr] = useState("0.75");
   const [perdas, setPerdas] = useState("15");
   const [metaCompensacao, setMetaCompensacao] = useState("95");
   const [enableExtraConsumption, setEnableExtraConsumption] = useState(false);
   const [extraConsumptionKWhMonth, setExtraConsumptionKWhMonth] = useState(0);
+  const [showConsumptionModal, setShowConsumptionModal] = useState(false);
+  // Estados de equipamentos extras (persistência/resumo)
+  const [equipItems, setEquipItems] = useState<EquipItem[]>([]);
+  const [equipItemsCount, setEquipItemsCount] = useState(0);
+  const [equipItemsKWh, setEquipItemsKWh] = useState(0);
+  const [equipQuickExtra, setEquipQuickExtra] = useState(0);
+
+  // Parâmetros tarifários (R$/kWh e %)
+  const [tariffTE, setTariffTE] = useState("");
+  const [tariffTUSD, setTariffTUSD] = useState("");
+  const [tariffICMS, setTariffICMS] = useState("");
+  const [tariffPIS, setTariffPIS] = useState("");
+  const [tariffCOFINS, setTariffCOFINS] = useState("");
+  // Consumo mensal (histórico)
+  const [useMonthlySeries, setUseMonthlySeries] = useState(false);
+  const [monthlyConsumptionInputs, setMonthlyConsumptionInputs] = useState<string[]>(Array(12).fill(""));
+  const [lastSimulatedMonthlyConsumption, setLastSimulatedMonthlyConsumption] = useState<number[]>(Array(12).fill(0));
+  const [lastSimulationHash, setLastSimulationHash] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<SimulationResult | null>(null);
-  const [saving, setSaving] = useState(false);
   const [showProposalPreview, setShowProposalPreview] = useState(false);
-  const [showLeadSelector, setShowLeadSelector] = useState(false);
+// Estados de salvamento de proposta
+const [savingProposal, setSavingProposal] = useState(false);
+const [proposalSavedId, setProposalSavedId] = useState<string | null>(null);
+const [proposalSaveError, setProposalSaveError] = useState<string | null>(null);
+  // Inline lead search
+  const [leadSearch, setLeadSearch] = useState("");
+  const [leadResults, setLeadResults] = useState<ContactOption[]>([]);
+  const [leadSearching, setLeadSearching] = useState(false);
+  const [leadSearchError, setLeadSearchError] = useState<string | null>(null);
+  // CEP auto-fill (ViaCEP)
+  const [cepLoading, setCepLoading] = useState(false);
+  const [cepError, setCepError] = useState<string | null>(null);
+  const [lastCepFetched, setLastCepFetched] = useState<string>("");
 
   const handlePreviewToggle = useCallback(() => {
     if (!result) {
@@ -69,6 +305,105 @@ function Page() {
     }, 100);
   }, [result]);
 
+  // Salvar proposta na API a partir da simulação e do lead selecionado
+  const saveProposal = useCallback(async () => {
+    if (!result) {
+      setProposalSaveError("Simulação não realizada.");
+      return;
+    }
+    if (!selectedLeadId) {
+      setProposalSaveError("Selecione ou crie um lead antes de salvar a proposta.");
+      return;
+    }
+    try {
+      setSavingProposal(true);
+      setProposalSaveError(null);
+      setProposalSavedId(null);
+
+      const title = `Proposta - ${leadName || "Lead"} - ${new Date().toLocaleDateString()}`;
+      const payload = {
+        title,
+        leadId: selectedLeadId,
+        data: {
+          simulation: result,
+          lead: {
+            name: leadName,
+            email: leadEmail,
+            phone: leadPhone,
+            cpf: leadCpf,
+            type: leadType,
+            address: {
+              street: addressStreet,
+              number: addressNumber,
+              complement: addressComplement,
+              neighborhood: addressNeighborhood,
+              city: addressCity,
+              state: addressState,
+              zip: addressZip,
+            },
+          },
+          equipment: {
+            modules: {
+              brand: modulesBrand,
+              model: modulesModel,
+              powerW: Number(modulesPower) || null,
+              efficiency: Number(modulesEfficiency) || null,
+              quantity: Number(modulesQuantity) || null,
+            },
+            inverter: {
+              brand: inverterBrand,
+              model: inverterModel,
+              powerACkW: Number(inverterPowerAC) || null,
+              powerDCkW: Number(inverterPowerDC) || null,
+              efficiency: Number(inverterEfficiency) || null,
+              quantity: Number(inverterQuantity) || null,
+            },
+          },
+          extras: {
+            enableExtraConsumption,
+            extraConsumptionKWhMonth,
+          },
+        },
+      } as const;
+
+      const created = await api.post<any>("/api/proposals", payload);
+      const newId = (created && (created as any).id) || ((created as any)?.data?.id) || null;
+      setProposalSavedId(newId);
+    } catch (err: any) {
+      setProposalSaveError(err?.message || "Falha ao salvar proposta.");
+    } finally {
+      setSavingProposal(false);
+    }
+  }, [
+    result,
+    selectedLeadId,
+    leadName,
+    leadEmail,
+    leadPhone,
+    leadCpf,
+    leadType,
+    addressStreet,
+    addressNumber,
+    addressComplement,
+    addressNeighborhood,
+    addressCity,
+    addressState,
+    addressZip,
+    modulesBrand,
+    modulesModel,
+    modulesPower,
+    modulesEfficiency,
+    modulesQuantity,
+    inverterBrand,
+    inverterModel,
+    inverterPowerAC,
+    inverterPowerDC,
+    inverterEfficiency,
+    inverterQuantity,
+    enableExtraConsumption,
+    extraConsumptionKWhMonth,
+  ]);
+
   useEffect(() => {
     const onAfterPrint = () => setShowProposalPreview(false);
     if (typeof window !== 'undefined') {
@@ -81,12 +416,133 @@ function Page() {
     };
   }, []);
 
+  // Busca inline de leads (debounced)
+  useEffect(() => {
+    if (!leadSearch.trim()) { setLeadResults([]); return; }
+    const controller = new AbortController();
+    const t = setTimeout(async () => {
+      try {
+        setLeadSearching(true);
+        setLeadSearchError(null);
+        const url = `/api/contacts?q=${encodeURIComponent(leadSearch)}&limit=8`;
+        const resp = await api.get<{ data: ContactOption[]; total: number; page?: number; limit?: number }>(url, { signal: controller.signal } as any);
+        setLeadResults(resp?.data ?? []);
+      } catch (e: any) {
+        if (e?.name !== 'AbortError') setLeadSearchError(e?.message || 'Falha ao buscar contatos');
+      } finally {
+        setLeadSearching(false);
+      }
+    }, 300);
+    return () => { controller.abort(); clearTimeout(t); };
+  }, [leadSearch]);
+
+  // Auto-preenchimento por CEP (ViaCEP) com debounce
+  useEffect(() => {
+    const raw = (addressZip || '').replace(/\D/g, '');
+    if (raw.length !== 8 || raw === lastCepFetched) { return; }
+    const controller = new AbortController();
+    const t = setTimeout(async () => {
+      try {
+        setCepLoading(true);
+        setCepError(null);
+        const res = await fetch(`https://viacep.com.br/ws/${raw}/json/`, { signal: controller.signal });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (data?.erro) throw new Error('CEP não encontrado');
+        setAddressStreet(data.logradouro || '');
+        setAddressNeighborhood(data.bairro || '');
+        setAddressCity(data.localidade || '');
+        setAddressState(data.uf || '');
+        setLastCepFetched(raw);
+      } catch (e: any) {
+        if (e?.name !== 'AbortError') setCepError(e?.message || 'Falha ao buscar CEP');
+      } finally {
+        setCepLoading(false);
+      }
+    }, 400);
+    return () => { controller.abort(); clearTimeout(t); };
+  }, [addressZip, lastCepFetched]);
+
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const cardBase = "rounded-lg border bg-background p-4 shadow-sm";
-  const inputBase = "rounded-md border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--accent))] disabled:opacity-50";
+  const handlePvsolUploaded = useCallback(async (item: { key: string; downloadUrl?: string }) => {
+    try {
+      const url = item.downloadUrl || (await (async () => {
+        const res = await fetch("/api/storage/presign-download", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key: item.key }),
+        });
+        if (!res.ok) throw new Error(`Falha ao gerar URL de download: HTTP ${res.status}`);
+        const data = (await res.json()) as { url?: string };
+        if (!data?.url) throw new Error("Resposta inválida da API de presign-download");
+        return data.url as string;
+      })());
+
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`Falha ao baixar arquivo: HTTP ${resp.status}`);
+      const text = await resp.text();
+
+      let obj: any | null = null;
+      try { obj = JSON.parse(text); } catch {}
+
+      if (!obj) {
+        setPvsolUploadInfo(
+          "Arquivo recebido, mas o formato ainda não é suportado para parsing automático. Utilize JSON com schema compatível."
+        );
+        return;
+      }
+
+      const modules = obj.modules || obj.modulos || obj.pvModules || {};
+      const inverter = obj.inverter || obj.inversor || obj.pvInverter || {};
+      const perdasNum = obj.perdasNum ?? obj.perdas ?? obj.losses;
+      const monthlyVals = obj.monthlyVals || obj.consumoMensal || obj.monthlyConsumption;
+      const battery = obj.battery || obj.bateria || {};
+
+      if (modules) {
+        if (modules.brand) setModulesBrand(String(modules.brand));
+        if (modules.model) setModulesModel(String(modules.model));
+        if (modules.power) setModulesPower(String(modules.power));
+        if (modules.qty ?? modules.quantity) setModulesQuantity(String(modules.qty ?? modules.quantity));
+        if (modules.eff ?? modules.efficiency) setModulesEfficiency(String(modules.eff ?? modules.efficiency));
+      }
+
+      if (inverter) {
+        if (inverter.brand) setInverterBrand(String(inverter.brand));
+        if (inverter.model) setInverterModel(String(inverter.model));
+        if (inverter.pac ?? inverter.powerAC) setInverterPowerAC(String(inverter.pac ?? inverter.powerAC));
+        if (inverter.pdc ?? inverter.powerDC) setInverterPowerDC(String(inverter.pdc ?? inverter.powerDC));
+        if (inverter.eff ?? inverter.efficiency) setInverterEfficiency(String(inverter.eff ?? inverter.efficiency));
+        if (inverter.qty ?? inverter.quantity) setInverterQuantity(String(inverter.qty ?? inverter.quantity));
+      }
+
+      if (battery && (battery.enabled || battery.tech || battery.capacity)) {
+        setBatteryEnabled(Boolean(battery.enabled));
+        if (battery.tech) setBatteryTechnology(String(battery.tech));
+        if (battery.capacity) setBatteryCapacity(String(battery.capacity));
+        if (battery.voltage) setBatteryVoltage(String(battery.voltage));
+        if (battery.DOD ?? battery.dod) setBatteryDOD(String(battery.DOD ?? battery.dod));
+      }
+
+      if (typeof perdasNum === "number" || typeof perdasNum === "string") {
+        setPerdas(String(perdasNum));
+      }
+
+      if (Array.isArray(monthlyVals) && monthlyVals.length) {
+        const arr = monthlyVals.slice(0, 12).map((v: any) => String(Number(v) || 0));
+        setUseMonthlySeries(true);
+        setMonthlyConsumptionInputs(arr);
+        setLastSimulatedMonthlyConsumption(Array(12).fill(0));
+      }
+
+      setPvsolUploadInfo("Dados do arquivo importado e aplicados. Revise e execute a simulação.");
+    } catch (err) {
+      setPvsolUploadInfo(err instanceof Error ? `Falha ao processar: ${err.message}` : "Falha ao processar arquivo.");
+    }
+  }, []);
+
 
   const getStepStatus = (stepIndex: number) => {
     if (stepIndex < currentStep) return "completed";
@@ -105,40 +561,79 @@ function Page() {
   };
 
   const handleSimulate = async () => {
-    if (!consumo) {
-      setError("Preencha o consumo mensal");
-      return;
+    if (useMonthlySeries) {
+      const monthlyVals = monthlyConsumptionInputs.map((s) => Number(String(s).replace(",", ".")) || 0);
+      const hasAny = monthlyVals.some((v) => v > 0);
+      if (!hasAny) {
+        setError("Preencha ao menos um mês de consumo");
+        return;
+      }
+    } else {
+      if (!consumo) {
+        setError("Preencha o consumo mensal");
+        return;
+      }
     }
 
     setLoading(true);
     setError("");
 
     try {
-      const consumoNum = Number(consumo.replace(",", "."));
       const prNum = Number(pr);
       const perdasNum = Number(perdas);
       const metaNum = Number(metaCompensacao);
       const extraConsumo = enableExtraConsumption ? extraConsumptionKWhMonth : 0;
+      const extraUsed = simulationLevel === 'basic' ? 0 : extraConsumo;
+
+      const monthlyVals = useMonthlySeries
+        ? monthlyConsumptionInputs.map((s) => Number(String(s).replace(",", ".")) || 0)
+        : [];
+
+      const consumoNum = useMonthlySeries ? 0 : Number(consumo.replace(",", "."));
+
+      // Tarifas opcionais informadas pelo usuário
+      const te = Number(String(tariffTE).replace(",", ".")) || 0;
+      const tusd = Number(String(tariffTUSD).replace(",", ".")) || 0;
+      const icms = Number(String(tariffICMS).replace(",", ".")) || 0;
+      const pis = Number(String(tariffPIS).replace(",", ".")) || 0;
+      const cofins = Number(String(tariffCOFINS).replace(",", ".")) || 0;
+      const tariffData = (te || tusd || icms || pis || cofins)
+        ? { TE: te || undefined, TUSD: tusd || undefined, taxes: { ICMS_pct: icms || undefined, PIS_pct: pis || undefined, COFINS_pct: cofins || undefined } }
+        : undefined;
 
       const input: SimulationInput = {
-        consumption: {
-          averageMonthly_kWh: consumoNum,
+        level: simulationLevel,
+        lead: {
+          id: selectedLeadId ?? undefined,
+          name: leadName || undefined,
+          email: leadEmail || undefined,
+          phone: leadPhone || undefined,
+          address: [addressStreet, addressNumber].filter(Boolean).join(", ") || undefined,
+          city: addressCity || undefined,
+          state: addressState || undefined,
+          consumerClass: (leadType === "residencial" ? "residential" : leadType === "comercial" ? "commercial" : undefined) as any,
         },
-        consumptionDeltas: extraConsumo > 0 ? [{ label: "Novas cargas", estimated_kWh_per_month: extraConsumo }] : undefined,
+        consumption: useMonthlySeries
+          ? { monthly_kWh: monthlyVals }
+          : { averageMonthly_kWh: consumoNum },
+        consumptionDeltas: extraConsumo > 0 ? [{ label: "Novas cargas", estimated_kWh_per_month: extraUsed }] : undefined,
         technical: {
           performanceRatio_pct: prNum,
           lossesEnvironmental_pct: 0,
           lossesTechnical_pct: perdasNum,
           targetCompensation_pct: metaNum,
         },
+        tariff: tariffData,
       };
 
       const sim = runSimulation(input);
 
-      const monthlyConsumptionTotal = consumoNum + extraConsumo;
-      const annualConsumptionTotal = monthlyConsumptionTotal * 12;
-      const oversize = annualConsumptionTotal > 0
-        ? Math.max(0, ((sim.annualGeneration_kWh - annualConsumptionTotal) / annualConsumptionTotal) * 100)
+      const monthlyForChart = (useMonthlySeries ? monthlyVals : Array(12).fill(consumoNum)).map((v) => v + extraUsed);
+      setLastSimulatedMonthlyConsumption(monthlyForChart);
+
+      const annualConsumptionUsed = monthlyForChart.reduce((a, b) => a + b, 0);
+      const oversize = annualConsumptionUsed > 0
+        ? Math.max(0, ((sim.annualGeneration_kWh - annualConsumptionUsed) / annualConsumptionUsed) * 100)
         : 0;
 
       const simulationResult: SimulationResult = {
@@ -158,6 +653,7 @@ function Page() {
       };
 
       setResult(simulationResult);
+      setLastSimulationHash(currentConsumptionHash);
     } catch (err) {
       setError("Erro na simulação. Verifique os dados inseridos.");
     } finally {
@@ -165,13 +661,6 @@ function Page() {
     }
   };
 
-  const handleFinalize = async () => {
-    setSaving(true);
-    // Simular salvamento
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setSaving(false);
-    alert("Proposta finalizada com sucesso!");
-  };
 
   const baseConsumoNum = useMemo(
     () => (consumo?.replace?.(",", ".") ? Number(consumo.replace(",", ".")) : 0),
@@ -183,14 +672,81 @@ function Page() {
     [baseConsumoNum, extraConsumptionKWhMonth]
   );
 
+  const consumoTotalKWhMes = useMemo(() => baseConsumoNum + (enableExtraConsumption ? extraConsumptionKWhMonth : 0), [baseConsumoNum, enableExtraConsumption, extraConsumptionKWhMonth]);
+
+  const currentConsumptionHash = useMemo(() => {
+    const prNum = Number(pr);
+    const perdasNum = Number(perdas);
+    const metaNum = Number(metaCompensacao);
+    const extra = enableExtraConsumption ? extraConsumptionKWhMonth : 0;
+    const monthlyVals = useMonthlySeries
+      ? monthlyConsumptionInputs.map((s) => Number(String(s).replace(",", ".")) || 0)
+      : Array(12).fill(baseConsumoNum);
+
+    const modules = {
+      brand: modulesBrand,
+      model: modulesModel,
+      power: Number(modulesPower),
+      qty: Number(modulesQuantity),
+      eff: Number(modulesEfficiency),
+    };
+
+    const inverter = {
+      brand: inverterBrand,
+      model: inverterModel,
+      pac: Number(inverterPowerAC),
+      pdc: Number(inverterPowerDC),
+      eff: Number(inverterEfficiency),
+      qty: Number(inverterQuantity),
+    };
+
+    const battery = {
+      enabled: Boolean(batteryEnabled),
+      tech: batteryTechnology,
+      capacity: Number(batteryCapacity),
+      voltage: Number(batteryVoltage),
+      DOD: Number(batteryDOD),
+    };
+
+    // Tarifas que impactam a simulação
+    const tariff = {
+      te: Number(String(tariffTE).replace(",", ".")) || 0,
+      tusd: Number(String(tariffTUSD).replace(",", ".")) || 0,
+      icms: Number(String(tariffICMS).replace(",", ".")) || 0,
+      pis: Number(String(tariffPIS).replace(",", ".")) || 0,
+      cofins: Number(String(tariffCOFINS).replace(",", ".")) || 0,
+    };
+
+    return JSON.stringify({ prNum, perdasNum, metaNum, extra, monthlyVals, modules, inverter, battery, tariff, level: simulationLevel });
+  }, [pr, perdas, metaCompensacao, enableExtraConsumption, extraConsumptionKWhMonth, useMonthlySeries, monthlyConsumptionInputs, baseConsumoNum,
+      modulesBrand, modulesModel, modulesPower, modulesQuantity, modulesEfficiency,
+      inverterBrand, inverterModel, inverterPowerAC, inverterPowerDC, inverterEfficiency, inverterQuantity,
+      batteryEnabled, batteryTechnology, batteryCapacity, batteryVoltage, batteryDOD,
+      tariffTE, tariffTUSD, tariffICMS, tariffPIS, tariffCOFINS, simulationLevel]);
+
+  const needsResimulate = useMemo(
+    () => Boolean(lastSimulationHash) && currentConsumptionHash !== lastSimulationHash,
+    [currentConsumptionHash, lastSimulationHash]
+  );
+
+  const monthlyConsumptionSeries = useMemo(() => {
+    const extra = enableExtraConsumption ? extraConsumptionKWhMonth : 0;
+    const effectiveExtra = simulationLevel === 'basic' ? 0 : extra;
+    if (lastSimulatedMonthlyConsumption?.some?.((v) => v > 0)) {
+      return lastSimulatedMonthlyConsumption.map((v) => v + 0); // já inclui extraUsed ao simular
+    }
+    const base = baseConsumoNum > 0 ? Array(12).fill(baseConsumoNum) : Array(12).fill(0);
+    return base.map((v) => v + effectiveExtra);
+  }, [baseConsumoNum, enableExtraConsumption, extraConsumptionKWhMonth, lastSimulatedMonthlyConsumption, simulationLevel]);
+
   const monthlyConsumptionTotal = useMemo(
-    () => baseConsumoNum + (enableExtraConsumption ? extraConsumptionKWhMonth : 0),
-    [baseConsumoNum, enableExtraConsumption, extraConsumptionKWhMonth]
+    () => (monthlyConsumptionSeries.length ? monthlyConsumptionSeries[0] : 0),
+    [monthlyConsumptionSeries]
   );
 
   const annualConsumptionTotal = useMemo(
-    () => monthlyConsumptionTotal * 12,
-    [monthlyConsumptionTotal]
+    () => monthlyConsumptionSeries.reduce((a, b) => a + b, 0),
+    [monthlyConsumptionSeries]
   );
 
   const computedOversize = useMemo(() => {
@@ -201,14 +757,14 @@ function Page() {
   }, [result, annualConsumptionTotal]);
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center gap-3">
-        <div className="size-8 rounded-md bg-[radial-gradient(circle_at_30%_30%,hsl(var(--accent)),hsl(var(--primary)))] shadow-[var(--shadow-solar)] grid place-items-center text-background">
-          <Sun className="size-5" />
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
+      <div className="flex items-center gap-4">
+        <div className="size-10 rounded-xl bg-[radial-gradient(circle_at_30%_30%,hsl(var(--accent)),hsl(var(--primary)))] shadow-[var(--shadow-solar)] grid place-items-center text-background">
+          <Sun className="size-6" />
         </div>
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Módulo Fotovoltaico</h1>
-          <p className="text-sm text-sidebar-fg/80">Experiência inspirada no projeto anterior. Simule rapidamente seu sistema solar.</p>
+          <h1 className="text-3xl font-semibold tracking-tight">Módulo Fotovoltaico</h1>
+          <p className="text-base text-muted-foreground mt-1">Experiência inspirada no projeto anterior. Simule rapidamente seu sistema solar.</p>
         </div>
       </div>
 
@@ -278,24 +834,198 @@ function Page() {
 
       {/* Conteúdo da etapa atual */}
       {currentStep === 0 && (
-        <div className={cardBase}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2">
+            <div className={cardBase}>
           <div className="mb-3">
             <h2 className="text-sm font-semibold">Dados do Lead</h2>
             <p className="text-xs text-sidebar-fg/70">Preencha dados básicos do lead (opcional). Você pode prosseguir sem preencher.</p>
           </div>
-          <div className="flex justify-end mb-3">
-            <button
-              type="button"
-              onClick={() => setShowLeadSelector(true)}
-              className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-sidebar-accent/10"
-            >
-              Selecionar lead existente
-            </button>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-3">
+            {selectedLeadId ? (
+              <div className="flex items-center gap-2 text-xs">
+                <span className="inline-flex items-center gap-2 rounded-md border px-2 py-1 bg-sidebar-accent/10">
+                  <span className="font-medium">Lead vinculado</span>
+                  <span className="text-sidebar-fg/70">{leadName ? `${leadName}` : `(ID: ${selectedLeadId})`}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { setSelectedLeadId(null); setLeadSearch(""); setLeadResults([]); setEquipItems([]); setEquipItemsCount(0); setEquipItemsKWh(0); setEquipQuickExtra(0); setEnableExtraConsumption(false); setExtraConsumptionKWhMonth(0); }}
+                  className="rounded-md border px-2 py-1 text-[11px] hover:bg-sidebar-accent/10"
+                >
+                  Limpar vínculo
+                </button>
+              </div>
+            ) : <div />}
+            <div className="md:w-1/2 hidden">
+              <label htmlFor="leadSearch" className="sr-only">Buscar lead existente</label>
+              <div className="relative">
+                <input
+                  id="leadSearch"
+                  value={leadSearch}
+                  onChange={(e) => setLeadSearch(e.target.value)}
+                  placeholder="Buscar lead por nome, email ou telefone"
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--accent))]"
+                />
+                {(leadSearching || leadSearchError || leadResults.length > 0) && (
+                  <div className="absolute z-20 mt-1 w-full rounded-md border bg-background shadow-lg">
+                    {leadSearching && <div className="p-2 text-xs text-neutral-600">Carregando...</div>}
+                    {leadSearchError && <div className="p-2 text-xs text-red-600">{leadSearchError}</div>}
+                    {!leadSearching && !leadSearchError && leadResults.length > 0 && (
+                      <ul className="max-h-64 overflow-auto divide-y">
+                        {leadResults.map((c) => {
+                          const city = (c as any)?.address?.city ?? (c as any)?.address?.addressCity ?? (c as any)?.address?.cidade ?? null;
+                          const state = (c as any)?.address?.state ?? (c as any)?.address?.addressState ?? (c as any)?.address?.uf ?? null;
+                          return (
+                            <li key={c.id}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setLeadName(c?.name ?? "");
+                                  setLeadEmail(c?.email ?? "");
+                                  setLeadPhone(c?.phone ?? "");
+                                  setSelectedLeadId(c?.id || null);
+                                  if (!consumo) {
+                                    const cm: any = (c as any)?.consumoMedio;
+                                    if (cm !== null && cm !== undefined && cm !== "") {
+                                      setConsumo(String(cm));
+                                    }
+                                  }
+                                  // Autopreencher série mensal a partir do consumo médio (se existir)
+                                  {
+                                    const cm: any = (c as any)?.consumoMedio;
+                                    if (cm !== null && cm !== undefined && cm !== "") {
+                                      const cmStr = String(cm);
+                                      setMonthlyConsumptionInputs(Array(12).fill(cmStr));
+                                    }
+                                  }
+                                  const addr: any = (c as any)?.address ?? {};
+                                  setAddressStreet(addr.street ?? addr.logradouro ?? addr.addressStreet ?? addr.rua ?? "");
+                                  setAddressNumber((addr.number ?? addr.numero ?? addr.addressNumber ?? "")?.toString?.() ?? "");
+                                  setAddressComplement(addr.complement ?? addr.complemento ?? addr.addressComplement ?? "");
+                                  setAddressNeighborhood(addr.neighborhood ?? addr.bairro ?? addr.addressNeighborhood ?? "");
+                                  setAddressCity(addr.city ?? addr.cidade ?? addr.addressCity ?? "");
+                                  setAddressState(addr.state ?? addr.uf ?? addr.addressState ?? "");
+                                  setAddressZip(addr.zip ?? addr.cep ?? addr.postalCode ?? addr.addressZip ?? "");
+                                  const cpfVal = (c as any)?.cpf ?? (c as any)?.document ?? (c as any)?.taxId ?? addr.cpf ?? null;
+                                  if (cpfVal) setLeadCpf(String(cpfVal));
+                                  setLeadSearch("");
+                                  setLeadResults([]);
+                                }}
+                                className="w-full text-left p-2 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                              >
+                                <div className="text-sm font-medium truncate">{c.name || "(Sem nome)"}</div>
+                                <div className="text-xs text-neutral-600 truncate">{c.email || "—"} • {c.phone || "—"}</div>
+                                {(city || state) && <div className="text-[11px] text-neutral-500 truncate">{[city, state].filter(Boolean).join(" / ")}</div>}
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 mb-3">
+            <button type="button" onClick={() => setShowConsumptionModal(true)} className="rounded-md border px-3 py-2 text-xs bg-sidebar-accent hover:bg-sidebar-accent/70">{enableExtraConsumption && (equipItemsCount > 0 || extraConsumptionKWhMonth > 0) ? `Aumento de Consumo (${equipItemsCount} item${equipItemsCount !== 1 ? 's' : ''} • ${extraConsumptionKWhMonth.toFixed(2)} kWh/mês)` : 'Aumento de Consumo'}</button>
+            {enableExtraConsumption && (
+              <span className="text-xs text-neutral-700">Extra: {extraConsumptionKWhMonth.toFixed(2)} kWh/mês</span>
+            )}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="flex flex-col gap-1 md:col-span-2">
               <label htmlFor="leadName" className="text-sm font-medium">Nome</label>
-              <input id="leadName" className={inputBase} placeholder="Ex.: Ana Souza" value={leadName} onChange={(e) => setLeadName(e.target.value)} />
+              <div className="relative">
+                <input id="leadName" className={inputBase} placeholder="Ex.: Ana Souza, email ou telefone" value={leadName} onChange={(e) => { setLeadName(e.target.value); setLeadSearch(e.target.value); }} />
+                {(leadSearching || leadSearchError || leadResults.length > 0) && (
+                  <div className="absolute z-20 mt-1 w-full rounded-md border bg-background shadow-lg">
+                    {leadSearching && <div className="p-2 text-xs text-neutral-600">Carregando...</div>}
+                    {leadSearchError && <div className="p-2 text-xs text-red-600">{leadSearchError}</div>}
+                    {!leadSearching && !leadSearchError && leadResults.length > 0 && (
+                      <ul className="max-h-64 overflow-auto divide-y">
+                        {leadResults.map((c) => {
+                          const city = (c as any)?.address?.city ?? (c as any)?.address?.addressCity ?? (c as any)?.address?.cidade ?? null;
+                          const state = (c as any)?.address?.state ?? (c as any)?.address?.addressState ?? (c as any)?.address?.uf ?? null;
+                          return (
+                            <li key={c.id}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setLeadName(c?.name ?? "");
+                                  setLeadEmail(c?.email ?? "");
+                                  setLeadPhone(c?.phone ?? "");
+                                  setSelectedLeadId(c?.id || null);
+                                  if (!consumo) {
+                                    const cm: any = (c as any)?.consumoMedio;
+                                    if (cm !== null && cm !== undefined && cm !== "") {
+                                      setConsumo(String(cm));
+                                    }
+                                  }
+                                  {
+                                    const cm: any = (c as any)?.consumoMedio;
+                                    if (cm !== null && cm !== undefined && cm !== "") {
+                                      const cmStr = String(cm);
+                                      setMonthlyConsumptionInputs(Array(12).fill(cmStr));
+                                    }
+                                  }
+                                  const addr: any = (c as any)?.address ?? {};
+                                  setAddressStreet(addr.street ?? addr.logradouro ?? addr.addressStreet ?? addr.rua ?? "");
+                                  setAddressNumber((addr.number ?? addr.numero ?? addr.addressNumber ?? "")?.toString?.() ?? "");
+                                  setAddressComplement(addr.complement ?? addr.complemento ?? addr.addressComplement ?? "");
+                                  setAddressNeighborhood(addr.neighborhood ?? addr.bairro ?? addr.addressNeighborhood ?? "");
+                                  setAddressCity(addr.city ?? addr.cidade ?? addr.addressCity ?? "");
+                                  setAddressState(addr.state ?? addr.uf ?? addr.addressState ?? "");
+                                  setAddressZip(addr.zip ?? addr.cep ?? addr.postalCode ?? addr.addressZip ?? "");
+                                  const cpfVal = (c as any)?.cpf ?? (c as any)?.document ?? (c as any)?.taxId ?? addr.cpf ?? null;
+                                  if (cpfVal) setLeadCpf(String(cpfVal));
+                                  // Carregar consumo extra de equipamentos persistido no lead
+                                  const solarMeta: any = addr?.solar ?? addr?.meta?.solar ?? null;
+                                  const equip = solarMeta?.equipmentConsumption ?? solarMeta?.equipConsumption ?? null;
+                                  let initialItems: EquipItem[] = [];
+                                  let initialQuick = 0;
+                                  if (equip) {
+                                    initialItems = Array.isArray(equip.items)
+                                      ? equip.items.map((it: any) => ({
+                                          id: it.id || Math.random().toString(36).slice(2),
+                                          nome: String(it.nome || ""),
+                                          potenciaW: Number(it.potenciaW) || 0,
+                                          horasDia: Number(it.horasDia) || 0,
+                                          diasMes: Number(it.diasMes) || 0,
+                                          quantidade: Number(it.quantidade) || 0,
+                                        }))
+                                      : [];
+                                    initialQuick = Number(equip.quickExtra) || 0;
+                                  }
+                                  const computedItemsKWh = initialItems.reduce(
+                                    (acc, it) => acc + (it.potenciaW * it.horasDia * it.diasMes * it.quantidade) / 1000,
+                                    0
+                                  );
+                                  setEquipItems(initialItems);
+                                  setEquipItemsCount(initialItems.length);
+                                  setEquipItemsKWh(computedItemsKWh);
+                                  setEquipQuickExtra(initialQuick);
+                                  const total = computedItemsKWh + initialQuick;
+                                  setExtraConsumptionKWhMonth(total);
+                                  setEnableExtraConsumption(total > 0);
+                                  setLeadSearch("");
+                                  setLeadResults([]);
+                                }}
+                                className="w-full text-left p-2 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                              >
+                                <div className="text-sm font-medium truncate">{c.name || "(Sem nome)"}</div>
+                                <div className="text-xs text-neutral-600 truncate">{c.email || "—"} • {c.phone || "—"}</div>
+                                {(city || state) && <div className="text-[11px] text-neutral-500 truncate">{[city, state].filter(Boolean).join(" / ")}</div>}
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="flex flex-col gap-1">
               <label htmlFor="leadEmail" className="text-sm font-medium">Email</label>
@@ -313,12 +1043,76 @@ function Page() {
               </select>
             </div>
           </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+            <div className="flex flex-col gap-1">
+              <label htmlFor="leadCpf" className="text-sm font-medium">CPF</label>
+              <input id="leadCpf" className={inputBase} placeholder="000.000.000-00" value={leadCpf} onChange={(e) => setLeadCpf(e.target.value)} />
+            </div>
+          </div>
+          <div className="mt-4">
+            <h3 className="text-sm font-semibold mb-2">Endereço</h3>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="flex flex-col gap-1">
+                <label htmlFor="addressZip" className="text-sm font-medium">CEP</label>
+              <input
+                id="addressZip"
+                className={inputBase}
+                placeholder="00000-000"
+                value={addressZip}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/\D/g, '').slice(0, 8);
+                  const masked = v.length > 5 ? `${v.slice(0,5)}-${v.slice(5)}` : v;
+                  setAddressZip(masked);
+                }}
+                aria-describedby="cepHelp"
+              />
+              <div id="cepHelp" className="text-[11px] text-neutral-600 mt-1">
+                {cepLoading ? 'Buscando endereço pelo CEP…' : (cepError ? `Erro: ${cepError}` : 'Informe o CEP para preencher endereço automaticamente')}
+              </div>
+              </div>
+              <div className="flex flex-col gap-1 md:col-span-2">
+                <label htmlFor="addressStreet" className="text-sm font-medium">Logradouro</label>
+                <input id="addressStreet" className={inputBase} placeholder="Rua/Av." value={addressStreet} onChange={(e) => setAddressStreet(e.target.value)} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label htmlFor="addressNumber" className="text-sm font-medium">Número</label>
+                <input id="addressNumber" className={inputBase} placeholder="Nº" value={addressNumber} onChange={(e) => setAddressNumber(e.target.value)} />
+              </div>
+              <div className="flex flex-col gap-1 md:col-span-2">
+                <label htmlFor="addressComplement" className="text-sm font-medium">Complemento</label>
+                <input id="addressComplement" className={inputBase} placeholder="Apto, Bloco, Referência" value={addressComplement} onChange={(e) => setAddressComplement(e.target.value)} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label htmlFor="addressNeighborhood" className="text-sm font-medium">Bairro</label>
+                <input id="addressNeighborhood" className={inputBase} placeholder="Bairro" value={addressNeighborhood} onChange={(e) => setAddressNeighborhood(e.target.value)} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label htmlFor="addressCity" className="text-sm font-medium">Cidade</label>
+                <input id="addressCity" className={inputBase} placeholder="Cidade" value={addressCity} onChange={(e) => setAddressCity(e.target.value)} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label htmlFor="addressState" className="text-sm font-medium">Estado</label>
+                <input id="addressState" className={inputBase} placeholder="UF" value={addressState} onChange={(e) => setAddressState(e.target.value)} />
+              </div>
+            </div>
+          </div>
           <div className="flex justify-between mt-4">
-            <button onClick={() => { setLeadName(""); setLeadEmail(""); setLeadPhone(""); setLeadType("residencial"); }} className="rounded-lg border px-4 py-2 bg-background hover:bg-sidebar-accent/10 transition-all duration-200 hover:shadow-sm">Limpar</button>
+            <button onClick={() => { setLeadName("" ); setLeadEmail("" ); setLeadPhone("" ); setLeadCpf("" ); setSelectedLeadId(null); setAddressStreet("" ); setAddressNumber("" ); setAddressComplement("" ); setAddressNeighborhood("" ); setAddressCity("" ); setAddressState("" ); setAddressZip("" ); setLeadType("residencial"); }} className="rounded-lg border px-4 py-2 bg-background hover:bg-sidebar-accent/10 transition-all duration-200 hover:shadow-sm">Limpar</button>
             <button onClick={handleStepComplete} className="rounded-lg border px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2">
               <Users className="size-4" />
               Próxima
             </button>
+          </div>
+            </div>
+          </div>
+          <div className="md:col-span-1">
+            <SimulationSummary
+              result={result as any}
+              consumoTotalKWhMes={consumoTotalKWhMes}
+              needsResimulate={needsResimulate}
+              currentStep={currentStep}
+              stepsTotal={steps.length}
+            />
           </div>
         </div>
       )}
@@ -327,50 +1121,83 @@ function Page() {
         <>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {/* Coluna esquerda: Simulação Técnica */}
-          <div className="md:col-span-2 space-y-4">
+          <div className="md:col-span-2 space-y-6">
             {/* Card Principal: Simulação Técnica */}
-            <div className={`${cardBase} shadow-card`}>
-              {/* Header com botões de nível de simulação */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-md bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-                    <Settings className="size-4" />
+            <Card className="shadow-sm border-l-4 border-l-blue-500">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-3">
+                    <div className="p-2 rounded-md bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+                      <Settings className="size-4" />
+                    </div>
+                    Simulação Técnica
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setSimulationLevel('basic'); setShowPvsolImport(false); }}
+                      className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
+                        simulationLevel === 'basic'
+                          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-sm'
+                          : 'bg-background border hover:bg-sidebar-accent/10'
+                      }`}
+                    >
+                      Básico
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setSimulationLevel('precise'); setShowPvsolImport(false); }}
+                      className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
+                        simulationLevel === 'precise'
+                          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-sm'
+                          : 'bg-background border hover:bg-sidebar-accent/10'
+                      }`}
+                    >
+                      Preciso
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setSimulationLevel('pvsol_import'); setShowPvsolImport(true); }}
+                      className="px-3 py-1.5 rounded-md text-xs font-medium bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-sm flex items-center gap-1"
+                    >
+                      <FileText className="size-3" />
+                      Importar PV*Sol
+                    </button>
                   </div>
-                  <h2 className="text-lg font-semibold">Simulação Técnica</h2>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSimulationLevel('basico')}
-                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
-                      simulationLevel === 'basico'
-                        ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-sm'
-                        : 'bg-background border hover:bg-sidebar-accent/10'
-                    }`}
-                  >
-                    Básico
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSimulationLevel('preciso')}
-                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
-                      simulationLevel === 'preciso'
-                        ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-sm'
-                        : 'bg-background border hover:bg-sidebar-accent/10'
-                    }`}
-                  >
-                    Preciso
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowPvsolImport(!showPvsolImport)}
-                    className="px-3 py-1.5 rounded-md text-xs font-medium bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-sm flex items-center gap-1"
-                  >
-                    <FileText className="size-3" />
-                    Importar PV*Sol
-                  </button>
-                </div>
-              </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {showPvsolImport && (
+                  <Card className="border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-900/20">
+                    <CardContent className="pt-6">
+                      <div className="mb-2 flex items-center justify-between">
+                        <p className="text-sm text-muted-foreground">
+                          Importe seu arquivo do PV*Sol para preencher parâmetros técnicos com maior precisão.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setShowPvsolImport(false)}
+                          className="px-2 py-1 rounded-md text-xs font-medium bg-background border hover:bg-sidebar-accent/10"
+                          aria-label="Fechar importação PV*Sol"
+                        >
+                          Fechar
+                        </button>
+                      </div>
+                      {pvsolUploadInfo && (
+                        <div className="mb-3 text-xs text-green-700 dark:text-green-300">
+                          {pvsolUploadInfo}
+                        </div>
+                      )}
+                      <FileUploader
+                        prefix="pvsol"
+                        accept=".json,.xml,.csv,.zip,application/json,text/xml,text/csv,application/zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                        onUploaded={(item) => {
+                          void handlePvsolUploaded(item);
+                        }}
+                      />
+                    </CardContent>
+                  </Card>
+                )}
 
               {/* Tabs de Simulação */}
               <Tabs defaultValue="orientacao" className="w-full">
@@ -430,170 +1257,323 @@ function Page() {
                     </TabsList>
 
                     <TabsContent value="modulos" className="space-y-4">
-                      <div className={cardBase}>
-                        <h3 className="text-sm font-semibold mb-3">Configuração dos Módulos Solares</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-3">
-                            <div className="flex flex-col gap-1">
-                              <label className="text-sm font-medium">Fabricante</label>
-                              <select className={inputBase}>
-                                <option value="">Selecione o fabricante</option>
-                                <option value="canadian">Canadian Solar</option>
-                                <option value="jinko">Jinko Solar</option>
-                                <option value="trina">Trina Solar</option>
-                                <option value="ja">JA Solar</option>
-                              </select>
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <label className="text-sm font-medium">Modelo</label>
-                              <select className={inputBase}>
-                                <option value="">Selecione o modelo</option>
-                                <option value="cs3w-400p">CS3W-400P</option>
-                                <option value="cs3w-450p">CS3W-450P</option>
-                                <option value="cs3w-500p">CS3W-500P</option>
-                              </select>
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <label className="text-sm font-medium">Potência Unitária (Wp)</label>
-                              <input className={inputBase} placeholder="450" defaultValue="450" />
-                            </div>
+                      <Card>
+                        <CardHeader>
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-sm">Configuração dos Módulos Solares</CardTitle>
+                            <button type="button" className="text-xs px-2 py-1 rounded border hover:bg-accent/10" onClick={() => setShowModulesManager(true)}>
+                              Gerenciar
+                            </button>
                           </div>
-                          <div className="space-y-3">
-                            <div className="flex flex-col gap-1">
-                              <label className="text-sm font-medium">Quantidade de Módulos</label>
-                              <input className={inputBase} placeholder="12" defaultValue="12" />
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <label className="text-sm font-medium">Eficiência (%)</label>
-                              <input className={inputBase} placeholder="21.2" defaultValue="21.2" readOnly />
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <label className="text-sm font-medium">Potência Total (kWp)</label>
-                              <input className={inputBase} placeholder="5.4" defaultValue="5.4" readOnly />
-                            </div>
-                          </div>
+                        </CardHeader>
+                        <CardContent>
+
+                        {/* Resumo compacto */}
+                        <div className="text-xs text-sidebar-fg/70 mb-3">
+                          {modulesQuantity}× {modulesBrand ? modulesBrand : 'Fabricante'} {modulesModel ? modulesModel : ''} • {modulesPower} Wp • Total ≈ {((Number(modulesPower)||0)*(Number(modulesQuantity)||0)/1000).toFixed(2)} kWp
                         </div>
+
+                        <Dialog open={showModulesManager} onOpenChange={setShowModulesManager}>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Gerenciar Módulos Solares</DialogTitle>
+                              <DialogClose>Fechar</DialogClose>
+                            </DialogHeader>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-3">
+                                  <div className="flex flex-col gap-1">
+                                    <label className="text-sm font-medium">Fabricante</label>
+                                    <select className={inputBase} value={modulesBrand} onChange={(e) => setModulesBrand(e.target.value)}>
+                                      <option value="">Selecione o fabricante</option>
+                                      {moduleBrands.map((b) => (
+                                        <option key={b} value={b}>{b}</option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                  <div className="flex flex-col gap-1">
+                                    <label className="text-sm font-medium">Modelo</label>
+                                    <select className={inputBase} value={modulesModel} onChange={(e) => setModulesModel(e.target.value)}>
+                                      <option value="">Selecione o modelo</option>
+                                      {moduleModels.map((m) => (
+                                        <option key={m.id} value={m.model}>{m.model}</option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                  <div className="flex flex-col gap-1">
+                                    <label className="text-sm font-medium">Potência Unitária (Wp)</label>
+                                    <input className={inputBase} placeholder="450" value={modulesPower} onChange={(e) => setModulesPower(e.target.value)} />
+                                  </div>
+                                </div>
+                                <div className="space-y-3">
+                                  <div className="flex flex-col gap-1">
+                                    <label className="text-sm font-medium">Quantidade de Módulos</label>
+                                    <input className={inputBase} placeholder="12" value={modulesQuantity} onChange={(e) => setModulesQuantity(e.target.value)} />
+                                  </div>
+                                  <div className="flex flex-col gap-1">
+                                    <label className="text-sm font-medium">Eficiência (%)</label>
+                                    <input className={inputBase} placeholder="21.2" value={modulesEfficiency} readOnly />
+                                  </div>
+                                  <div className="flex flex-col gap-1">
+                                    <label className="text-sm font-medium">Potência Total (kWp)</label>
+                                    <input className={inputBase} placeholder="5.4" value={((Number(modulesPower)||0)*(Number(modulesQuantity)||0)/1000).toFixed(2)} readOnly />
+                                  </div>
+                                </div>
+                              </div>
+                              {/* Catálogo + Criar Módulo */}
+                              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <h5 className="text-xs font-semibold mb-2">Catálogo de Módulos</h5>
+                                  <div className="max-h-56 overflow-auto border rounded-md divide-y">
+                                    {moduleOptions.length === 0 && (
+                                      <div className="p-3 text-xs text-muted-foreground">Nenhum módulo cadastrado ainda.</div>
+                                    )}
+                                    {moduleOptions.map((m) => (
+                                      <button
+                                        key={m.id}
+                                        type="button"
+                                        className="w-full text-left p-3 hover:bg-accent/10 text-xs"
+                                        onClick={() => { setModulesBrand(m.manufacturer); setModulesModel(m.model); }}
+                                      >
+                                        <div className="font-medium">{m.manufacturer} — {m.model}</div>
+                                        <div className="text-muted-foreground">{m.powerW} Wp {m.efficiencyPerc ? `• ${Number(m.efficiencyPerc)}%` : ''}</div>
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                                <div>
+                                  <h5 className="text-xs font-semibold mb-2">Novo Módulo</h5>
+                                  <div className="space-y-2">
+                                    {moduleCreateError && <div className="text-xs text-red-600">{moduleCreateError}</div>}
+                                    <input className={inputBase} placeholder="Fabricante" value={newModuleManufacturer} onChange={(e)=>setNewModuleManufacturer(e.target.value)} />
+                                    <input className={inputBase} placeholder="Modelo" value={newModuleModel} onChange={(e)=>setNewModuleModel(e.target.value)} />
+                                    <input className={inputBase} placeholder="Potência (Wp)" value={newModulePowerW} onChange={(e)=>setNewModulePowerW(e.target.value)} />
+                                    <button disabled={creatingModule} onClick={handleCreateModule} className="px-3 py-1.5 text-xs rounded-md bg-blue-600 text-white disabled:opacity-50">
+                                      {creatingModule ? 'Criando…' : 'Cadastrar'}
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <DialogFooter>
+                                <button className="px-3 py-1.5 text-xs rounded-md bg-gradient-to-r from-blue-600 to-blue-700 text-white" onClick={() => setShowModulesManager(false)}>Concluir</button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+
                         <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                           <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
                             <CheckCircle className="size-4" />
-                            <span>Configuração validada: 12 módulos de 450Wp = 5.4kWp</span>
+                            <span>Configuração validada: {modulesQuantity} módulos de {modulesPower}Wp = {((Number(modulesPower)||0)*(Number(modulesQuantity)||0)/1000).toFixed(2)}kWp</span>
                           </div>
                         </div>
-                      </div>
+                        </CardContent>
+                      </Card>
                     </TabsContent>
 
                     <TabsContent value="inversores" className="space-y-4">
-                      <div className={cardBase}>
-                        <h3 className="text-sm font-semibold mb-3">Configuração dos Inversores</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-3">
-                            <div className="flex flex-col gap-1">
-                              <label className="text-sm font-medium">Fabricante</label>
-                              <select className={inputBase}>
-                                <option value="">Selecione o fabricante</option>
-                                <option value="fronius">Fronius</option>
-                                <option value="sma">SMA</option>
-                                <option value="abb">ABB</option>
-                                <option value="growatt">Growatt</option>
-                              </select>
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <label className="text-sm font-medium">Modelo</label>
-                              <select className={inputBase}>
-                                <option value="">Selecione o modelo</option>
-                                <option value="primo-5.0-1">Primo 5.0-1</option>
-                                <option value="primo-6.0-1">Primo 6.0-1</option>
-                                <option value="primo-8.2-1">Primo 8.2-1</option>
-                              </select>
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <label className="text-sm font-medium">Potência CA (kW)</label>
-                              <input className={inputBase} placeholder="5.0" defaultValue="5.0" />
-                            </div>
+                      <Card>
+                        <CardHeader>
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-sm">Configuração dos Inversores</CardTitle>
+                            <button type="button" className="text-xs px-2 py-1 rounded border hover:bg-accent/10" onClick={() => setShowInvertersManager(true)}>
+                              Gerenciar
+                            </button>
                           </div>
-                          <div className="space-y-3">
-                            <div className="flex flex-col gap-1">
-                              <label className="text-sm font-medium">Potência CC Máx (kW)</label>
-                              <input className={inputBase} placeholder="7.5" defaultValue="7.5" readOnly />
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <label className="text-sm font-medium">Eficiência (%)</label>
-                              <input className={inputBase} placeholder="97.1" defaultValue="97.1" readOnly />
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <label className="text-sm font-medium">Quantidade</label>
-                              <input className={inputBase} placeholder="1" defaultValue="1" />
-                            </div>
-                          </div>
+                        </CardHeader>
+                        <CardContent>
+
+                        {/* Resumo compacto */}
+                        <div className="text-xs text-sidebar-fg/70 mb-3">
+                          {(inverterQuantity || '—')}× {(inverterBrand || 'Fabricante')} {(inverterModel || '')} • {(inverterPowerAC || '—')} kW AC • Oversize máx CC {(inverterPowerDC || '—')} kW
                         </div>
+
+                        <Dialog open={showInvertersManager} onOpenChange={setShowInvertersManager}>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Gerenciar Inversores</DialogTitle>
+                              <DialogClose>Fechar</DialogClose>
+                            </DialogHeader>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-3">
+                                  <div className="flex flex-col gap-1">
+                                    <label className="text-sm font-medium">Fabricante</label>
+                                    <select className={inputBase} value={inverterBrand} onChange={(e)=>setInverterBrand(e.target.value)}>
+                                      <option value="">Selecione o fabricante</option>
+                                      {inverterBrands.map((b) => (
+                                        <option key={b} value={b}>{b}</option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                  <div className="flex flex-col gap-1">
+                                    <label className="text-sm font-medium">Modelo</label>
+                                    <select className={inputBase} value={inverterModel} onChange={(e)=>setInverterModel(e.target.value)}>
+                                      <option value="">Selecione o modelo</option>
+                                      {inverterModels.map((i) => (
+                                        <option key={i.id} value={i.model}>{i.model}</option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                  <div className="flex flex-col gap-1">
+                                    <label className="text-sm font-medium">Potência CA (kW)</label>
+                                    <input className={inputBase} placeholder="5.0" value={inverterPowerAC} onChange={(e)=>setInverterPowerAC(e.target.value)} />
+                                  </div>
+                                </div>
+                                <div className="space-y-3">
+                                  <div className="flex flex-col gap-1">
+                                    <label className="text-sm font-medium">Potência CC Máx (kW)</label>
+                                    <input className={inputBase} placeholder="7.5" value={inverterPowerDC} readOnly />
+                                  </div>
+                                  <div className="flex flex-col gap-1">
+                                    <label className="text-sm font-medium">Eficiência (%)</label>
+                                    <input className={inputBase} placeholder="97.1" value={inverterEfficiency} readOnly />
+                                  </div>
+                                  <div className="flex flex-col gap-1">
+                                    <label className="text-sm font-medium">Quantidade</label>
+                                    <input className={inputBase} placeholder="1" value={inverterQuantity} onChange={(e)=>setInverterQuantity(e.target.value)} />
+                                  </div>
+                                </div>
+                              </div>
+                              {/* Catálogo + Criar Inversor */}
+                              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <h5 className="text-xs font-semibold mb-2">Catálogo de Inversores</h5>
+                                  <div className="max-h-56 overflow-auto border rounded-md divide-y">
+                                    {inverterOptions.length === 0 && (
+                                      <div className="p-3 text-xs text-muted-foreground">Nenhum inversor cadastrado ainda.</div>
+                                    )}
+                                    {inverterOptions.map((i) => (
+                                      <button
+                                        key={i.id}
+                                        type="button"
+                                        className="w-full text-left p-3 hover:bg-accent/10 text-xs"
+                                        onClick={() => { setInverterBrand(i.manufacturer); setInverterModel(i.model); }}
+                                      >
+                                        <div className="font-medium">{i.manufacturer} — {i.model}</div>
+                                        <div className="text-muted-foreground">{(i.powerW/1000).toFixed(2)} kW {i.efficiencyPerc ? `• ${Number(i.efficiencyPerc)}%` : ''} {i.mpptCount ? `• ${i.mpptCount} MPPT` : ''} {i.phases ? `• ${i.phases}` : ''}</div>
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                                <div>
+                                  <h5 className="text-xs font-semibold mb-2">Novo Inversor</h5>
+                                  <div className="space-y-2">
+                                    {inverterCreateError && <div className="text-xs text-red-600">{inverterCreateError}</div>}
+                                    <input className={inputBase} placeholder="Fabricante" value={newInverterManufacturer} onChange={(e)=>setNewInverterManufacturer(e.target.value)} />
+                                    <input className={inputBase} placeholder="Modelo" value={newInverterModel} onChange={(e)=>setNewInverterModel(e.target.value)} />
+                                    <input className={inputBase} placeholder="Potência (kW)" value={newInverterPowerKW} onChange={(e)=>setNewInverterPowerKW(e.target.value)} />
+                                    <div className="grid grid-cols-3 gap-2">
+                                      <input className={inputBase} placeholder="MPPTs (opcional)" value={newInverterMppt} onChange={(e)=>setNewInverterMppt(e.target.value)} />
+                                      <input className={inputBase} placeholder="Eficiência % (opcional)" value={newInverterEfficiency} onChange={(e)=>setNewInverterEfficiency(e.target.value)} />
+                                      <select className={inputBase} value={newInverterPhases} onChange={(e)=>setNewInverterPhases(e.target.value as any)}>
+                                        <option value="MONO">MONO</option>
+                                        <option value="TRIF">TRIF</option>
+                                      </select>
+                                    </div>
+                                    <button disabled={creatingInverter} onClick={handleCreateInverter} className="px-3 py-1.5 text-xs rounded-md bg-blue-600 text-white disabled:opacity-50">
+                                      {creatingInverter ? 'Criando…' : 'Cadastrar'}
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <DialogFooter>
+                                <button className="px-3 py-1.5 text-xs rounded-md bg-gradient-to-r from-blue-600 to-blue-700 text-white" onClick={() => setShowInvertersManager(false)}>Concluir</button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
                         <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
                           <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300">
                             <CheckCircle className="size-4" />
                             <span>Dimensionamento adequado: Oversize de 1.08 (ideal entre 1.0 - 1.3)</span>
                           </div>
                         </div>
-                      </div>
+                        </CardContent>
+                      </Card>
                     </TabsContent>
 
                     <TabsContent value="baterias" className="space-y-4">
-                      <div className={cardBase}>
-                        <h3 className="text-sm font-semibold mb-3">Sistema de Armazenamento (Opcional)</h3>
-                        <div className="space-y-4">
-                          <div className="flex items-center gap-2">
-                            <input type="checkbox" id="enableBattery" className="rounded" />
+                      <Card>
+                        <CardHeader>
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-sm">Sistema de Armazenamento (Opcional)</CardTitle>
+                            <button type="button" className="text-xs px-2 py-1 rounded border hover:bg-accent/10" onClick={() => setShowBatteriesManager(true)}>
+                              Gerenciar
+                            </button>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          {/* Resumo compacto */}
+                          <div className="text-xs text-sidebar-fg/70 mb-3">
+                            {batteryEnabled ? (
+                              <span>
+                                Resumo: {batteryTechnology || '—'} • {batteryCapacity || '—'} kWh • {batteryVoltage || '—'} V • DOD {batteryDOD || '—'}%
+                              </span>
+                            ) : (
+                              <span>Resumo: Baterias desativadas</span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2 mb-3">
+                            <input type="checkbox" id="enableBattery" className="rounded" checked={batteryEnabled} onChange={(e)=>setBatteryEnabled(e.target.checked)} />
                             <label htmlFor="enableBattery" className="text-sm font-medium">Incluir sistema de baterias</label>
                           </div>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-50">
-                            <div className="space-y-3">
-                              <div className="flex flex-col gap-1">
-                                <label className="text-sm font-medium">Tecnologia</label>
-                                <select className={inputBase} disabled>
-                                  <option value="">Selecione a tecnologia</option>
-                                  <option value="lithium">Lítio (LiFePO4)</option>
-                                  <option value="lead-acid">Chumbo-ácido</option>
-                                  <option value="gel">Gel</option>
-                                </select>
+
+                          <Dialog open={showBatteriesManager} onOpenChange={setShowBatteriesManager}>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Gerenciar Baterias</DialogTitle>
+                                <DialogClose>Fechar</DialogClose>
+                              </DialogHeader>
+                              <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${batteryEnabled ? '' : 'opacity-50'}`}>
+                                <div className="space-y-3">
+                                  <div className="flex flex-col gap-1">
+                                    <label className="text-sm font-medium">Tecnologia</label>
+                                    <select className={inputBase} value={batteryTechnology} onChange={(e)=>setBatteryTechnology(e.target.value)} disabled={!batteryEnabled}>
+                                      <option value="">Selecione a tecnologia</option>
+                                      <option value="lithium">Lítio (LiFePO4)</option>
+                                      <option value="lead-acid">Chumbo-ácido</option>
+                                      <option value="gel">Gel</option>
+                                    </select>
+                                  </div>
+                                  <div className="flex flex-col gap-1">
+                                    <label className="text-sm font-medium">Capacidade (kWh)</label>
+                                    <input className={inputBase} placeholder="10" value={batteryCapacity} onChange={(e)=>setBatteryCapacity(e.target.value)} disabled={!batteryEnabled} />
+                                  </div>
+                                  <div className="flex flex-col gap-1">
+                                    <label className="text-sm font-medium">Tensão (V)</label>
+                                    <input className={inputBase} placeholder="48" value={batteryVoltage} onChange={(e)=>setBatteryVoltage(e.target.value)} disabled={!batteryEnabled} />
+                                  </div>
+                                </div>
+                                <div className="space-y-3">
+                                  <div className="flex flex-col gap-1">
+                                    <label className="text-sm font-medium">Profundidade de Descarga (%)</label>
+                                    <input className={inputBase} placeholder="80" value={batteryDOD} onChange={(e)=>setBatteryDOD(e.target.value)} disabled={!batteryEnabled} />
+                                  </div>
+                                  <div className="flex flex-col gap-1">
+                                    <label className="text-sm font-medium">Ciclos de Vida</label>
+                                    <input className={inputBase} placeholder="6000" disabled readOnly />
+                                  </div>
+                                  <div className="flex flex-col gap-1">
+                                    <label className="text-sm font-medium">Autonomia (horas)</label>
+                                    <input className={inputBase} placeholder="8" disabled readOnly />
+                                  </div>
+                                </div>
                               </div>
-                              <div className="flex flex-col gap-1">
-                                <label className="text-sm font-medium">Capacidade (kWh)</label>
-                                <input className={inputBase} placeholder="10" disabled />
-                              </div>
-                              <div className="flex flex-col gap-1">
-                                <label className="text-sm font-medium">Tensão (V)</label>
-                                <input className={inputBase} placeholder="48" disabled />
-                              </div>
-                            </div>
-                            <div className="space-y-3">
-                              <div className="flex flex-col gap-1">
-                                <label className="text-sm font-medium">Profundidade de Descarga (%)</label>
-                                <input className={inputBase} placeholder="80" disabled />
-                              </div>
-                              <div className="flex flex-col gap-1">
-                                <label className="text-sm font-medium">Ciclos de Vida</label>
-                                <input className={inputBase} placeholder="6000" disabled readOnly />
-                              </div>
-                              <div className="flex flex-col gap-1">
-                                <label className="text-sm font-medium">Autonomia (horas)</label>
-                                <input className={inputBase} placeholder="8" disabled readOnly />
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                              <DialogFooter>
+                                <button className="px-3 py-1.5 text-xs rounded-md bg-gradient-to-r from-blue-600 to-blue-700 text-white" onClick={() => setShowBatteriesManager(false)}>Concluir</button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+
+                          <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
                             <div className="flex items-center gap-2 text-sm text-amber-700 dark:text-amber-300">
                               <AlertTriangle className="size-4" />
                               <span>Sistema de baterias aumentará significativamente o investimento inicial</span>
                             </div>
                           </div>
-                        </div>
-                      </div>
+                        </CardContent>
+                      </Card>
                       
-                      {/* Consumo de equipamentos extras */}
-                      <div className={cardBase}>
-                        <h3 className="text-sm font-semibold mb-3">Consumo de Equipamentos Extras</h3>
-                        <EquipmentConsumption />
-                      </div>
                     </TabsContent>
                   </Tabs>
                 </TabsContent>
@@ -763,6 +1743,26 @@ function Page() {
                     </div>
                   </div>
 
+                  {/* Estrutura Tarifária (Opcional) */}
+                  <TariffForm
+                    cardClass={cardBase}
+                    inputClass={inputBase}
+                    values={{
+                      TE: tariffTE,
+                      TUSD: tariffTUSD,
+                      ICMS: tariffICMS,
+                      PIS: tariffPIS,
+                      COFINS: tariffCOFINS,
+                    }}
+                    onChange={(field, val) => {
+                      if (field === "TE") setTariffTE(val);
+                      else if (field === "TUSD") setTariffTUSD(val);
+                      else if (field === "ICMS") setTariffICMS(val);
+                      else if (field === "PIS") setTariffPIS(val);
+                      else if (field === "COFINS") setTariffCOFINS(val);
+                    }}
+                  />
+
                   {/* Recomendações */}
                   <div className={cardBase}>
                     <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
@@ -804,20 +1804,62 @@ function Page() {
                       Parâmetros de Simulação
                     </h3>
                     <form onSubmit={(e) => { e.preventDefault(); handleSimulate(); }} className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="flex flex-col gap-1">
-                          <label htmlFor="consumo" className="text-sm font-medium">Consumo mensal (kWh)</label>
-                          <input id="consumo" className={inputBase} placeholder="500" value={consumo} onChange={(e) => setConsumo(e.target.value)} required />
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <label htmlFor="pr" className="text-sm font-medium">Performance Ratio</label>
-                          <input id="pr" className={inputBase} placeholder="0.75" value={pr} onChange={(e) => setPr(e.target.value)} />
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <label htmlFor="metaCompensacao" className="text-sm font-medium">Meta de Compensação (%)</label>
-                          <input id="metaCompensacao" className={inputBase} placeholder="95" value={metaCompensacao} onChange={(e) => setMetaCompensacao(e.target.value)} />
-                        </div>
+                      {needsResimulate && (
+                        <div role="status" className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200">Os dados de consumo foram alterados após a última simulação. Clique em “Simular” para atualizar os resultados e os gráficos.</div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" id="useMonthlySeries" checked={useMonthlySeries} onChange={(e) => setUseMonthlySeries(e.target.checked)} className="rounded" />
+                        <label htmlFor="useMonthlySeries" className="text-sm font-medium">Usar histórico mensal (12 meses)</label>
                       </div>
+
+                      {!useMonthlySeries ? (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="flex flex-col gap-1">
+                            <label htmlFor="consumo" className="text-sm font-medium">Consumo mensal (kWh)</label>
+                            <input id="consumo" className={inputBase} placeholder="500" value={consumo} onChange={(e) => setConsumo(e.target.value)} required />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <label htmlFor="pr" className="text-sm font-medium">Performance Ratio</label>
+                            <input id="pr" className={inputBase} placeholder="0.75" value={pr} onChange={(e) => setPr(e.target.value)} />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <label htmlFor="metaCompensacao" className="text-sm font-medium">Meta de Compensação (%)</label>
+                            <input id="metaCompensacao" className={inputBase} placeholder="95" value={metaCompensacao} onChange={(e) => setMetaCompensacao(e.target.value)} />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                            {['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'].map((m, idx) => (
+                              <div key={m} className="flex flex-col gap-1">
+                                <label className="text-xs font-medium">{m}</label>
+                                <input
+                                  type="number"
+                                  className={inputBase}
+                                  placeholder="0"
+                                  value={monthlyConsumptionInputs[idx]}
+                                  onChange={(e) => {
+                                    const next = [...monthlyConsumptionInputs];
+                                    next[idx] = e.target.value;
+                                    setMonthlyConsumptionInputs(next);
+                                  }}
+                                  min="0"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex flex-col gap-1">
+                              <label htmlFor="pr" className="text-sm font-medium">Performance Ratio</label>
+                              <input id="pr" className={inputBase} placeholder="0.75" value={pr} onChange={(e) => setPr(e.target.value)} />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <label htmlFor="metaCompensacao" className="text-sm font-medium">Meta de Compensação (%)</label>
+                              <input id="metaCompensacao" className={inputBase} placeholder="95" value={metaCompensacao} onChange={(e) => setMetaCompensacao(e.target.value)} />
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       <div className="space-y-3">
                         <div className="flex items-center gap-2">
@@ -836,7 +1878,7 @@ function Page() {
                       </div>
 
                       <div className="flex justify-between">
-                        <button type="button" onClick={() => { setConsumo(""); setPr("0.75"); setPerdas("15"); setMetaCompensacao("95"); setResult(null); setError(""); }} className="rounded-lg border px-4 py-2 bg-background hover:bg-sidebar-accent/10 transition-all duration-200 hover:shadow-sm">Limpar</button>
+                        <button type="button" onClick={() => { setConsumo(""); setPr("0.75"); setPerdas("15"); setMetaCompensacao("95"); setResult(null); setError(""); setUseMonthlySeries(false); setMonthlyConsumptionInputs(Array(12).fill("")); setLastSimulatedMonthlyConsumption(Array(12).fill(0)); setEnableExtraConsumption(false); setExtraConsumptionKWhMonth(0); }} className="rounded-lg border px-4 py-2 bg-background hover:bg-sidebar-accent/10 transition-all duration-200 hover:shadow-sm">Limpar</button>
                         <button type="submit" disabled={loading} className="rounded-lg border px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2 disabled:opacity-60">
                           {loading ? (
                             <div className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -891,12 +1933,18 @@ function Page() {
                         <div className="space-y-3">
                           <div className="flex items-center gap-4 text-xs text-sidebar-fg/70">
                             <div className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-green-500" aria-hidden /> Geração</div>
-                            <div className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-blue-500" aria-hidden /> Consumo</div>
+                            <div className="flex items-center gap-1">
+                              <span className="inline-block h-2 w-2 rounded-full bg-blue-500" aria-hidden />
+                              Consumo (última simulação)
+                              {needsResimulate && (
+                                <span className="ml-1 rounded bg-amber-100 text-amber-800 px-1.5 py-0.5">dados alterados</span>
+                              )}
+                            </div>
                           </div>
                           <div className="grid grid-cols-12 gap-2 items-end" aria-label="Comparação mensal de geração e consumo" role="img">
                             {Array.from({ length: 12 }).map((_, idx) => {
-                              const gen = result.energiaGeradaMensalKWh;
-                              const cons = monthlyConsumptionTotal;
+                              const gen = result.energiaGeradaMensalKWh; // geração média mensal (modelo atual)
+                              const cons = monthlyConsumptionSeries[idx] ?? 0;
                               const max = Math.max(gen, cons, 1);
                               const genH = (gen / max) * 100;
                               const consH = (cons / max) * 100;
@@ -1081,130 +2129,19 @@ function Page() {
                   )}
                 </TabsContent>
               </Tabs>
+            </CardContent>
+          </Card>
             </div>
-          </div>
 
           {/* Coluna direita: Resumo da Simulação */}
           <div className="md:col-span-1">
-            {result ? (
-              <div className={`${cardBase}`}>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="p-1.5 rounded-md bg-amber-100 dark:bg-amber-900/30">
-                    <Sun className="size-4 text-amber-600 dark:text-amber-400" />
-                  </div>
-                  <h2 className="text-sm font-semibold">Resumo da Simulação</h2>
-                </div>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 shadow-sm hover:shadow-md transition-shadow duration-200">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="text-sm text-blue-600 font-medium">Potência recomendada</div>
-                        <div className="p-1.5 rounded-md bg-blue-600 text-white">
-                          <Zap className="size-3" />
-                        </div>
-                      </div>
-                      <div className="text-2xl font-bold text-blue-900">{result.potenciaRecomendadaKwp} kWp</div>
-                      <div className="mt-1">
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          Sistema Dimensionado
-                        </span>
-                      </div>
-                    </div>
-                    <div className="p-4 rounded-lg bg-gradient-to-br from-green-50 to-green-100 border border-green-200 shadow-sm hover:shadow-md transition-shadow duration-200">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="text-sm text-green-600 font-medium">Geração mensal</div>
-                        <div className="p-1.5 rounded-md bg-green-600 text-white">
-                          <TrendingUp className="size-3" />
-                        </div>
-                      </div>
-                      <div className="text-2xl font-bold text-green-900">{result.energiaGeradaMensalKWh} kWh</div>
-                      <div className="mt-1">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          result.compensacaoPercent >= 95 ? 'bg-green-100 text-green-800' : 
-                          result.compensacaoPercent >= 80 ? 'bg-yellow-100 text-yellow-800' : 
-                          'bg-red-100 text-red-800'
-                        }`}>
-                          {result.compensacaoPercent >= 95 ? 'Geração Ideal' : 
-                           result.compensacaoPercent >= 80 ? 'Geração Boa' : 
-                           'Geração Baixa'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="p-4 rounded-lg bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200 shadow-sm hover:shadow-md transition-shadow duration-200">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="text-sm text-yellow-600 font-medium">Compensação</div>
-                        <div className="p-1.5 rounded-md bg-yellow-600 text-white">
-                          <Target className="size-3" />
-                        </div>
-                      </div>
-                      <div className="text-xl font-bold text-yellow-900">{result.compensacaoPercent}%</div>
-                      <div className="mt-1">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          result.compensacaoPercent >= 95 ? 'bg-green-100 text-green-800' : 
-                          result.compensacaoPercent >= 80 ? 'bg-yellow-100 text-yellow-800' : 
-                          'bg-red-100 text-red-800'
-                        }`}>
-                          {result.compensacaoPercent >= 95 ? 'Excelente' : 
-                           result.compensacaoPercent >= 80 ? 'Bom' : 
-                           'Insuficiente'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="p-4 rounded-lg bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 shadow-sm hover:shadow-md transition-shadow duration-200">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="text-sm text-purple-600 font-medium">Economia mensal</div>
-                        <div className="p-1.5 rounded-md bg-purple-600 text-white">
-                          <DollarSign className="size-3" />
-                        </div>
-                      </div>
-                      <div className="text-xl font-bold text-purple-900">R$ {result.economiaMensalReais}</div>
-                      <div className="mt-1">
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                          Por mês
-                        </span>
-                      </div>
-                    </div>
-                    <div className="p-4 rounded-lg bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200 shadow-sm hover:shadow-md transition-shadow duration-200">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="text-sm text-indigo-600 font-medium">Economia anual</div>
-                        <div className="p-1.5 rounded-md bg-indigo-600 text-white">
-                          <PiggyBank className="size-3" />
-                        </div>
-                      </div>
-                      <div className="text-xl font-bold text-indigo-900">R$ {result.economiaAnualReais}</div>
-                      <div className="mt-1">
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                          12 meses
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 rounded-lg bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200">
-                      <div className="text-xs text-gray-600 font-medium">Consumo base + extra</div>
-                      <div className="text-base font-bold text-gray-900">{(((consumo?.replace?.(",", ".") ? Number(consumo.replace(",", ".")) : 0)) + (enableExtraConsumption ? extraConsumptionKWhMonth : 0)).toFixed(2)} kWh/mês</div>
-                    </div>
-                    <div className="p-3 rounded-lg bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200">
-                      <div className="text-xs text-gray-600 font-medium">Fio B (Ano 1)</div>
-                      <div className="text-base font-bold text-gray-900">{result.detalhes?.fioBPercentYear1}%</div>
-                    </div>
-                  </div>
-                </div>
-                {Array.isArray(result?.detalhes?.notas) && result.detalhes.notas.length > 0 && (
-                  <ul className="mt-3 list-disc pl-5 text-xs text-sidebar-fg/70">
-                    {result.detalhes.notas.map((n: string, i: number) => (
-                      <li key={i}>{n}</li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            ) : (
-              <div className={`${cardBase} text-sm text-sidebar-fg/80`}>
-                <p>Preencha os dados e clique em Simular para ver o resumo aqui.</p>
-              </div>
-            )}
+            <SimulationSummary
+              result={result as any}
+              consumoTotalKWhMes={consumoTotalKWhMes}
+              needsResimulate={needsResimulate}
+              currentStep={currentStep}
+              stepsTotal={steps.length}
+            />
           </div>
         </div>
 
@@ -1216,7 +2153,9 @@ function Page() {
        )}
 
        {currentStep === 2 && (
-        <div className={cardBase}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="md:col-span-2">
+            <div className={cardBase}>
           <div className="mb-2">
             <h2 className="text-sm font-semibold">Propostas</h2>
             <p className="text-xs text-sidebar-fg/70">Escolha um template para gerar a proposta. Em breve integraremos geração e prévia.</p>
@@ -1229,10 +2168,29 @@ function Page() {
             <button onClick={handleExportPdf} className="rounded-md border px-3 py-1.5 bg-sidebar-accent text-xs disabled:opacity-60" disabled={!result}>
               Exportar PDF
             </button>
+            <button
+              onClick={saveProposal}
+              className="rounded-md border px-3 py-1.5 bg-emerald-600 text-white text-xs disabled:opacity-60"
+              disabled={!result || !selectedLeadId || savingProposal}
+              aria-disabled={!result || !selectedLeadId || savingProposal}
+            >
+              {savingProposal ? "Salvando..." : "Salvar Proposta"}
+            </button>
+            {selectedLeadId && (
+              <Link href={`/leads/${selectedLeadId}`} target="_blank" rel="noopener noreferrer" className="rounded-md border px-3 py-1.5 bg-background text-xs">
+                Abrir ficha do lead
+              </Link>
+            )}
             {!result && (
               <span className="text-[11px] text-sidebar-fg/70">Realize uma simulação para habilitar a proposta.</span>
             )}
           </div>
+          {proposalSaveError && (
+            <div role="alert" className="text-[12px] text-red-600 mb-2">{proposalSaveError}</div>
+          )}
+          {proposalSavedId && (
+            <div className="text-[12px] text-emerald-700 mb-2">Proposta salva com sucesso! {proposalSavedId ? `ID: ${proposalSavedId}` : ""}</div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {["Template Econômico","Apresentação Comercial","Relatório Técnico"].map((title) => (
@@ -1324,62 +2282,94 @@ function Page() {
             <button onClick={handleStepComplete} className="rounded-md border px-4 py-2 bg-sidebar-accent hover:bg-sidebar-accent/70">Próxima</button>
           </div>
         </div>
-      )}
-
-      {currentStep === 3 && (
-        <div className={cardBase}>
-          <div className="mb-2">
-            <h2 className="text-sm font-semibold">Finalização</h2>
-            <p className="text-xs text-sidebar-fg/70">Revise as informações antes de concluir.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="rounded-md border bg-background p-3">
-              <h3 className="text-sm font-semibold mb-2">Lead</h3>
-              <dl className="text-sm grid grid-cols-2 gap-x-4 gap-y-1">
-                <dt className="text-sidebar-fg/70">Nome</dt><dd className="font-medium">{leadName || "Não informado"}</dd>
-                <dt className="text-sidebar-fg/70">Email</dt><dd className="font-medium">{leadEmail || "Não informado"}</dd>
-                <dt className="text-sidebar-fg/70">Telefone</dt><dd className="font-medium">{leadPhone || "Não informado"}</dd>
-                <dt className="text-sidebar-fg/70">Tipo</dt><dd className="font-medium">{leadType}</dd>
-              </dl>
-            </div>
-            <div className="rounded-md border bg-background p-3">
-              <h3 className="text-sm font-semibold mb-2">Resumo da Simulação</h3>
-              {result ? (
-                <dl className="text-sm grid grid-cols-2 gap-x-4 gap-y-1">
-                  <dt className="text-sidebar-fg/70">Potência</dt><dd className="font-medium">{result.potenciaRecomendadaKwp} kWp</dd>
-                  <dt className="text-sidebar-fg/70">Geração mensal</dt><dd className="font-medium">{result.energiaGeradaMensalKWh} kWh</dd>
-                  <dt className="text-sidebar-fg/70">Compensação</dt><dd className="font-medium">{result.compensacaoPercent}%</dd>
-                  <dt className="text-sidebar-fg/70">Economia mensal</dt><dd className="font-medium">R$ {result.economiaMensalReais}</dd>
-                </dl>
-              ) : (
-                <p className="text-xs text-sidebar-fg/70">Sem simulação realizada.</p>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center justify-between mt-4">
-            <button onClick={() => setCurrentStep(2)} className="rounded-md border px-4 py-2 bg-background hover:bg-sidebar-accent/10">Anterior</button>
-            <button onClick={handleFinalize} disabled={saving} className="rounded-md border px-4 py-2 bg-green-600 text-white hover:bg-green-700 disabled:opacity-60">{saving ? "Salvando..." : "Finalizar Proposta"}</button>
-          </div>
-        </div>
-      )}
-      <LeadSelector
-        isOpen={showLeadSelector}
-        onClose={() => setShowLeadSelector(false)}
-        onSelect={(c: import("./components/LeadSelector").ContactOption) => {
-          setLeadName(c?.name ?? "");
-          setLeadEmail(c?.email ?? "");
-          setLeadPhone(c?.phone ?? "");
-          if (!consumo) {
-            const cm = c?.consumoMedio as any;
-            if (cm !== null && cm !== undefined && cm !== "") {
-              setConsumo(String(cm));
-            }
-          }
-          setShowLeadSelector(false);
-        }}
-      />
+      </div>
+      <div className="md:col-span-1">
+        <SimulationSummary
+          result={result as any}
+          consumoTotalKWhMes={consumoTotalKWhMes}
+          needsResimulate={needsResimulate}
+          currentStep={currentStep}
+          stepsTotal={steps.length}
+        />
+      </div>
     </div>
-  )
-}
+  )}
 
-export default Page
+
+    {showConsumptionModal && (
+        <Dialog open={showConsumptionModal} onOpenChange={setShowConsumptionModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Aumento de Consumo</DialogTitle>
+              <DialogClose />
+            </DialogHeader>
+            <EquipmentConsumption
+              title="Aumento de Consumo"
+              initialQuickExtra={equipQuickExtra}
+              initialItems={equipItems}
+              onChange={(kwh) => { setExtraConsumptionKWhMonth(kwh); setEnableExtraConsumption(kwh > 0); }}
+              onChangeDetails={(details) => {
+                setEquipItems(details.items);
+                setEquipItemsCount(details.itemsCount);
+                setEquipItemsKWh(details.totalItemsKWh);
+                setEquipQuickExtra(details.quickExtra);
+              }}
+            />
+            <DialogFooter>
+              <button
+                className="px-3 py-1.5 text-sm rounded-md border hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                onClick={() => {
+                  // Zerar tudo
+                  setEquipItems([]);
+                  setEquipItemsCount(0);
+                  setEquipItemsKWh(0);
+                  setEquipQuickExtra(0);
+                  setExtraConsumptionKWhMonth(0);
+                  setEnableExtraConsumption(false);
+                }}
+              >Limpar</button>
+              <button
+                className="px-3 py-1.5 text-sm rounded-md bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800"
+                onClick={async () => {
+                  try {
+                    setShowConsumptionModal(false);
+                    if (selectedLeadId) {
+                      const addressPayload: any = {
+                        street: addressStreet,
+                        number: addressNumber,
+                        complement: addressComplement,
+                        neighborhood: addressNeighborhood,
+                        city: addressCity,
+                        state: addressState,
+                        zip: addressZip,
+                        solar: {
+                          equipmentConsumption: {
+                            items: equipItems,
+                            quickExtra: equipQuickExtra,
+                          },
+                        },
+                      };
+                      const payload: any = { address: addressPayload };
+                      await fetch(`/api/contacts/${selectedLeadId}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                      });
+                    }
+                  } catch (e) {
+                    console.error('Erro ao persistir equipamentos no contato', e);
+                  } finally {
+                    // nada a fazer
+                  }
+                }}
+              >Concluir</button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+ 
+     </div>
+   )
+ }
+ 
+ export default Page

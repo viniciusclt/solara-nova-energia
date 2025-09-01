@@ -102,11 +102,19 @@ model Proposal {
   leadId String
   lead   Lead    @relation(fields: [leadId], references: [id])
 
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id])
+
   authorId String
   author   User   @relation(fields: [authorId], references: [id])
 
+  opportunityId String?
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id])
+
   @@index([leadId])
+  @@index([contactId])
   @@index([authorId])
+  @@index([opportunityId])
 }
 
 model TrainingModule {
@@ -234,6 +242,7 @@ model Contact {
   ownerId String?
   owner   User?      @relation(fields: [ownerId], references: [id])
   opportunities Opportunity[]
+  proposals     Proposal[]
 }
 
 model Opportunity {
@@ -250,6 +259,8 @@ model Opportunity {
 
   ownerId String?
   owner   User?     @relation(fields: [ownerId], references: [id])
+
+  proposals Proposal[]
 
   @@index([contactId])
   @@index([ownerId])

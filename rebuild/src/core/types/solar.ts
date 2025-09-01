@@ -143,6 +143,7 @@ export type SimulationInput = {
   tariff?: TariffBreakdown;
   equipment?: EquipmentSelection; // quando já houver seleção
   technical?: TechnicalParams;
+  level?: SimulationLevel; // nível de precisão da simulação (básico, preciso, pvsol)
 };
 
 // Saída principal do cálculo

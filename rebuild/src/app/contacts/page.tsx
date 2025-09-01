@@ -1,6 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+// REMOVIDO: export const dynamic = "force-dynamic";
+// REMOVIDO: export const revalidate = 0;
+
+import React, { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -26,7 +29,7 @@ const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: "archived", label: "Arquivado" },
 ];
 
-export default function ContactsPage() {
+function ContactsPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -172,7 +175,6 @@ export default function ContactsPage() {
                 <th className="border border-sidebar-border px-2 py-1 text-left">Telefone</th>
                 <th className="border border-sidebar-border px-2 py-1 text-left">Status</th>
                 <th className="border border-sidebar-border px-2 py-1 text-left">Responsável</th>
-                <th className="border border-sidebar-border px-2 py-1 text-left">Criado em</th>
                 <th className="border border-sidebar-border px-2 py-1">Ações</th>
               </tr>
             </thead>
@@ -223,5 +225,13 @@ export default function ContactsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ContactsPage() {
+  return (
+    <Suspense fallback={<div>Carregando...</div>}>
+      <ContactsPageInner />
+    </Suspense>
   );
 }

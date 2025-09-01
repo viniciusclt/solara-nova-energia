@@ -75,6 +75,54 @@ async function main() {
   const opps = await prisma.opportunity.findMany();
   console.log(`[seed] Oportunidades prontas: ${opps.length}`);
 
+  // 4) Catálogo: Módulos Solares
+  const solarModules = [
+    {
+      manufacturer: "JA Solar",
+      model: "JAM72S30-540/MR",
+      powerW: 540,
+      efficiencyPerc: "21.10", // decimal como string
+      dimensions: "2279x1134x30 mm",
+      warrantyYears: 12,
+    },
+    {
+      manufacturer: "Canadian Solar",
+      model: "HiKu6 550W",
+      powerW: 550,
+      efficiencyPerc: "21.50",
+      dimensions: "2279x1134x30 mm",
+      warrantyYears: 12,
+    },
+  ];
+  await prisma.solarModule.createMany({ data: solarModules, skipDuplicates: true });
+  const solarModulesCount = await prisma.solarModule.count();
+  console.log(`[seed] Módulos Solares prontos: ${solarModulesCount}`);
+
+  // 5) Catálogo: Inversores
+  const inverters = [
+    {
+      manufacturer: "Fronius",
+      model: "Primo 5.0-1",
+      powerW: 5000,
+      mpptCount: 2,
+      efficiencyPerc: "97.80",
+      phases: "MONO",
+      warrantyYears: 5,
+    },
+    {
+      manufacturer: "SMA",
+      model: "Sunny Tripower 10000TL",
+      powerW: 10000,
+      mpptCount: 2,
+      efficiencyPerc: "98.00",
+      phases: "TRIF",
+      warrantyYears: 5,
+    },
+  ];
+  await prisma.inverter.createMany({ data: inverters, skipDuplicates: true });
+  const invertersCount = await prisma.inverter.count();
+  console.log(`[seed] Inversores prontos: ${invertersCount}`);
+
   console.log("[seed] Finalizado com sucesso ✔");
 }
 

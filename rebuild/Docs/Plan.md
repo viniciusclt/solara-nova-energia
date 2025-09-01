@@ -48,7 +48,7 @@ Confirmação da Solicitação — Organização e Módulo Fotovoltaico
 - Organização das abas em grupos: ✅ Implementado no componente <mcfile name="AppShell.tsx" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\src\\app\\_components\\AppShell.tsx"></mcfile> (grupos Início, Comercial, Projetos, Treinamentos) e seção de Configurações fixa no rodapé. A prioridade dentro de Projetos posiciona Fotovoltaico no topo.
 - Módulo Fotovoltaico — status por subitens requisitados:
   1.1 Informações do Lead: ⌛ Não implementado o fluxo de seleção de lead com autopreenchimento de endereço (rua, número, complemento, CEP), CPF e telefone; atualmente existem apenas campos básicos (Nome, Email, Telefone, Tipo) em <mcfile name="page.tsx" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\src\\app\\solar\\page.tsx"></mcfile>.
-  1.2 Simulação: ⌛ Parcial — existem abas para Módulos, Inversores e Baterias, com seleção/quantidades e parâmetros técnicos básicos e cálculos simplificados na própria página <mcfile name="page.tsx" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\src\\app\\solar\\page.tsx"></mcfile>. Botão “Gerenciar” para edição de catálogos (módulos/inversores/baterias) ainda não existe. A opção “Aumentar Consumo” está parcial — há consumo extra numérico e uma seção placeholder “Consumo de Equipamentos Extras” em <mcfile name="EquipmentConsumption.tsx" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\src\\app\\solar\\components\\EquipmentConsumption.tsx"></mcfile> (a UI de adicionar equipamentos com uso diário/mensal/anual ainda será implementada).
+  1.2 Simulação: ⌛ Parcial — existem abas para Módulos, Inversores e Baterias, com seleção/quantidades e parâmetros técnicos básicos e cálculos simplificados na própria página <mcfile name="page.tsx" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\src\\app\\solar\\page.tsx"></mcfile>. Importar PV*Sol (MVP): ✅ upload e parsing inicial (JSON) integrados alimentando estados de módulos/inversores/baterias/perdas e série mensal. Botão “Gerenciar” para edição de catálogos (módulos/inversores/baterias) ainda não existe. A opção “Aumentar Consumo” está parcial — há consumo extra numérico e uma seção placeholder “Consumo de Equipamentos Extras” em <mcfile name="EquipmentConsumption.tsx" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\src\\app\\solar\\components\\EquipmentConsumption.tsx"></mcfile> (a UI de adicionar equipamentos com uso diário/mensal/anual ainda será implementada).
   1.3 Orçamento: ⌛ Não implementado — não há etapa dedicada a seleção/gerenciamento de kits, cálculo por BDI/markup nem aplicação de margem de desconto.
   1.4 Proposta: ⌛ Parcial — já há Pré-visualização e Exportar PDF (A4) na aba Propostas, com regras @media print em <mcfile name="globals.css" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\src\\app\\globals.css"></mcfile>. Link rastreável (com data/hora/IP) e formato 16:9 ainda não foram implementados.
 
@@ -101,8 +101,14 @@ Critérios de Aceite — Fase 3 (UI mínima)
 - Lint/TypeScript sem erros e acessibilidade básica (rótulos e foco visível) nos componentes adicionados.
 
 Fase 4 — Módulo Fotovoltaico (Simulação) — ⌛
+- ✅ Opção B — Importar PV*Sol (MVP): fluxo de upload integrado e parsing inicial implementado em <mcfile name="page.tsx" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\src\\app\\solar\\page.tsx"></mcfile> (função handlePvsolUploaded), mapeando módulos, inversores, baterias, perdas e série mensal a partir de JSON; UI validada em /solar.
 - ⌛ Implementar CalculationService (src/core/services) conforme PRD/Descritivo (Fio B, créditos 60m FIFO, tarifação, KPIs VPL/TIR/Paybacks).
 - ⌛ Tipos/DTOs (src/core/types) e fixtures de validação; testes unitários mínimos.
+
+Critérios de Aceite — PV*Sol (MVP)
+- Upload via <mcfile name="FileUploader.tsx" path="c:\\Users\\vinic\\OneDrive\\Documentos\\01 - Profissional\\08- Plataformas\\atualizacao nova energia plataforma\\solara-nova-energia\\rebuild\\src\\app\\_components\\FileUploader.tsx"></mcfile> aceita JSON e a função handlePvsolUploaded preenche estados de módulos, inversor, bateria, perdas e série mensal sem erros no console.
+- Quando houver série mensal, alternar para “usar série mensal” e refletir no resumo da simulação.
+- UI de status/erro visível no card de importação e validação visual em /solar sem erros no navegador/terminal.
 
 Fase 5 — Propostas (MVP) — ⌛
 - ⌛ CRUD básico (listar/criar/editar rascunho) + exportação PDF inicial (placeholders).
@@ -131,6 +137,10 @@ Próximos passos (priorizados)
    - ⌛ Detalhar Plan.md (F4) conforme requisitos funcionais: Lead (seleção + dados + histórico + “Aumentar Consumo”), Simulação (equipamentos e parâmetros técnicos), Orçamento (kits e margem/BDI) e Proposta (prévia + link rastreável + A4/16:9).
    - ⌛ Definir tipos/DTOs em src/core/types para entrada/saída dos cálculos e criar esqueleto de src/core/services/CalculationService (normalização, geração kWh, Fio B, compensação 60m FIFO, tarifação e KPIs).
    - ⌛ UI: implementar etapa “Informações do Lead” com histórico de consumo e botão “Aumentar Consumo”.
+   - ⌛ Evoluir Importar PV*Sol: suportar arquivos reais (ZIP/XML ProjectData.xml) e CSV/XLSX; extrair módulos/inversores/baterias, perdas e geração mensal; fallback para JSON; normalizar fabricante/modelo e mapear strings/MPPT quando disponível; validar limites elétricos.
+   - ⌛ Integração de estados: ao importar, setar nível de precisão para "pvsol_import", marcar needsResimulate, atualizar lastSimulationHash/currentConsumptionHash e ativar série mensal quando aplicável.
+   - ⌛ UX: mensagens de status/erro de parsing, botão “Limpar importação” e confirmação; logs do servidor e telemetry mínima.
+   - ⌛ Testes: fixtures mínimos (JSON e XML) e smoke tests da importação end-to-end na página /solar.
 
 2) F6/F7 — Treinamentos
    - ⌛ CRUD de módulos e conteúdos; upload de vídeos (MinIO) e leitor de playbooks; interatividade básica (MVP) e avaliação (F7).
@@ -213,6 +223,12 @@ Backlog — Final da Fila (priorização adiada por solicitação)
   - Adicionar cancelamento/remoção de itens da fila e botão "limpar concluídos".
   - Mensagens de validação para content-type e tamanho (front e backend) e limite de quantidade por lote.
   - Refinar acessibilidade (rótulos ARIA no dropzone e feedback de status).
+- Importação PV*Sol — Arquivos Excel (CSV/XLSX)
+  - Parser CSV/XLSX com validação de cabeçalhos e tipos.
+  - Mapeamento de colunas para módulos, inversores, baterias, perdas e série mensal.
+  - Normalização de fabricante/modelo e associação com catálogo interno.
+  - Mensagens de erro amigáveis e relatório de linhas com problema.
+  - Fixtures e testes de parsing (CSV e XLSX).
 - Backend e ambiente
   - Confirmar .env com MINIO_ENDPOINT, MINIO_PORT, MINIO_USE_SSL, MINIO_REGION, MINIO_ACCESS_KEY, MINIO_SECRET_KEY e MINIO_BUCKET para upload real.
   - Habilitar proteção por Clerk quando as chaves estiverem no .env, validando sessão nos handlers.
