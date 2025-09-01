@@ -36,3 +36,11 @@
 ### docs(coverage): adicionar Feature Coverage Matrix
 - Cria `rebuild/Docs/Feature Coverage Matrix.md` para rastrear status (✅/⌛/🔜), paths e fontes dos Docs.
 - Inclui instruções de atualização e colunas para Critérios de Aceite e Testes.
+
+### docs(plan-002): Item 1 — Descoberta e Análise de Requisitos
+- Adicionados documentos:
+  - `Docs/CRM - Campos e Validações (Contato e Oportunidade).md`
+  - `Docs/Cálculos Financeiros - Fórmulas e Premissas.md`
+  - `Docs/Checklist de Validação de Campos.md`
+- Atualizado `Docs/KNOWLEDGE_FILE.md` com resumo do Item 1 e links dos documentos.
+- Base para implementação de autosave, validações de campos e CalculationService.

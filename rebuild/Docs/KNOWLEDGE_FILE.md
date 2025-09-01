@@ -65,3 +65,15 @@ Atualizações Recentes — Módulo Solar
 - Novos memos derivados em src/app/solar/page.tsx:
   - monthlyConsumptionTotal, annualConsumptionTotal, computedOversize (DRY e melhor reuso nos cards).
 - Motivações: feedback rápido ao usuário, consistência com F4 (Plan.md) e base para exportar proposta.
+
+## CRM / Solar — Descoberta do Item 1 (Plan-002)
+
+- Documentos criados:
+  - Docs/CRM - Campos e Validações (Contato e Oportunidade).md
+  - Docs/Cálculos Financeiros - Fórmulas e Premissas.md
+  - Docs/Checklist de Validação de Campos.md
+- Mapas chave:
+  - Contato fornece defaults; Oportunidade persiste dados da concessionária (UF, distribuidora, classe, tipo_ligação, nº instalação/cliente, vigência/bandeira quando houver).
+  - Histórico mensal (6–24 meses) no Contato; série mensal (12) opcional na Oportunidade.
+- Fórmulas e premissas consolidadas: Fio B (Lei 14.300), créditos de energia FIFO 60 meses, custo de disponibilidade, ICMS/COSIP por faixas, KPI financeiros (VPL/TIR/Paybacks) com métodos e precisão esperada.
+- Checklists de validação por etapa (Contato/Oportunidade) definidos para orientar autosave, navegação entre abas e bloqueio de avanço.
