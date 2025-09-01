@@ -18,7 +18,7 @@ Objetivo: consolidar os campos que serão usados no módulo /solar, mapeando de 
 - Consumo de energia
   - consumo_medio_kWh — opcional (derivado do histórico quando houver)
   - historico_mensal: lista de entradas {mes: 1-12, ano: YYYY, kWh: > 0}
-    - tamanho esperado: 12–24 (fallback: 6–12)
+    - tamanho esperado: exatamente 12 entradas (últimos 12 meses consecutivos)
     - crescente temporal (ordenada por ano/mes)
 - Preferências/Concessionária (defaults)
   - distribuidora (string) — default para Oportunidade
@@ -79,6 +79,6 @@ Observações
 
 - Strings aparadas (trim) e normalização de caixa (UF).
 - Telefones e documentos validados com máscaras e DVs quando aplicável.
-- Histórico mensal sem meses duplicados e ordenado.
+- Histórico mensal com exatamente 12 entradas, sem meses duplicados e ordenado.
 - Campos obrigatórios por etapa (Contato básico vs. Oportunidade para cálculo).
 - Valores percentuais e faixas numéricas respeitando limites indicados.

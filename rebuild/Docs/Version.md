@@ -44,3 +44,9 @@
   - `Docs/Checklist de Validação de Campos.md`
 - Atualizado `Docs/KNOWLEDGE_FILE.md` com resumo do Item 1 e links dos documentos.
 - Base para implementação de autosave, validações de campos e CalculationService.
+
+### fix(docs): ajustar regra de histórico mensal para 12 meses e incluir Owner/Due date na matriz
+- Atualiza `Docs/CRM - Campos e Validações (Contato e Oportunidade).md` para exigir exatamente 12 entradas consecutivas.
+- Atualiza `Docs/Checklist de Validação de Campos.md` para refletir 12 entradas.
+- Atualiza `Docs/KNOWLEDGE_FILE.md` alinhando a regra de 12 meses.
+- Atualiza `Docs/Feature Coverage Matrix.md` adicionando colunas "Owner" e "Due date" e corrigindo o item de histórico para 12 meses.

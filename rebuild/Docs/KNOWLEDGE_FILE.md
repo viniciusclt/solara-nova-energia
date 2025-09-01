@@ -74,6 +74,6 @@ Atualizações Recentes — Módulo Solar
   - Docs/Checklist de Validação de Campos.md
 - Mapas chave:
   - Contato fornece defaults; Oportunidade persiste dados da concessionária (UF, distribuidora, classe, tipo_ligação, nº instalação/cliente, vigência/bandeira quando houver).
-  - Histórico mensal (6–24 meses) no Contato; série mensal (12) opcional na Oportunidade.
+  - Histórico mensal (exatamente 12 meses, últimos 12 consecutivos) no Contato; série mensal (12) opcional na Oportunidade.
 - Fórmulas e premissas consolidadas: Fio B (Lei 14.300), créditos de energia FIFO 60 meses, custo de disponibilidade, ICMS/COSIP por faixas, KPI financeiros (VPL/TIR/Paybacks) com métodos e precisão esperada.
 - Checklists de validação por etapa (Contato/Oportunidade) definidos para orientar autosave, navegação entre abas e bloqueio de avanço.

@@ -4,11 +4,11 @@ Objetivo: servir de guia de implementação para máscaras, obrigatoriedades e f
 
 ## Contato
 - Nome: obrigatório, 3–120 chars
-- Email: obrigatório, formato
+- Email: opcional, formato
 - Telefone: obrigatório, E.164/BR
 - CPF: opcional, DV válido
 - Endereço: CEP (00000-000), UF (2 letras, uppercase), cidade
-- Histórico mensal: 6–24 entradas, meses únicos, ordenado, kWh > 0
+- Histórico mensal: exatamente 12 entradas (últimos 12 meses consecutivos), meses únicos, ordenado, kWh > 0
 
 ## Oportunidade
 - Vínculo: contact_id obrigatório
